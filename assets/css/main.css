@@ -13,9 +13,6 @@
 	color: #1e1e1e;
 }
 
-body {
-}
-
 body::-webkit-scrollbar {
 	background-color: #1e1e1e;
 	width: 0.4rem;
@@ -77,28 +74,115 @@ header section p::after {
 	box-shadow: 0rem 0.2rem 0.4rem 0;
 }
 
-article p {
-	font-style: italic;
-	text-align: justify;
+article {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: #ccc;
+	min-height: 70vh;
+	max-height: 70vh;
+	width: 80%;
+	margin: auto;
 }
 
 main {
 	min-height: 100vh;
 }
 
+p#aboutText {
+	font-style: italic;
+	text-align: center;
+	font-weight: 300;
+	margin: 1rem;
+}
+
 #sec-main {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
 	background-color: #1e1e1e;
 	min-height: 100vh;
 }
 
-#navbar * {
+#navbar {
+	width: 100%;
 	display: flex;
-	justify-content: space-evenly;
+	flex-direction: column;
+	justify-content: center;
 	align-items: center;
 	padding: 0.5rem;
 }
 
+#navbar ul {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: space-evenly;
+}
+
+#navbar h2 {
+	padding: 1rem;
+}
+
+.my-name {
+	font-size: 3rem;
+}
+
+.title {
+	font-family: "audiowide";
+	color: var(--title-color);
+	color: #ccc;
+}
+
 .btn {
+	width: 10rem;
+	height: 3rem;
+	border-top: 1px;
+	border-right: 1px;
+	border-bottom: 0.1rem;
+	border-left: 0.1rem;
+	border-style: solid;
+	border-color: #ccc;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	transition: 0.6s all;
+}
+
+.btn:hover {
+	background-color: #ccc;
+	color: #1e1e1e;
+	transition: 0.6s all;
+	border-top: 1px;
+	border-right: 1px;
+	border-bottom: 0.1rem;
+	border-left: 0.1rem;
+	border-style: solid;
+	border-color: #3e3e3e;
+}
+
+.active-btn {
+	background-color: #805fb3;
+}
+
+.active-btn::before {
+	content: "";
+	top: 3.2rem;
+	margin: 0.2rem;
+	border-left: 0.1rem solid #805fb3;
+	border-bottom: 0.1rem solid #805fb3;
+	width: 0.5rem;
+	height: 0.5rem;
+	position: absolute;
+	transform: rotate(-45deg);
+	background-color: #ccc;
+	box-shadow: 0.2rem 0rem 1rem 0.05rem;
+}
+
+.btn-start {
 	width: 10rem;
 	height: 3rem;
 	border-top: 1px;
@@ -115,7 +199,7 @@ main {
 	transition: 0.6s all;
 }
 
-.btn:hover {
+.btn-start:hover {
 	background-color: #1e1e1e;
 	transition: 0.6s all;
 	border-top: 1px;
@@ -126,16 +210,10 @@ main {
 	border-color: #ccc;
 }
 
-.btn:active {
+.btn-start:active {
 	background-color: #805fb3;
 }
 
-.my-name {
-	font-size: 3rem;
-}
-
-.title {
-	font-family: "audiowide";
-	color: var(--title-color);
-	color: #ccc;
+.text-container {
+	margin-top: 1rem;
 }

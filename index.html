@@ -5,7 +5,7 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<link rel="stylesheet" href="./assets/css/main.css" />
-		<title>Portifólio</title>
+		<title>Portifólio Carlos Henrique</title>
 	</head>
 	<body>
 		<header>
@@ -16,7 +16,9 @@
 			<section>
 				<ul>
 					<li>
-						<a href="#navbar" class="title btn">PRESS START</a>
+						<a href="#navbar" class="title btn-start"
+							>PRESS START</a
+						>
 					</li>
 				</ul>
 			</section>
@@ -25,41 +27,27 @@
 			<nav id="navbar">
 				<h2 class="title">SOBRE MIM</h2>
 				<ul>
-					<li><a class="title btn" href="#">EASY</a></li>
-					<li><a class="title btn" href="#">NORMAL</a></li>
-					<li><a class="title btn" href="#">HARD</a></li>
+					<li id="easy" class="title btn">EASY</li>
+					<li id="normal" class="title btn">NORMAL</li>
+					<li id="hard" class="title btn">HARD</li>
 				</ul>
 			</nav>
-			<article>
-				<p id="p-easy">
-					Lorem ipsum dolor sit amet consectetur adipisicing elit.
-					Est, qui?
-				</p>
-				<p id="p-normal">
-					Lorem ipsum dolor sit amet consectetur adipisicing elit.
-					Dolorum tempore aperiam qui temporibus ad quae ipsam
-					doloremque modi hic sunt!
-				</p>
-				<p id="p-hard">
-					Lorem ipsum dolor sit amet consectetur adipisicing elit.
-					Unde quasi modi consectetur perspiciatis voluptatibus rem
-					deleniti repellat architecto adipisci repudiandae. Sequi cum
-					quis aperiam porro maiores nobis non? Natus inventore
-					doloribus architecto, officia repudiandae fuga sapiente
-					exercitationem iure qui iste!
-				</p>
+			<article class="text-container">
+				<p id="aboutText"></p>
 			</article>
 		</section>
 
 		<main>
-			<h1 class="title">PROJETOS</h1>
-			<nav>
-				<ul>
-					<li><a class="title" href="#">BRONZE</a></li>
-					<li><a class="title" href="#">PRATA</a></li>
-					<li><a class="title" href="#">OURO</a></li>
-				</ul>
-			</nav>
+			<section id="project">
+				<h1 class="title">PROJETOS</h1>
+				<nav>
+					<ul>
+						<li><a class="title" href="#">BRONZE</a></li>
+						<li><a class="title" href="#">PRATA</a></li>
+						<li><a class="title" href="#">OURO</a></li>
+					</ul>
+				</nav>
+			</section>
 
 			<section>
 				<h1 class="title">CONTATOS</h1>
