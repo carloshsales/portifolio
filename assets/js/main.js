@@ -1,6 +1,11 @@
 
 let aboutText = document.getElementById('aboutText');
 let liAbout = document.querySelectorAll('li');
+let bronzeProject = document.getElementsByClassName('bronze-container');
+let silveProject = document.getElementsByClassName('silver-container');
+let goldProject = document.getElementsByClassName('gold-container');
+
+
 
 // import { text } from './text';
 

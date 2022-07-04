@@ -93,17 +93,6 @@ header section p::after {
 	box-shadow: 0rem 0.2rem 0.4rem 0;
 }
 
-article {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background-color: #ccc;
-	min-height: 70vh;
-	max-height: 70vh;
-	width: 80%;
-	margin: auto;
-}
-
 main {
 	min-height: 100vh;
 	background-color: #2e2e2e;
@@ -112,7 +101,7 @@ main {
 p#aboutText {
 	font-style: italic;
 	text-align: center;
-	font-weight: 300;
+	font-weight: 400;
 	margin: 1rem;
 }
 
@@ -156,6 +145,28 @@ footer img {
 
 #navbar h2 {
 	padding: 1rem;
+}
+
+#project {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+#bronze {
+	color: #cd7f32;
+	margin: 0.4rem;
+}
+
+#silver {
+	color: #c0c0c0;
+	margin: 0.4rem;
+}
+
+#gold {
+	color: #ffd700;
+	margin: 0.4rem;
 }
 
 .my-name {
@@ -248,5 +259,53 @@ footer img {
 }
 
 .text-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: #ccc;
+	min-height: 70vh;
+	max-height: 70vh;
+	width: 80%;
+	margin: auto;
 	margin-top: 1rem;
+}
+
+.project-container {
+	height: 28vh;
+	background-color: #333;
+	width: 90vw;
+}
+
+.project-article {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+.project-title {
+	color: rgb(71, 231, 196);
+	font-size: 1.3rem;
+	padding: 1rem;
+}
+
+.project-description {
+	text-align: center;
+	color: #aaa;
+	padding: 1rem;
+}
+
+.project-link {
+	padding: 1rem;
+	color: #fff;
+	background-color: #1e1e1e;
+	border-radius: 8px;
+	transition: 0.6s all;
+}
+
+.project-link:hover {
+	color: #1e1e1e;
+	background-color: #fff;
+	border-radius: 8px;
+	transition: 0.6s all;
 }
