@@ -271,9 +271,32 @@ footer img {
 }
 
 .project-container {
-	height: 28vh;
 	background-color: #333;
 	width: 90vw;
+}
+
+.project-container::after {
+	content: "";
+	display: flex;
+	width: 80%;
+	height: 0.2rem;
+	margin: auto;
+	background-image: linear-gradient(
+		to right bottom,
+		#ff0000,
+		#f36300,
+		#de9200,
+		#c2b700,
+		#a0d600,
+		#74dd54,
+		#46e085,
+		#00e1ad,
+		#00c6d9,
+		#00a5ff,
+		#0078ff,
+		#0000ff
+	);
+	box-shadow: 0rem 0.2rem 0.4rem 0;
 }
 
 .project-article {
@@ -284,7 +307,7 @@ footer img {
 }
 
 .project-title {
-	color: rgb(71, 231, 196);
+	color: rgb(196, 81, 211);
 	font-size: 1.3rem;
 	padding: 1rem;
 }
