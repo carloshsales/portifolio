@@ -95,7 +95,7 @@ header section p::after {
 
 main {
 	min-height: 100vh;
-	background-color: #2e2e2e;
+	background-color: #ccc;
 }
 
 p#aboutText {
@@ -106,16 +106,30 @@ p#aboutText {
 }
 
 footer {
+	color: #ccc;
+	padding: 1rem;
 	min-height: 10vh;
 	width: 100%;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	flex-direction: column;
+	background-image: linear-gradient(
+		to right top,
+		#8a72af,
+		#66699d,
+		#485f86,
+		#34526d,
+		#2a4453
+	);
 }
 
 footer img {
 	width: 2rem;
+}
+
+img {
+	width: 30vw;
 }
 
 #sec-main {
@@ -152,21 +166,87 @@ footer img {
 	justify-content: center;
 	align-items: center;
 	flex-direction: column;
+	background-color: #ccc;
+	margin-bottom: 0.5rem;
+}
+
+#project h1.title {
+	font-size: 2rem;
+	color: #2c2c2c;
 }
 
 #bronze {
+	margin-top: 1rem;
+	background-color: #2c2c2c;
+	border-radius: 0.2rem;
+	box-shadow: 0rem 0rem 0.2rem 0.2rem;
+}
+
+#bronze h1 {
+	font-family: "audiowide";
+	text-align: center;
 	color: #cd7f32;
 	margin: 0.4rem;
+	font-size: 1.5rem;
 }
 
 #silver {
+	margin-top: 1rem;
+	background-color: #2c2c2c;
+	border-radius: 0.2rem;
+	box-shadow: 0rem 0rem 0.2rem 0.2rem;
+}
+
+#silver h1 {
 	color: #c0c0c0;
 	margin: 0.4rem;
+	font-size: 1.5rem;
+	text-align: center;
+	font-family: "audiowide";
 }
 
 #gold {
-	color: #ffd700;
+	margin-top: 1rem;
+	background-color: #2c2c2c;
+	border-radius: 0.2rem;
+	box-shadow: 0rem 0rem 0.2rem 0.2rem;
+}
+
+#gold h1 {
+	color: goldenrod;
 	margin: 0.4rem;
+	font-size: 1.5rem;
+	text-align: center;
+	font-family: "audiowide";
+}
+
+#skills {
+	height: 20vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+	margin-top: 2rem;
+}
+
+#skills h1 {
+	color: #2c2c2c;
+	font-size: 1.5rem;
+	padding: 1rem;
+}
+
+#contact {
+	background-color: #2c2c2c;
+	display: flex;
+	justify-content: space-evenly;
+	align-items: center;
+	flex-direction: column;
+	padding: 1rem;
+	margin-top: 2rem;
+}
+
+#contact h1 {
+	font-size: 1.5rem;
 }
 
 .my-name {
@@ -273,6 +353,7 @@ footer img {
 .project-container {
 	background-color: #333;
 	width: 90vw;
+	border-radius: 0.2rem;
 }
 
 .project-container::after {
@@ -281,22 +362,9 @@ footer img {
 	width: 80%;
 	height: 0.2rem;
 	margin: auto;
-	background-image: linear-gradient(
-		to right bottom,
-		#ff0000,
-		#f36300,
-		#de9200,
-		#c2b700,
-		#a0d600,
-		#74dd54,
-		#46e085,
-		#00e1ad,
-		#00c6d9,
-		#00a5ff,
-		#0078ff,
-		#0000ff
-	);
+	background-color: #8a72af;
 	box-shadow: 0rem 0.2rem 0.4rem 0;
+	border-radius: 1rem;
 }
 
 .project-article {
@@ -319,11 +387,12 @@ footer img {
 }
 
 .project-link {
-	padding: 1rem;
+	padding: 0.6rem;
 	color: #fff;
 	background-color: #1e1e1e;
 	border-radius: 8px;
 	transition: 0.6s all;
+	margin: 0.4rem;
 }
 
 .project-link:hover {
@@ -331,4 +400,27 @@ footer img {
 	background-color: #fff;
 	border-radius: 8px;
 	transition: 0.6s all;
+}
+
+.bronze-container {
+	margin-top: 1rem;
+	box-shadow: 0 0 0.2rem 0;
+}
+.silver-container {
+	margin-top: 1rem;
+	box-shadow: 0 0 0.2rem 0;
+}
+.gold-container {
+	margin-top: 1rem;
+	box-shadow: 0 0 0.2rem 0;
+}
+
+.svg {
+	width: 4.2vw;
+	margin: 0.5rem;
+}
+
+.container {
+	display: flex;
+	flex-direction: row;
 }

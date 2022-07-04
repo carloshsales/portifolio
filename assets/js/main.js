@@ -1,10 +1,6 @@
 
-let aboutText = document.getElementById('aboutText');
-let liAbout = document.querySelectorAll('li');
-let bronzeProject = document.getElementsByClassName('bronze-container');
-let silveProject = document.getElementsByClassName('silver-container');
-let goldProject = document.getElementsByClassName('gold-container');
-
+const aboutText = document.getElementById('aboutText');
+const liAbout = document.querySelectorAll('li');
 
 
 // import { text } from './text';
@@ -30,7 +26,7 @@ liAbout.forEach(item => {
                     break;
                 case 'normal':
                     aboutText.innerHTML = `
-                    Atualmente estou seguindo o curso Fullstack developer na Blue Edtech, e tem foco no JavaScript e suas bibliotecas/frameworks.\n Possuo outras experiências que me ajudam sempre na tentativa de aprender algo novo, já desenvolvi alguns jogos simples em GDScript (liguagem da Godot Engine), passei pelo Java, C/C++/C#, Python...\n Tentei muito até chegar onde estou no momento.
+                    Atualmente estou seguindo o curso Fullstack developer na Blue Edtech, e tem foco no JavaScript e suas bibliotecas/frameworks. Possuo outras experiências que me ajudam sempre na tentativa de aprender algo novo, já desenvolvi alguns jogos simples em GDScript (liguagem da Godot Engine), passei pelo Java, C/C++/C#, Python... Tentei muito até chegar onde estou no momento.
                     `;
                     break;
                 case 'hard':
