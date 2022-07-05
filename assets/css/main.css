@@ -348,6 +348,7 @@ img {
 	width: 80%;
 	margin: auto;
 	margin-top: 1rem;
+	border-radius: 0.2rem;
 }
 
 .project-container {
@@ -416,11 +417,18 @@ img {
 }
 
 .svg {
-	width: 4.2vw;
+	width: 3vw;
 	margin: 0.5rem;
 }
 
 .container {
 	display: flex;
 	flex-direction: row;
+}
+
+@media (max-width: 768px) {
+	.svg {
+		width: 5.5vw;
+		margin: 0.3rem;
+	}
 }
