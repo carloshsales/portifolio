@@ -30,6 +30,7 @@
 	list-style: none;
 	border: none;
 	color: #1e1e1e;
+	scroll-behavior: smooth;
 }
 
 body::-webkit-scrollbar {
