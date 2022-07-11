@@ -1,5 +1,5 @@
 
-const aboutText = document.getElementById('aboutText');
+const aboutText = document.querySelector('#aboutText');
 const liAbout = document.querySelectorAll('li');
 
 

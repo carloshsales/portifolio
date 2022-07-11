@@ -106,6 +106,12 @@ p#aboutText {
 	font-size: 1.2rem;
 }
 
+p#aboutText img {
+	width: 15rem;
+	border: 0.2rem solid #2c2c2c;
+	border-radius: 0.5rem;
+}
+
 footer {
 	color: #ccc;
 	padding: 1rem;
