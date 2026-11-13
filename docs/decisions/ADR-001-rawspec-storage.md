@@ -36,4 +36,3 @@ Utilizar arquivos Markdown versionados com Git como base do RawSpec.
 - A automação será adicionada gradualmente.
 - As especificações poderão ser utilizadas por diferentes agentes
   e ferramentas de desenvolvimento.
-EOF

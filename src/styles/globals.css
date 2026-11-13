@@ -1,0 +1,62 @@
+@import './tokens.css';
+@import './reset.css';
+
+html {
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-tight);
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+}
+
+a {
+  color: var(--color-accent);
+  text-underline-offset: 0.2em;
+}
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,55 @@
+:root {
+  /* Cores aprovadas */
+  --color-bg: #171717;
+  --color-surface: #222222;
+  --color-accent: #ff922b;
+  --color-text: #f5f5f5;
+  --color-text-muted: #b8b8b8;
+  --color-on-accent: #171717;
+
+  /* Tipografia */
+  --font-heading: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Courier New', monospace;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.6;
+
+  /* Espaçamento — múltiplos de 4px */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /*
+   * Breakpoints de referência.
+   * Custom properties não funcionam dentro de @media; use os valores
+   * literais (640px, 768px, 1024px, 1280px) nas media queries.
+   */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+
+  /* Foco acessível */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+}
