@@ -127,7 +127,9 @@ Regras da revisão:
 ## Fase 2 — Resolução e seleção
 
 ### TASK-003 — Implementar resolução de TASK para mudança
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — resolveTask, listActiveChanges, listArchivedChanges, resolveChange, CLI resolve e normalizacao de ID implementados; ambiguidade E_TASK_AMBIGUOUS com candidatas; E_TASK_NOT_FOUND e E_TASK_ARCHIVED cobertos; 60 testes do helper de fluxo aprovados; lint, typecheck, test e build aprovados; change 001 intacta.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-002
 - **Objetivo:** localizar uma tarefa explícita e a mudança à qual pertence.
 - **Arquivos:**
@@ -165,7 +167,9 @@ Regras da revisão:
   - Ausência de decisões pendentes para o implementador — ATENDE
 
 ### TASK-004 — Implementar seleção da próxima tarefa e tarefas abertas
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — listOpenTasks, listPendingChanges e selectNextTask implementados com CLI next, open e pending-changes; next nao pula tarefa bloqueada e retorna E_DEPENDENCY_PENDING; E_NOTHING_TO_START e E_CHANGE_NOT_APPROVED cobertos; 60 testes do helper de fluxo aprovados; lint, typecheck, test e build aprovados.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-003
 - **Objetivo:** fornecer os dados para `/startspec` sem argumento e `/continuespec` sem argumento.
 - **Arquivos:**
@@ -207,7 +211,9 @@ Regras da revisão:
 ## Fase 3 — Gates e execução
 
 ### TASK-005 — Implementar gates de aprovação e dependências
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — validateChangeApproval, buildDependencyGraph, validateDependencies e allowlist isLegacySequentialChange implementados; E_CHANGE_NOT_APPROVED, E_DEPENDENCY_UNDECLARED, E_DEPENDENCY_UNKNOWN, E_DEPENDENCY_CYCLE e E_DEPENDENCY_PENDING cobertos; originem legacy-sequential exibida; 60 testes do helper de fluxo aprovados; lint, typecheck, test e build aprovados.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-003
 - **Objetivo:** impedir execução de tarefa em mudança não aprovada ou com dependência pendente.
 - **Arquivos:**
@@ -256,7 +262,9 @@ Regras da revisão:
   - Ausência de decisões pendentes para o implementador — ATENDE
 
 ### TASK-006 — Implementar transições de estado da tarefa
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — startTask, beginVerification, verifyTask e failTask implementados com escrita atomica e preservacao de EOL e do conteudo restante; E_TASK_STATE e E_EVIDENCE_REQUIRED cobertos; fail registra FAILED e mantem a tarefa aberta; 60 testes do helper de fluxo aprovados; lint, typecheck, test e build aprovados.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-005
 - **Objetivo:** permitir iniciar, continuar, verificar e registrar falha de uma tarefa.
 - **Arquivos:**
@@ -296,7 +304,9 @@ Regras da revisão:
   - Ausência de decisões pendentes para o implementador — ATENDE
 
 ### TASK-007 — Implementar mensagem de commit e planos de ação
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — buildCommitMessage, createActionPlan, checkActionPlans e resolveActionPlan implementados com CLI commit-message, action-plan, check-action-plans e resolve-action-plan; E_COMMIT_MESSAGE_BLOCKED e E_ACTION_PLAN_UNRESOLVED cobertos; planos bloqueiam a conclusao ate RESOLVED; 60 testes do helper de fluxo aprovados; lint, typecheck, test e build aprovados.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-006
 - **Objetivo:** fechar cada tarefa com mensagem de commit e tratar riscos com plano de ação para aceite.
 - **Arquivos:**
@@ -345,7 +355,9 @@ Regras da revisão:
 ## Fase 4 — Arquivamento, comandos e validação
 
 ### TASK-008 — Implementar validação e arquivamento por mudança
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — checkArchive, assertConfinedPath, buildArchiveManifest, inspectGitState, writeArchiveState, readArchiveState, archiveChange, writeProposalArchiveMarkers, stageArchive e recoverArchive implementados com CLI check-archive e archive; rename atomico com archive-state.json write-ahead antes do rename; recuperacao idempotente com proposal.md antes de archive-state.json; E_ARCHIVE_PENDING_TASKS, E_ACTION_PLAN_PENDING, E_GIT_DIRTY, E_ARCHIVE_DESTINATION_EXISTS, E_ARCHIVE_STATE_UNKNOWN e E_ARCHIVE_TASK_SCOPE cobertos; 60 testes do helper de fluxo aprovados; lint, typecheck, test e build aprovados.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-006, TASK-007
 - **Objetivo:** arquivar somente a mudança inteira, com tarefas e planos concluídos.
 - **Arquivos:**
@@ -444,7 +456,9 @@ Regras da revisão:
   - Ausência de decisões pendentes para o implementador — ATENDE
 
 ### TASK-009 — Criar os três comandos OpenCode
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — Comandos startspec.md, continuespec.md e arquivespec.md criados em .opencode/commands/ com frontmatter description e argument-hint; instrucoes de pergunta em ambiguidade e concorrencia, plano de acao com aceite humano, mensagem de commit ao final, origem das dependencias, validacao completa do arquivamento e recuperacao idempotente do archive-state.json; helper compartilhado usado sem reimplementar parsing; 60 testes do helper de fluxo aprovados; lint, typecheck, test e build aprovados.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-004, TASK-006, TASK-007, TASK-008
 - **Objetivo:** expor o fluxo por meio de exatamente três comandos.
 - **Arquivos:**
@@ -494,7 +508,9 @@ Regras da revisão:
   - Ausência de decisões pendentes para o implementador — ATENDE
 
 ### TASK-010 — Documentar argumentos, comportamento, erros e exemplos
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — docs/rawspec-commands.md complementado com argumentos, flags, comportamento dos tres comandos, perguntas de concorrencia e ambiguidade com exemplos, catalogo de erros e codigos de saida, modelo de status, dependencias explicitas e modo legado, estruturas malformadas, regra de aprovacao e evidencia, formato de mensagem de commit com exemplos, gatilhos e template de plano de acao com fluxo de aceite, politica de arquivamento com tabela de estados e recuperacao, archive-state.json e garantia de staging; 60 testes do helper de fluxo aprovados; lint, typecheck, test e build aprovados.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-009
 - **Objetivo:** complementar `docs/rawspec-commands.md` para que qualquer pessoa use e diagnostique os comandos sem ler o código.
 - **Arquivos:** `docs/rawspec-commands.md` (complementação do arquivo criado na TASK-001, sem recriá-lo).
@@ -547,7 +563,9 @@ Regras da revisão:
   - Ausência de decisões pendentes para o implementador — ATENDE
 
 ### TASK-011 — Validar ponta a ponta e confirmar integridade da change 001
-- **Status:** PENDING
+- **Status:** COMPLETED
+- **Verificação:** VERIFIED (2026-11-13) — pnpm lint, pnpm typecheck, pnpm test (99 testes) e pnpm build aprovados; resolve TASK-003 e resolve TASK-004 contra a change 001 em modo somente leitura com dependencySource legacy-sequential; next e open contra a change 001 confirmados; check-archive 001-portfolio-mvp lista as 9 tarefas pendentes; transicoes, mensagem de commit, plano de acao e arquivamento testados apenas em diretorios temporarios; falha de validacao de arquivamento nao move arquivos nem executa git add; proposal.md arquivado com Staging Git DONE aparece staged e nao como alteracao unstaged; recuperacao apos interrupcao antes e depois do rename conclui o arquivamento sem mover a mudanca de novo; git diff -- specs/changes/001-portfolio-mvp vazio; nenhum commit ou push criado; Prettier aprovado.
+- **Início:** 2026-11-13
 - **Depende de:** TASK-010
 - **Objetivo:** provar que a implementação funciona e não alterou a change 001.
 - **Arquivos:** nenhum arquivo de produção; validação e relatório.
