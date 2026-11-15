@@ -1,6 +1,6 @@
 # Plano de Ação — TASK-005 — Push do workflow de CI bloqueado pelo âmbito do token
 
-- Status: PENDING ACCEPTANCE
+- Status: RESOLVED
 - Change: 005-refactor-portfolio-baseline
 - Task: TASK-005
 - Data: 2026-11-15
@@ -106,6 +106,24 @@ Se preferir evitar a autorização de âmbito:
 
 ## 10. Aprovação
 
-- Decisão:
-- Data:
-- Observações:
+- Decisão: Aceitada. O utilizador escolheu a Opção 1 (autorizar o âmbito `workflow` no `gh` CLI).
+- Data: 2026-11-15
+- Observações: O âmbito `workflow` foi concedido e confirmado por `gh auth status`, que passou a reportar `Token scopes: 'admin:public_key', 'gist', 'read:org', 'repo', 'workflow'`. O `git push` do `.github/workflows/ci.yml` foi aceite de imediato, tanto para o `main` como para a branch `task/005-005-introduzir-integracao-continua`.
+
+## 11. Resolução
+
+O problema foi resolvido pela Opção 1, tal como recomendado:
+
+1. O utilizador autorizou o âmbito `workflow` em `https://github.com/login/device`.
+2. `gh auth status` confirmou o novo âmbito.
+3. `git push` do `.github/workflows/ci.yml` foi aceite para `main` (commit `3049316`) e para a branch `005-005`.
+4. O workflow foi executado pelo GitHub Actions e o job `Qualidade` passou com todos os steps verdes.
+
+Durante a resolução, o CI revelou um defeito próprio: o `pnpm/action-setup@v4` recusa a chave `version` quando o `package.json` já declara `packageManager`, duplicando a fonte da versão. Corrigido no commit `86d1b9e`, removendo a chave `version`. Também foram actualizadas as versões das actions para `actions/checkout@v5` e `actions/setup-node@v5`, que não dependem do Node 20 já descontinuado.
+
+Estado final verificado:
+
+- `origin/main` contém `.github/workflows/ci.yml`.
+- `origin/task/005-005-introduzir-integracao-continua` contém `.github/workflows/ci.yml`.
+- Run `43769021078` concluído com `success`, com os 10 steps do job `Qualidade` a verde.
+
