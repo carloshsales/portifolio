@@ -1,3 +1,13 @@
+unset GIT_DIR
+unset GIT_WORK_TREE
+unset GIT_INDEX_FILE
+unset GIT_PREFIX
+unset GIT_COMMON_DIR
+unset GIT_OBJECT_DIRECTORY
+unset GIT_ALTERNATE_OBJECT_DIRECTORIES
+unset GIT_CONFIG
+unset GIT_CONFIG_PARAMETERS
+
 pnpm run typecheck
 pnpm run test
 pnpm run build
