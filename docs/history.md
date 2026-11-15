@@ -307,3 +307,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: aplicar o ciclo de vida do formato v2.
 - Impacto: segunda tarefa da change 004 arquivada; commit `4a6da6e` pushado.
 - Evidência: aprovação do usuário em 2026-11-15.
+
+## 2026-11-15 — Evento — TASK-003 concluída
+
+- Autor: Carlos Henrique
+- Origem: execução da change 004-rawspec-branch-per-task
+- Decisão: a TASK-003 (documentar a regra e validar ponta a ponta) foi concluída e verificada.
+- Motivo: documentar a regra de branch por tarefa e commit/push e validar o fluxo.
+- Impacto: ADR-005, `docs/rawspec-v2.md` e `README.md` atualizados.
+- Evidência: `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (128 passando, 1 pulado) e `pnpm build` aprovados em 2026-11-15; hooks confirmados em commit e push reais.

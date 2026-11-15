@@ -265,3 +265,48 @@ A suíte de testes inclui um fluxo completo em diretório temporário que:
 6. arquiva a mudança quando todas estiverem arquivadas.
 
 Executar `pnpm test` valida esse fluxo sem escrever em `specs/changes/` real.
+
+## 15. Branch por tarefa e commit/push
+
+Toda tarefa é executada em sua própria branch e, ao concluir, pode ser commitada e enviada automaticamente.
+
+### 15.1 Nomenclatura
+
+```text
+task/<prefixo-da-mudança>-<número-da-tarefa>-<slug-do-título>
+```
+
+Exemplo: `task/001-005-implementar-secao-inicial`.
+
+### 15.2 Fluxo
+
+1. `/startspec` resolve a tarefa e cria a branch com `create-branch`.
+2. A tarefa é iniciada com `start`.
+3. Ao atingir `COMPLETED` + `VERIFIED`, `/continuespec` executa `commit-task`.
+4. `commit-task` roda `pnpm typecheck`, `pnpm test` e `pnpm build`.
+5. Se passarem, faz `git add -A`, `git commit` com a mensagem gerada e `git push -u origin <branch>`.
+
+### 15.3 Hooks do Husky
+
+- `pre-commit`: `lint-staged` (ESLint + Prettier nos arquivos staged).
+- `pre-push`: `pnpm typecheck`, `pnpm test`, `pnpm build`.
+
+Os hooks são sempre executados e bloqueiam commit ou push em caso de falha.
+
+### 15.4 Regras
+
+- A branch é criada antes de iniciar a tarefa.
+- Branch existente retorna `E_BRANCH_EXISTS` e não é substituída.
+- Falha de verificação impede o commit.
+- O arquivamento de tarefa também é commitado na mesma branch.
+- Nenhuma operação destrutiva é executada.
+
+### 15.5 Erros
+
+| Código | Significado |
+|---|---|
+| `E_BRANCH_EXISTS` | A branch da tarefa já existe. |
+| `E_GIT_ERROR` | Comando Git falhou. |
+| `E_CHECKS_FAILED` | `typecheck`, `test` ou `build` falhou. |
+| `E_TASK_STATE` | A tarefa não está concluída e verificada. |
+
