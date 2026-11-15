@@ -1,12 +1,13 @@
 # TASK-001 — Implementar branch e commit/push no helper e CLI
 
 - Change: 004-rawspec-branch-per-task
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-15
 - Verificação: VERIFIED (2026-11-15) — `runChecks`, `createTaskBranch` e `commitAndPushTask` implementados; CLI `create-branch` e `commit-task`; 87 testes do módulo passando; testes de Git em repositório temporário; `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (128 passando, 1 pulado) e `pnpm build` aprovados; repositório real intocado pelos testes.
 - Evidência: implementação e testes em `scripts/`; verificações executadas em 2026-11-15.
 - Plano de ação: none
+- Arquivada em: 2026-11-15
 
 ## Objetivo
 

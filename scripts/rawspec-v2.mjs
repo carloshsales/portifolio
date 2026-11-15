@@ -1650,8 +1650,9 @@ export function buildCommitMessage(
     })
   }
 
-  const { change, task } = resolveTask(taskId, { repoRoot, changeId })
-  if (task.status !== 'COMPLETED' || task.verification !== 'VERIFIED') {
+  const { change, task } = loadTask(repoRoot, taskId, changeId)
+  const done = task.status === 'COMPLETED' || task.status === 'ARCHIVED'
+  if (!done || task.verification !== 'VERIFIED') {
     throw new RawspecError(
       'E_COMMIT_MESSAGE_BLOCKED',
       `Tarefa ${task.id} não está COMPLETED + VERIFIED`,
@@ -1943,8 +1944,9 @@ export function commitAndPushTask(
   taskId,
   { changeId, branch, remote = 'origin', push = true, checks } = {},
 ) {
-  const { task } = resolveTask(taskId, { repoRoot, changeId })
-  if (task.status !== 'COMPLETED' || task.verification !== 'VERIFIED') {
+  const { task } = loadTask(repoRoot, taskId, changeId)
+  const done = task.status === 'COMPLETED' || task.status === 'ARCHIVED'
+  if (!done || task.verification !== 'VERIFIED') {
     throw new RawspecError('E_TASK_STATE', `Tarefa ${task.id} não está COMPLETED + VERIFIED`, {
       task: task.id,
       status: task.status,
@@ -1968,4 +1970,19 @@ export function commitAndPushTask(
 
   const commit = runCommand('git', ['rev-parse', '--short', 'HEAD'], repoRoot, 'E_GIT_ERROR').trim()
   return { branch: targetBranch, commit, pushed }
+}
+
+/**
+ * Carrega uma tarefa ativa ou arquivada para leitura.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {string} taskId identificador da tarefa.
+ * @param {string} [changeId] mudança opcional.
+ * @returns {{change: object, task: object, located: object}} tarefa carregada.
+ */
+function loadTask(repoRoot, taskId, changeId) {
+  const id = normalizeTaskId(taskId)
+  const located = locateTask(repoRoot, id, changeId)
+  const file = existsSync(located.source) ? located.source : located.dest
+  return { change: parseChange(located.changeDir), task: parseTaskFile(file), located }
 }
