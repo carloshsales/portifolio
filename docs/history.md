@@ -253,3 +253,30 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: isolar o trabalho de cada tarefa e manter o histórico Git confiável.
 - Impacto: `/startspec` cria a branch `task/NNN-NNN-slug`; `/continuespec` conclui, verifica e, se passar, faz commit e push; hooks `pre-commit` (lint-staged) e `pre-push` (typecheck, test, build) permanecem obrigatórios.
 - Evidência: respostas do usuário em 2026-11-15; change 004.
+
+## 2026-11-15 — Evento — Trabalho da change 003 em branch própria
+
+- Autor: Carlos Henrique
+- Origem: sessão OpenCode
+- Decisão: o trabalho não commitado da change 003 foi movido para a branch `task/003-rawspec-v2` e enviado.
+- Motivo: aplicar a regra de branch isolada ao trabalho existente.
+- Impacto: commit `feat(rawspec): deliver v2 spec format and migrate changes` pushado para `origin`.
+- Evidência: `git push -u origin task/003-rawspec-v2` concluído em 2026-11-15, com hooks passados.
+
+## 2026-11-15 — Evento — Change 004 aprovada
+
+- Autor: Carlos Henrique
+- Origem: sessão OpenCode
+- Decisão: a change 004-rawspec-branch-per-task foi aprovada e a TASK-001 iniciada em branch própria.
+- Motivo: implementar a regra de branch por tarefa e commit/push automático.
+- Impacto: branch `task/004-001-implementar-branch-e-commit-push-no-helper-e-cli` criada a partir de `task/004-rawspec-branch-per-task`.
+- Evidência: aprovação do usuário em 2026-11-15.
+
+## 2026-11-15 — Evento — TASK-001 concluída
+
+- Autor: Carlos Henrique
+- Origem: execução da change 004-rawspec-branch-per-task
+- Decisão: a TASK-001 (implementar branch e commit/push no helper e CLI) foi concluída e verificada.
+- Motivo: habilitar branch por tarefa e commit/push automático.
+- Impacto: `runChecks`, `createTaskBranch`, `commitAndPushTask` e subcomandos `create-branch` e `commit-task`.
+- Evidência: 87 testes do módulo passando; `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (128 passando, 1 pulado) e `pnpm build` aprovados em 2026-11-15.

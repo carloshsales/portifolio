@@ -20,7 +20,9 @@ import {
   buildCommitMessage,
   checkArchiveChange,
   checkArchiveTask,
+  commitAndPushTask,
   createAdrSkeleton,
+  createTaskBranch,
   failTask,
   listChangeDirs,
   listOpenTasks,
@@ -60,6 +62,9 @@ const EXIT_CODES = {
   E_IO: 7,
   E_ARCHIVE_STATE_UNKNOWN: 7,
   E_ADR_EXISTS: 7,
+  E_BRANCH_EXISTS: 7,
+  E_GIT_ERROR: 7,
+  E_CHECKS_FAILED: 7,
 }
 
 /**
@@ -145,6 +150,8 @@ function usage() {
       '  check-archive-change CHANGE-ID',
       '  commit-message TASK-ID [--type TYPE] [--summary "..."] [--tests "..."]',
       '  migrate-change CHANGE-ID',
+      '  create-branch TASK-ID [--change CHANGE-ID]',
+      '  commit-task TASK-ID [--change CHANGE-ID] [--branch NAME] [--remote NAME] [--no-push]',
       '  log --type <Decisão|Evento|Detalhe> --title <título> --message <texto> [opções]',
       '',
     ].join('\n'),
@@ -218,6 +225,19 @@ function main() {
         emit(migrateLegacyChange(join(REPO_ROOT, 'specs', 'changes', name)))
         return
       }
+      case 'create-branch':
+        emit(createTaskBranch(REPO_ROOT, positional, { changeId }))
+        return
+      case 'commit-task':
+        emit(
+          commitAndPushTask(REPO_ROOT, positional, {
+            changeId,
+            branch: args.branch,
+            remote: args.remote,
+            push: args['no-push'] !== true,
+          }),
+        )
+        return
       case 'log':
         emit(
           appendHistory(REPO_ROOT, {

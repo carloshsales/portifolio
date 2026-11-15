@@ -8,6 +8,7 @@
  * Ele não escreve arquivos.
  */
 
+import { execFileSync } from 'node:child_process'
 import {
   existsSync,
   mkdirSync,
@@ -1843,4 +1844,128 @@ export function migrateLegacyChange(changeDir, { today = defaultToday() } = {}) 
 
   rmSync(legacyPath, { force: true })
   return migrated
+}
+
+/**
+ * Executa um comando no repositório, convertendo falhas em `RawspecError`.
+ *
+ * @param {string} command comando a executar.
+ * @param {string[]} args argumentos.
+ * @param {string} repoRoot diretório de trabalho.
+ * @param {string} errorCode código de erro em caso de falha.
+ * @returns {string} saída do comando.
+ */
+function runCommand(command, args, repoRoot, errorCode) {
+  try {
+    return execFileSync(command, args, {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  } catch (error) {
+    const stderr = error.stderr
+      ? String(error.stderr).trim()
+      : error.stdout
+        ? String(error.stdout).trim()
+        : error.message
+    throw new RawspecError(errorCode, `Falha ao executar ${command} ${args.join(' ')}: ${stderr}`, {
+      command,
+      args,
+      stderr,
+    })
+  }
+}
+
+/**
+ * Executa as verificações obrigatórias antes do commit.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {{checks?: string[][]}} [options] verificações injetadas.
+ * @returns {boolean} `true` quando todas passam.
+ */
+export function runChecks(repoRoot, { checks } = {}) {
+  const commands = checks ?? [['typecheck'], ['test'], ['build']]
+  const isWindows = process.platform === 'win32'
+  for (const args of commands) {
+    if (isWindows) {
+      runCommand('cmd', ['/c', 'pnpm', ...args], repoRoot, 'E_CHECKS_FAILED')
+    } else {
+      runCommand('pnpm', args, repoRoot, 'E_CHECKS_FAILED')
+    }
+  }
+  return true
+}
+
+/**
+ * Retorna a branch atual do repositório.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @returns {string} nome da branch.
+ */
+function currentBranch(repoRoot) {
+  return runCommand('git', ['rev-parse', '--abbrev-ref', 'HEAD'], repoRoot, 'E_GIT_ERROR').trim()
+}
+
+/**
+ * Cria a branch da tarefa no formato `task/NNN-NNN-slug`.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {string} taskId identificador da tarefa.
+ * @param {{changeId?: string}} [options] opções.
+ * @returns {{branch: string, task: object}} branch criada.
+ */
+export function createTaskBranch(repoRoot, taskId, { changeId } = {}) {
+  const { change, task } = resolveTask(taskId, { repoRoot, changeId })
+  const numeric = /^\d+/.exec(change.id)?.[0] ?? change.id
+  const taskNumber = /(\d+)$/.exec(task.id)?.[1] ?? ''
+  const slug = slugify(task.title) || 'tarefa'
+  const branch = `task/${numeric}-${taskNumber}-${slug}`
+
+  const existing = runCommand('git', ['branch', '--list', branch], repoRoot, 'E_GIT_ERROR').trim()
+  if (existing !== '') {
+    throw new RawspecError('E_BRANCH_EXISTS', `Branch já existe: ${branch}`, { branch })
+  }
+
+  runCommand('git', ['checkout', '-b', branch], repoRoot, 'E_GIT_ERROR')
+  return { branch, task }
+}
+
+/**
+ * Conclui a tarefa com commit e push, respeitando os hooks do Husky.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {string} taskId identificador da tarefa.
+ * @param {{changeId?: string, branch?: string, remote?: string, push?: boolean, checks?: string[][]}} [options] opções.
+ * @returns {{branch: string, commit: string, pushed: boolean}} resultado.
+ */
+export function commitAndPushTask(
+  repoRoot,
+  taskId,
+  { changeId, branch, remote = 'origin', push = true, checks } = {},
+) {
+  const { task } = resolveTask(taskId, { repoRoot, changeId })
+  if (task.status !== 'COMPLETED' || task.verification !== 'VERIFIED') {
+    throw new RawspecError('E_TASK_STATE', `Tarefa ${task.id} não está COMPLETED + VERIFIED`, {
+      task: task.id,
+      status: task.status,
+      verification: task.verification,
+    })
+  }
+
+  runChecks(repoRoot, { checks })
+
+  const message = buildCommitMessage(repoRoot, taskId, { changeId })
+  const targetBranch = branch ?? currentBranch(repoRoot)
+
+  runCommand('git', ['add', '-A'], repoRoot, 'E_GIT_ERROR')
+  runCommand('git', ['commit', '-m', message], repoRoot, 'E_GIT_ERROR')
+
+  let pushed = false
+  if (push) {
+    runCommand('git', ['push', '-u', remote, targetBranch], repoRoot, 'E_GIT_ERROR')
+    pushed = true
+  }
+
+  const commit = runCommand('git', ['rev-parse', '--short', 'HEAD'], repoRoot, 'E_GIT_ERROR').trim()
+  return { branch: targetBranch, commit, pushed }
 }

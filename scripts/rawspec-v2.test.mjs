@@ -4,6 +4,7 @@
  * TASK-003 da change 003-rawspec-v2.
  */
 
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -19,7 +20,9 @@ import {
   buildDependencyGraph,
   checkArchiveChange,
   checkArchiveTask,
+  commitAndPushTask,
   createAdrSkeleton,
+  createTaskBranch,
   failTask,
   isChangeApproved,
   listChangeDirs,
@@ -1242,5 +1245,115 @@ describe('fluxo ponta a ponta', () => {
     expect(proposal).toContain('Status: ARCHIVED')
     expect(existsSync(join(result.archivedDir, 'tasks', 'archive', 'TASK-001.md'))).toBe(true)
     expect(existsSync(join(result.archivedDir, 'tasks', 'archive', 'TASK-002.md'))).toBe(true)
+  })
+})
+
+describe('branch e commit por tarefa', () => {
+  function git(repo, args) {
+    return execFileSync('git', args, {
+      cwd: repo,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  }
+
+  function createRepoWithTask(status = 'COMPLETED') {
+    const repo = mkdtempSync(join(workDir, 'repo-'))
+    git(repo, ['init'])
+    git(repo, ['config', 'user.email', 'test@example.com'])
+    git(repo, ['config', 'user.name', 'Test'])
+    git(repo, ['config', 'commit.gpgsign', 'false'])
+    writeFileSync(join(repo, 'README.md'), '# Test\n', 'utf8')
+    git(repo, ['add', '-A'])
+    git(repo, ['commit', '-m', 'chore: initial'])
+
+    const changeDir = join(repo, 'specs', 'changes', '004-test')
+    mkdirSync(join(changeDir, 'tasks'), { recursive: true })
+    writeFileSync(
+      join(changeDir, 'proposal.md'),
+      '# Change\n\n- Status: APPROVED\n\n## 1. Objetivo\n',
+      'utf8',
+    )
+    const verification = status === 'COMPLETED' ? 'VERIFIED' : 'PENDING'
+    writeFileSync(
+      join(changeDir, 'tasks', 'TASK-001.md'),
+      `# TASK-001 — Implementar coisa\n\n- Change: 004-test\n- Status: ${status}\n- Depende de: nenhuma\n- Verificação: ${verification}\n`,
+      'utf8',
+    )
+    git(repo, ['add', '-A'])
+    git(repo, ['commit', '-m', 'chore: change'])
+    return repo
+  }
+
+  function touchTask(repo) {
+    const file = join(repo, 'specs', 'changes', '004-test', 'tasks', 'TASK-001.md')
+    writeFileSync(file, `${readFileSync(file, 'utf8')}\n<!-- alteracao -->\n`, 'utf8')
+  }
+
+  it('cria a branch com a nomenclatura esperada', () => {
+    const repo = createRepoWithTask()
+
+    const result = createTaskBranch(repo, 'TASK-001')
+
+    expect(result.branch).toBe('task/004-001-implementar-coisa')
+    expect(git(repo, ['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe(result.branch)
+  })
+
+  it('recusa branch já existente', () => {
+    const repo = createRepoWithTask()
+    createTaskBranch(repo, 'TASK-001')
+
+    const error = captureError(() => createTaskBranch(repo, 'TASK-001'))
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_BRANCH_EXISTS')
+  })
+
+  it('commita com a mensagem gerada', () => {
+    const repo = createRepoWithTask()
+    touchTask(repo)
+
+    const result = commitAndPushTask(repo, 'TASK-001', { checks: [], push: false })
+
+    expect(result.pushed).toBe(false)
+    const log = git(repo, ['log', '-1', '--pretty=%B'])
+    expect(log).toContain('feat(rawspec): Implementar coisa')
+    expect(log).toContain('Task: TASK-001')
+  })
+
+  it('não commita quando as verificações falham', () => {
+    const repo = createRepoWithTask()
+    const before = git(repo, ['rev-parse', '--short', 'HEAD']).trim()
+
+    const error = captureError(() =>
+      commitAndPushTask(repo, 'TASK-001', { checks: [['--invalid-flag']], push: false }),
+    )
+
+    expect(error.code).toBe('E_CHECKS_FAILED')
+    expect(git(repo, ['rev-parse', '--short', 'HEAD']).trim()).toBe(before)
+  })
+
+  it('recusa tarefa incompleta', () => {
+    const repo = createRepoWithTask('PENDING')
+
+    const error = captureError(() =>
+      commitAndPushTask(repo, 'TASK-001', { checks: [], push: false }),
+    )
+
+    expect(error.code).toBe('E_TASK_STATE')
+  })
+
+  it('faz push quando há remote', () => {
+    const repo = createRepoWithTask()
+    const bare = join(workDir, 'remote.git')
+    execFileSync('git', ['init', '--bare', bare], { stdio: 'ignore' })
+    git(repo, ['remote', 'add', 'origin', bare])
+    createTaskBranch(repo, 'TASK-001')
+    touchTask(repo)
+
+    const result = commitAndPushTask(repo, 'TASK-001', { checks: [], push: true })
+
+    expect(result.pushed).toBe(true)
+    expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
   })
 })
