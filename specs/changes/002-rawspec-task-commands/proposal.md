@@ -1,6 +1,7 @@
 # Change 002 — Fluxo RawSpec orientado por tarefa
 
-- Status: APPROVED
+- Status: SUPERSEDED
+- Superseded by: 003-rawspec-v2
 - Tipo: Melhoria de processo de engenharia
 - Prioridade: Alta
 - Data: 2026-11-12
