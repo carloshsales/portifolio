@@ -370,3 +370,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Eliminar o documento v1 dos comandos e retirar do fluxo as especificações que não podem ser executadas.
 - Impacto: docs/rawspec-commands.md removido; change 002 arquivada em specs/changes/archive/; specs/specifications/ removido.
 - Evidência: pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (128 passando, 1 pulado) e pnpm build aprovados em 2026-11-15; commit c35cf7d pushado.
+
+## 2026-11-15 — Evento — TASK-002 da change 005 concluída
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-002 (isolar o conteúdo do utilizador e remover placeholders) foi concluída e verificada.
+- Motivo: Separar o conteúdo que o utilizador vai fornecer do código de apresentação, garantindo que nenhum texto fictício é renderizado.
+- Impacto: src/content/ criado; src/data/ passou a ser ponto de importação estável com normalização; Home e Sidebar suportam estado vazio; bundle sem placeholders.
+- Evidência: pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (132 passando, 1 pulado) e pnpm build aprovados em 2026-11-15; commit 2028077 pushado.

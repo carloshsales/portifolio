@@ -1,11 +1,11 @@
 # TASK-003 — Automatizar a verificação de acessibilidade
 
 - Change: 005-refactor-portfolio-baseline
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: TASK-002
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-15
+- Verificação: VERIFIED (2026-11-15) — vitest-axe 0.1.0 instalado como dependencia de desenvolvimento; src/test/accessibility.test.tsx criado com 2 testes (aplicacao completa e cada seccao isolada); aplicacao atual sem violacoes - 20 regras passam, 0 violacoes, 1 incomplete; teste negativo provado com img sem alt, que devolveu violacao 'image-alt' critical e fez o teste falhar; verificado que alt vazio em imagem decorativa nao e violacao; aviso 'Not implemented: HTMLCanvasElement getContext' e limitacao conhecida do jsdom e nao afeta o resultado; verificado manual continua necessario para foco visivel, contraste real, ordem de leitura em leitor de ecra e operacao por teclado; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado) e pnpm build aprovados
+- Evidência: vitest-axe 0.1.0 instalado como dependencia de desenvolvimento; src/test/accessibility.test.tsx criado com 2 testes (aplicacao completa e cada seccao isolada); aplicacao atual sem violacoes - 20 regras passam, 0 violacoes, 1 incomplete; teste negativo provado com img sem alt, que devolveu violacao 'image-alt' critical e fez o teste falhar; verificado que alt vazio em imagem decorativa nao e violacao; aviso 'Not implemented: HTMLCanvasElement getContext' e limitacao conhecida do jsdom e nao afeta o resultado; verificado manual continua necessario para foco visivel, contraste real, ordem de leitura em leitor de ecra e operacao por teclado; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado) e pnpm build aprovados
 - Plano de ação: none
 
 ## Objetivo
