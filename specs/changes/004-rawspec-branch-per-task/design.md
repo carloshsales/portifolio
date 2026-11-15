@@ -1,7 +1,8 @@
 # Design Técnico — Branch por tarefa e commit/push automáticos
 
 **Change:** `004-rawspec-branch-per-task`
-**Status:** PENDING APPROVAL
+**Status:** APPROVED
+**Aprovação:** 2026-11-15
 **Base:** `proposal.md`
 
 ## 1. Objetivo

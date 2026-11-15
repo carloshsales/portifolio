@@ -1,6 +1,7 @@
 # Change 004 — Branch por tarefa e commit/push automáticos
 
-- Status: PENDING APPROVAL
+- Status: APPROVED
+- Aprovação: 2026-11-15
 - Tipo: Melhoria de processo de engenharia
 - Prioridade: Alta
 - Data: 2026-11-15
