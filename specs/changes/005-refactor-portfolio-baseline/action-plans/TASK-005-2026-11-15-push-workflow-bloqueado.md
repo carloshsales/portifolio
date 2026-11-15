@@ -39,7 +39,8 @@ Enquanto o push estiver bloqueado:
 - `git ls-remote --heads origin` não devolve a branch: a branch não existe no remoto.
 - `gh auth status` revela a causa raiz: o token `gho_****` tem os âmbitos `admin:public_key`, `gist`, `read:org`, `repo` — **falta `workflow`**.
 - O Git usa `credential.https://github.com.helper = gh auth git-credential`, ou seja, a credencial vem do `gh` CLI, e é essa que está sem o âmbito.
-- Caminho SSH avaliado como alternativa: existe `~/.ssh/id_ed25519`, a chave pública já está registada na conta (`gh ssh-key add` devolveu "Public key already exists"), mas o serviço `ssh-agent` está `Stopped` e `Disabled`, e `ssh -T git@github.com` devolve `Permission denied (publickey)`.
+- Caminho SSH avaliado como alternativa: existe `~/.ssh/id_ed25519`, a chave pública já está registada na conta (`gh ssh-key list` confirma a mesma chave, título "Meu PC Desktop", tipo `authentication`), mas o serviço `ssh-agent` está `Stopped` e `Disabled`, e `ssh -T git@github.com` devolve `Permission denied (publickey)`.
+- `ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes` também falha com `Permission denied (publickey)`: a chave tem passphrase e o modo não interativo não a consegue fornecer.
 - `gh auth refresh -s workflow` foi iniciado e devolveu o código de dispositivo `FE33-159C`, exigindo confirmação no browser.
 - O workflow foi validado estruturalmente e todos os comandos foram executados localmente com sucesso; o problema é exclusivamente de permissão.
 
@@ -50,7 +51,7 @@ Enquanto o push estiver bloqueado:
 3. **Mover o workflow para fora de `.github/workflows/` e entregá-lo por outro canal.** Evita o bloqueio, mas tira o CI do ponto de execução natural e exige um passo manual no destino, que ainda não está decidido.
 4. **Adiar o push e continuar o trabalho localmente.** Mantém o ritmo, mas acumula commits não enviados e deixa o CI ausente do remoto durante todo o tempo.
 5. **Remover o workflow desta task e reintroduzi-lo depois de configurada a credencial.** Evita o bloqueio, mas entrega a TASK-005 incompleta e deixa o CI fora do âmbito da change.
-6. **Reativar e usar o SSH.** Requer ativar o serviço `ssh-agent` no Windows, carregar a chave e configurar o remote com `git@github.com:...`. Evita o âmbito do token, já que o GitHub só exige `workflow` para tokens OAuth; torna-se uma alternativa válida a avaliar.
+6. **Reativar e usar o SSH.** A chave pública já está registada e confirmed na conta GitHub (`gh ssh-key list` mostra "Meu PC Desktop", tipo `authentication`). Requer apenas ativar o serviço `ssh-agent` no Windows (administrador), carregar a chave com a respetiva passphrase e apontar o remote para `git@github.com:...`. Evita o âmbito do token, já que o GitHub só exige `workflow` para tokens OAuth. É uma alternativa válida e provavelmente mais simples de concluir do que a autorização de âmbito.
 
 ## 5. Ação recomendada
 
