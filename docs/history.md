@@ -406,3 +406,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: O GitHub exige o ambito 'workflow' para criar ou alterar ficheiros em .github/workflows/.
 - Impacto: O workflow de CI esta escrito e validado localmente, mas ausente do repositorio remoto; a TASK-005 nao pode ser arquivada e a TASK-006 fica bloqueada.
 - Evidência: Erro 'refusing to allow an OAuth App to create or update workflow .github/workflows/ci.yml without workflow scope'; plano de ação criado em specs/changes/005-refactor-portfolio-baseline/action-plans/TASK-005-2026-11-15-push-workflow-bloqueado.md com Status PENDING ACCEPTANCE.
+
+## 2026-11-15 — Decisão — Main reintegrado sobre a linha de trabalho real
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: O origin/main continha 16 commits de um site HTML estático antigo sem qualquer ancestral comum com a linha de trabalho real (React, specs, scripts, docs), impedindo comparar branches e abrir pull requests.
+- Motivo: O merge-base entre origin/main e as branches de trabalho era vazio, pelo que o GitHub devolvia 'There isn't anything to compare'.
+- Impacto: main foi repontado para 3a1f9eb (chore/engineering-foundation) e recebeu o merge da change 005; todas as branches remotas passaram a ter ancestral comum com main; o histórico antigo ficou preservado na tag archive/main-antigo-site-estatico.
+- Evidência: merge-base vazio antes e 3a1f9eb depois; git push --force-with-lease origin main:main aceite; verificacao de todas as branches remotas com merge-base contra origin/main; pnpm lint, typecheck, test (134 passando, 1 pulado) e build aprovados em 2026-11-15.
