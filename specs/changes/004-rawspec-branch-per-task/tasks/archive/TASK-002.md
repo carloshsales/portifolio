@@ -1,12 +1,13 @@
 # TASK-002 — Atualizar /startspec e /continuespec
 
 - Change: 004-rawspec-branch-per-task
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-001
 - Início: 2026-11-15
 - Verificação: VERIFIED (2026-11-15) — `/startspec`, `/continuespec` e `/arquivespec` atualizados para branch por tarefa e commit/push automático; teste dos comandos ajustado; 87 testes do módulo passando; `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (128 passando, 1 pulado) e `pnpm build` aprovados.
 - Evidência: comandos em `.opencode/commands/`; verificações executadas em 2026-11-15.
 - Plano de ação: none
+- Arquivada em: 2026-11-15
 
 ## Objetivo
 
