@@ -1,0 +1,42 @@
+.section {
+  position: relative;
+  height: 100%;
+}
+
+.scroll {
+  height: 100%;
+  padding: var(--space-8) var(--space-6);
+  overflow-y: auto;
+  scrollbar-width: none;
+  outline: none;
+}
+
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--focus-ring-offset));
+}
+
+.track {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-2);
+  bottom: var(--space-4);
+  width: 4px;
+  background-color: rgb(255 255 255 / 0.08);
+  border-radius: 999px;
+  transition: opacity 0.2s ease;
+}
+
+.thumb {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  min-height: 24px;
+  background-color: var(--color-accent);
+  border-radius: 999px;
+  cursor: pointer;
+}

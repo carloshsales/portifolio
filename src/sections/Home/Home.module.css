@@ -1,0 +1,174 @@
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.photo {
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+  border: 3px solid var(--color-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgb(255 146 43 / 0.15);
+  object-fit: cover;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.name {
+  font-size: var(--text-xl);
+}
+
+.role {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.bio {
+  max-width: 68ch;
+  margin: 0 auto;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.skillCategory {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.skillTitle {
+  font-size: var(--text-xs);
+  color: var(--color-text);
+}
+
+.skillList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skill {
+  padding: 2px var(--space-2);
+  background-color: var(--color-surface);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.primaryAction,
+.secondaryAction {
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.primaryAction {
+  background-color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.primaryAction:hover {
+  background-color: transparent;
+  color: var(--color-accent);
+}
+
+.secondaryAction {
+  background-color: transparent;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  color: var(--color-text);
+}
+
+.secondaryAction:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+@media (max-height: 640px) {
+  .home {
+    gap: var(--space-2);
+  }
+
+  .photo {
+    width: 64px;
+    height: 64px;
+  }
+
+  .content {
+    gap: 6px;
+  }
+}
+
+@media (min-width: 768px) {
+  .home {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-8);
+    text-align: left;
+  }
+
+  .photo {
+    width: 160px;
+    height: 160px;
+  }
+
+  .content {
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .name {
+    font-size: var(--text-3xl);
+  }
+
+  .bio {
+    margin: 0;
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+  }
+
+  .skills,
+  .skillList,
+  .actions {
+    justify-content: flex-start;
+  }
+}
