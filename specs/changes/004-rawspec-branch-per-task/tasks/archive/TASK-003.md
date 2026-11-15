@@ -1,12 +1,13 @@
 # TASK-003 — Documentar a regra e validar ponta a ponta
 
 - Change: 004-rawspec-branch-per-task
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-002
 - Início: 2026-11-15
 - Verificação: VERIFIED (2026-11-15) — ADR-005 criado; `docs/rawspec-v2.md` e `README.md` documentam a regra de branch e commit/push; 87 testes do módulo passando; `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (128 passando, 1 pulado) e `pnpm build` aprovados; hooks do Husky confirmados em commit e push reais.
 - Evidência: ADR e documentação em `docs/` e `README.md`; verificações executadas em 2026-11-15.
 - Plano de ação: none
+- Arquivada em: 2026-11-15
 
 ## Objetivo
 
