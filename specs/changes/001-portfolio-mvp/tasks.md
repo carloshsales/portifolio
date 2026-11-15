@@ -43,6 +43,10 @@
 ## Fase 2 — Interface
 
 ### TASK-004 — Criar estrutura de navegação
+- **Status:** COMPLETED (2026-11-13)
+- **Verificação:** VERIFIED (2026-11-13) — lint, typecheck, testes e build aprovados;
+  navegação verificada em desktop, tablet e celular; sem barra nativa; uma seção por vez;
+  rolagem interna com barra virtual; Lighthouse 100% de acessibilidade.
 - Implementar sidebar.
 - Criar navegação por âncoras.
 - Adaptar navegação para dispositivos móveis.
