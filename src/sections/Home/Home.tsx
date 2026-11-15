@@ -1,10 +1,15 @@
 import { profile } from '../../data/profile'
+import { projects } from '../../data/projects'
 import { Section } from '../../components/Section'
 import styles from './Home.module.css'
 
 export function Home() {
+  const hasSummary = profile.summary.trim() !== ''
+  const hasProjects = projects.length > 0
+  const title = profile.name.trim() !== '' ? profile.name : 'Início'
+
   return (
-    <Section id="inicio" title={profile.name} subtitle={profile.role}>
+    <Section id="inicio" title={title} subtitle={profile.role}>
       <div className={styles.hero}>
         <img
           src={profile.photoUrl}
@@ -15,16 +20,20 @@ export function Home() {
         />
 
         <div className={styles.content}>
-          <p className={styles.summary}>{profile.summary}</p>
+          {hasSummary ? <p className={styles.summary}>{profile.summary}</p> : null}
 
-          <div className={styles.actions}>
-            <a href="#projetos" className={styles.primary}>
-              Ver projetos
-            </a>
-            <a href="#contato" className={styles.secondary}>
-              Contacto
-            </a>
-          </div>
+          {hasProjects || profile.social.length > 0 ? (
+            <div className={styles.actions}>
+              {hasProjects ? (
+                <a href="#projetos" className={styles.primary}>
+                  Ver projetos
+                </a>
+              ) : null}
+              <a href="#contato" className={styles.secondary}>
+                Contacto
+              </a>
+            </div>
+          ) : null}
         </div>
       </div>
     </Section>

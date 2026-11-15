@@ -1,11 +1,11 @@
 # TASK-002 — Isolar o conteúdo do utilizador e remover placeholders
 
 - Change: 005-refactor-portfolio-baseline
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: TASK-001
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-15
+- Verificação: VERIFIED (2026-11-15) — src/content/{profile,projects,skills}.ts criados com conteudo vazio; src/data/ reexporta com normalizacao (filtro de social sem URL, projetos sem titulo/descricao, grupos sem skills); Home.tsx omite resumo e acoes quando vazio e so mostra 'Ver projetos' se houver projetos; Sidebar.tsx usa 'Portfolio' como fallback e omite identidade vazia; src/test/content.test.tsx criado; App.test.tsx ajustado para h1/h2; bundle sem placeholder confirmado por scan de dist/assets; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (132 passando, 1 pulado) e pnpm build aprovados; renderizacao verificada no browser sem qualquer placeholder
+- Evidência: src/content/{profile,projects,skills}.ts criados com conteudo vazio; src/data/ reexporta com normalizacao (filtro de social sem URL, projetos sem titulo/descricao, grupos sem skills); Home.tsx omite resumo e acoes quando vazio e so mostra 'Ver projetos' se houver projetos; Sidebar.tsx usa 'Portfolio' como fallback e omite identidade vazia; src/test/content.test.tsx criado; App.test.tsx ajustado para h1/h2; bundle sem placeholder confirmado por scan de dist/assets; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (132 passando, 1 pulado) e pnpm build aprovados; renderizacao verificada no browser sem qualquer placeholder
 - Plano de ação: none
 
 ## Objetivo

@@ -6,7 +6,13 @@ describe('App', () => {
   it('renders the main heading', () => {
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: /portfólio/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
+  })
+
+  it('renders the home section heading', () => {
+    render(<App />)
+
+    expect(screen.getByRole('heading', { level: 2, name: /início|portfólio/i })).toBeInTheDocument()
   })
 
   it('renders every portfolio section', () => {

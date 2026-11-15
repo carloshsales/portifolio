@@ -19,21 +19,26 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'contato', label: 'Contato', icon: ContactIcon },
 ]
 
+const FALLBACK_NAME = 'Portfólio'
+
 export function Sidebar() {
   const activeId = useActiveSection(SECTION_IDS)
+  const name = profile.name.trim() !== '' ? profile.name : FALLBACK_NAME
 
   return (
     <aside className={styles.sidebar}>
       <h1 className={styles.brand}>
         <a href="#inicio" className={styles.brandLink}>
-          Portfólio
+          {name}
         </a>
       </h1>
 
-      <div className={styles.identity}>
-        <p className={styles.name}>{profile.name}</p>
-        <p className={styles.role}>{profile.role}</p>
-      </div>
+      {profile.name.trim() !== '' || profile.role.trim() !== '' ? (
+        <div className={styles.identity}>
+          <p className={styles.name}>{profile.name}</p>
+          <p className={styles.role}>{profile.role}</p>
+        </div>
+      ) : null}
 
       <nav className={styles.nav} aria-label="Navegação principal">
         <ul className={styles.navList}>
