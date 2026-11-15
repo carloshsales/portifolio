@@ -379,3 +379,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Separar o conteúdo que o utilizador vai fornecer do código de apresentação, garantindo que nenhum texto fictício é renderizado.
 - Impacto: src/content/ criado; src/data/ passou a ser ponto de importação estável com normalização; Home e Sidebar suportam estado vazio; bundle sem placeholders.
 - Evidência: pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (132 passando, 1 pulado) e pnpm build aprovados em 2026-11-15; commit 2028077 pushado.
+
+## 2026-11-15 — Evento — TASK-003 da change 005 concluída
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-003 (automatizar a verificação de acessibilidade) foi concluída e verificada.
+- Motivo: Substituir a verificação manual de acessibilidade por um teste automatizado que falha o pnpm test.
+- Impacto: vitest-axe instalado como dependencia de desenvolvimento; src/test/accessibility.test.tsx com 2 testes; aplicacao sem violacoes automaticas em 20 regras.
+- Evidência: Teste negativo provado com violacao image-alt; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado) e pnpm build aprovados em 2026-11-15; commit 85af9f0 pushado.

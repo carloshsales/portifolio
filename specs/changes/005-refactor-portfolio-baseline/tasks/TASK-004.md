@@ -1,11 +1,11 @@
 # TASK-004 — Automatizar a verificação de responsividade
 
 - Change: 005-refactor-portfolio-baseline
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: TASK-002
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-15
+- Verificação: VERIFIED (2026-11-15) — @playwright/test 1.65.1 instalado e chromium descarregado; e2e/playwright.config.ts com 3 projetos (mobile 375x812, tablet 768x1024, desktop 1440x900) sobre pnpm preview na porta 4173, reducedMotion reduce; e2e/responsive.spec.ts com 5 verificacoes (overflow horizontal, links de navegacao, fotografia com caixa nao nula, links de contacto sem URL vazia ou javascript:, presenca das 4 seccoes); 15 testes a passar nos 3 viewports; teste negativo provado com largura fixa de 3000px, que detetou 2625px, 2232px e 1560px de overflow e falhou; ambiguidade do seletor a[href='#inicio'] corrigida com scoping na region navigation; vitest exclui e2e/ no vite.config.ts; scripts test:e2e e test:all adicionados; .gitignore com artefactos do Playwright; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado), pnpm build e pnpm test:e2e aprovados
+- Evidência: @playwright/test 1.65.1 instalado e chromium descarregado; e2e/playwright.config.ts com 3 projetos (mobile 375x812, tablet 768x1024, desktop 1440x900) sobre pnpm preview na porta 4173, reducedMotion reduce; e2e/responsive.spec.ts com 5 verificacoes (overflow horizontal, links de navegacao, fotografia com caixa nao nula, links de contacto sem URL vazia ou javascript:, presenca das 4 seccoes); 15 testes a passar nos 3 viewports; teste negativo provado com largura fixa de 3000px, que detetou 2625px, 2232px e 1560px de overflow e falhou; ambiguidade do seletor a[href='#inicio'] corrigida com scoping na region navigation; vitest exclui e2e/ no vite.config.ts; scripts test:e2e e test:all adicionados; .gitignore com artefactos do Playwright; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado), pnpm build e pnpm test:e2e aprovados
 - Plano de ação: none
 
 ## Objetivo
