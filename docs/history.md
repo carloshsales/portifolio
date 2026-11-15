@@ -415,3 +415,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: O merge-base entre origin/main e as branches de trabalho era vazio, pelo que o GitHub devolvia 'There isn't anything to compare'.
 - Impacto: main foi repontado para 3a1f9eb (chore/engineering-foundation) e recebeu o merge da change 005; todas as branches remotas passaram a ter ancestral comum com main; o histórico antigo ficou preservado na tag archive/main-antigo-site-estatico.
 - Evidência: merge-base vazio antes e 3a1f9eb depois; git push --force-with-lease origin main:main aceite; verificacao de todas as branches remotas com merge-base contra origin/main; pnpm lint, typecheck, test (134 passando, 1 pulado) e build aprovados em 2026-11-15.
+
+## 2026-11-15 — Evento — Branch 005-005 publicada sem o workflow de CI
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A branch task/005-005-introduzir-integracao-continua foi publicada no remoto sem o ficheiro .github/workflows/ci.yml, e o main foi reparado e Integrate com o merge da change 005.
+- Motivo: O GitHub recusa qualquer push que crie ou altere ficheiros em .github/workflows/ quando o token OAuth nao tem o ambito workflow, o que impedia publicar a branch e comparar branches para pull requests.
+- Impacto: As 15 branches remotas estao publicadas e todas tem ancestral comum com o main; os pull requests sao possiveis; o ci.yml esta registado localmente em .github/workflows/ci.yml e no commit 3ea5f18, a ser enviado assim que o ambito for autorizado.
+- Evidência: git push de push/005-005-sem-ci para task/005-005 aceite com exit 0; merge-base origin/main com todas as 15 branches confirmado; tentativa de push do ci.yml falhou com 'refusing to allow an OAuth App to create or update workflow'; tentativa equivalente pela API do GitHub devolveu HTTP 404 pelo mesmo motivo; pnpm lint, typecheck, test (134 passando, 1 pulado) e build aprovados em 2026-11-15.
