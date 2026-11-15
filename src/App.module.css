@@ -1,0 +1,45 @@
+.shell {
+  min-height: 100vh;
+}
+
+.main {
+  min-width: 0;
+}
+
+.skipLink {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 100;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-radius: 0.5rem;
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transform: translateY(-300%);
+  transition: transform 150ms ease;
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .main {
+    flex: 1;
+    margin-left: 300px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .main {
+    /* Espaço para a barra de navegação inferior não cobrir o conteúdo. */
+    padding-bottom: 5rem;
+  }
+}

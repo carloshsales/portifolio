@@ -7,5 +7,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    // Os testes end-to-end correm com Playwright, não com Vitest.
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
   },
 })

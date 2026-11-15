@@ -1,0 +1,32 @@
+.section {
+  padding: var(--space-16) var(--space-6);
+  scroll-margin-top: var(--space-6);
+}
+
+.inner {
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font-size: var(--text-3xl);
+}
+
+.subtitle {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 1023px) {
+  .section {
+    padding: var(--space-12) var(--space-4);
+  }
+
+  .title {
+    font-size: var(--text-2xl);
+  }
+}
