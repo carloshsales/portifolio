@@ -1,13 +1,12 @@
 # TASK-002 — Configurar qualidade e Git Hooks
 
 - Change: 001-portfolio-mvp
-- Status: ARCHIVED
+- Status: PENDING
 - Depende de: TASK-001
 - Início: —
-- Verificação: VERIFIED (2026-11-12) — hooks pre-commit e pre-push validados, incluindo bloqueio em falha.
-- Evidência: hooks pre-commit e pre-push validados, incluindo bloqueio em falha.
+- Verificação: PENDING
+- Evidência: —
 - Plano de ação: none
-- Arquivada em: 2026-11-15
 
 - Instalar e configurar ESLint.
 - Instalar e configurar Vitest e Testing Library.

@@ -334,3 +334,30 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: todas as três tarefas foram concluídas, verificadas e arquivadas.
 - Impacto: a regra de branch por tarefa e commit/push automático está implantada.
 - Evidência: aprovação do usuário em 2026-11-15; `check-archive-change` elegível antes do arquivamento.
+
+## 2026-11-15 — Decisão — Reabertura das tarefas da change 001
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: As tarefas TASK-001 a TASK-004 da change 001-portfolio-mvp foram reabertas e movidas de tasks/archive/ para tasks/, com Status PENDING e Verificação PENDING.
+- Motivo: Reexecutar cada tarefa revalidando o código existente, conforme decisão do utilizador, em vez de reescrever o que já está implementado.
+- Impacto: As doze tarefas da change 001 ficam PENDING e sequenciais; o estado real do código passa a ser revalidado task a task.
+- Evidência: Decisão do utilizador em 2026-11-15; tarefas movidas com git mv e campos reescritos.
+
+## 2026-11-15 — Decisão — Limpeza do repositório e criação da change 005
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: Criada a change 005-refactor-portfolio-baseline, que cobre a limpeza de documentação e especificações obsoletas, o isolamento do conteúdo, a automatização de acessibilidade e responsividade, a introdução de CI e a documentação de publicação agnóstica.
+- Motivo: O projeto acumulou documentação v1 obsoleta, especificações vazias e mortas, divergência entre o estado do código e o das tarefas, e critérios de aceitação que dependiam de verificação manual.
+- Impacto: docs/rawspec-commands.md é removido; a change 002 é arquivada; specs/specifications/ é removido; src/content/ passa a ser a fonte do conteúdo do utilizador; vitest-axe, Playwright e GitHub Actions são introduzidos.
+- Evidência: Decisão do utilizador em 2026-11-15; specs/changes/005-refactor-portfolio-baseline/proposal.md e design.md.
+
+## 2026-11-15 — Decisão — Publicação agnóstica ao destino de deploy
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A documentação de publicação descreve requisitos e candidatos sem escolher fornecedor, e nenhuma configuração específica de alojamento é criada no repositório.
+- Motivo: O destino do deploy ainda não foi decidido pelo utilizador.
+- Impacto: docs/deployment.md e uma task de formação para configurar CI e deploy; nenhum vercel.json, netlify.toml ou equivalente.
+- Evidência: Decisão do utilizador em 2026-11-15; TASK-006 da change 005.
