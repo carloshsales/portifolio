@@ -361,3 +361,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: O destino do deploy ainda não foi decidido pelo utilizador.
 - Impacto: docs/deployment.md e uma task de formação para configurar CI e deploy; nenhum vercel.json, netlify.toml ou equivalente.
 - Evidência: Decisão do utilizador em 2026-11-15; TASK-006 da change 005.
+
+## 2026-11-15 — Evento — TASK-001 da change 005 concluída
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-001 (remover documentação obsoleta e arquivar especificações mortas) foi concluída e verificada.
+- Motivo: Eliminar o documento v1 dos comandos e retirar do fluxo as especificações que não podem ser executadas.
+- Impacto: docs/rawspec-commands.md removido; change 002 arquivada em specs/changes/archive/; specs/specifications/ removido.
+- Evidência: pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (128 passando, 1 pulado) e pnpm build aprovados em 2026-11-15; commit c35cf7d pushado.

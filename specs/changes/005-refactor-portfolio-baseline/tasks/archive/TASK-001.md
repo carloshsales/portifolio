@@ -1,12 +1,13 @@
 # TASK-001 — Remover documentação obsoleta e arquivar especificações mortas
 
 - Change: 005-refactor-portfolio-baseline
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-15
 - Verificação: VERIFIED (2026-11-15) — docs/rawspec-commands.md removido (git rm); change 002-rawspec-task-commands arquivada em specs/changes/archive/ com conteudo integral preservado (design.md, tasks.md, proposal.md com Status: ARCHIVED e Arquivada em: 2026-11-15); specs/specifications/ removido (3 diretorios vazios); README.md sem referencias ao documento v1; next resolve para 001 ou 005 com E_TASK_AMBIGUOUS, nunca para 002; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (128 passando, 1 pulado) e pnpm build aprovados
 - Evidência: docs/rawspec-commands.md removido (git rm); change 002-rawspec-task-commands arquivada em specs/changes/archive/ com conteudo integral preservado (design.md, tasks.md, proposal.md com Status: ARCHIVED e Arquivada em: 2026-11-15); specs/specifications/ removido (3 diretorios vazios); README.md sem referencias ao documento v1; next resolve para 001 ou 005 com E_TASK_AMBIGUOUS, nunca para 002; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (128 passando, 1 pulado) e pnpm build aprovados
 - Plano de ação: none
+- Arquivada em: 2026-11-15
 
 ## Objetivo
 
