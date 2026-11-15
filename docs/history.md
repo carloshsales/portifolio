@@ -325,3 +325,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: aplicar o ciclo de vida do formato v2.
 - Impacto: terceira e última tarefa da change 004 arquivada; commit `749542d` pushado.
 - Evidência: aprovação do usuário em 2026-11-15.
+
+## 2026-11-15 — Evento — Change 004 arquivada
+
+- Autor: Carlos Henrique
+- Origem: execução da change 004-rawspec-branch-per-task
+- Decisão: a change 004-rawspec-branch-per-task foi aprovada e movida para `specs/changes/archive/004-rawspec-branch-per-task`.
+- Motivo: todas as três tarefas foram concluídas, verificadas e arquivadas.
+- Impacto: a regra de branch por tarefa e commit/push automático está implantada.
+- Evidência: aprovação do usuário em 2026-11-15; `check-archive-change` elegível antes do arquivamento.

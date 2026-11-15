@@ -1,6 +1,7 @@
 # Change 004 — Branch por tarefa e commit/push automáticos
 
-- Status: APPROVED
+- Status: ARCHIVED
+- Arquivada em: 2026-11-15
 - Aprovação: 2026-11-15
 - Tipo: Melhoria de processo de engenharia
 - Prioridade: Alta
