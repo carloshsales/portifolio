@@ -92,7 +92,7 @@ Direção visual aprovada:
 
 Tipografia:
 - Manrope: títulos.
-- Inter: textos.
+- Nunito Sans: textos.
 - JetBrains Mono: detalhes técnicos.
 
 Layout com sidebar fixa em telas maiores e navegação adaptada para dispositivos móveis.
