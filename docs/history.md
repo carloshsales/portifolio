@@ -289,3 +289,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: aplicar o ciclo de vida do formato v2.
 - Impacto: primeira tarefa da change 004 arquivada; commit `950df21` pushado.
 - Evidência: aprovação do usuário em 2026-11-15.
+
+## 2026-11-15 — Evento — TASK-002 concluída
+
+- Autor: Carlos Henrique
+- Origem: execução da change 004-rawspec-branch-per-task
+- Decisão: a TASK-002 (atualizar /startspec e /continuespec) foi concluída e verificada.
+- Motivo: orientar os comandos a usar branch por tarefa e commit/push automático.
+- Impacto: `/startspec`, `/continuespec` e `/arquivespec` atualizados.
+- Evidência: `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (128 passando, 1 pulado) e `pnpm build` aprovados em 2026-11-15.

@@ -5,21 +5,23 @@ argument-hint: [TASK-ID] [--change CHANGE-ID]
 
 # /startspec
 
-Inicia uma tarefa `PENDING` do RawSpec v2.
+Inicia uma tarefa `PENDING` do RawSpec v2 em sua própria branch.
 
 ## Regras
 
-- Com `TASK-ID`: resolva a tarefa, valide aprovação da mudança e dependências, e inicie.
+- Com `TASK-ID`: resolva a tarefa, valide aprovação da mudança e dependências, crie a branch e inicie.
 - Sem argumento: use `next` para selecionar a próxima tarefa pendente.
 - Se já existir tarefa aberta, pergunte ao usuário antes de iniciar outra. Se ele recusar, interrompa e oriente `/continuespec`.
 - Em ambiguidade de tarefa ou de mudança, apresente as candidatas e pergunte ao usuário; nunca escolha sozinho.
+- Crie a branch `task/NNN-NNN-slug` antes de iniciar.
+- Se a branch já existir, informe `E_BRANCH_EXISTS` e não substitua.
 - Nunca altere o status de aprovação.
-- Nunca faça `git commit` nem `git push`.
 
 ## Como executar
 
 ```bash
 node scripts/rawspec-v2-cli.mjs resolve TASK-001 --change 003-rawspec-v2
+node scripts/rawspec-v2-cli.mjs create-branch TASK-001 --change 003-rawspec-v2
 node scripts/rawspec-v2-cli.mjs start TASK-001 --change 003-rawspec-v2
 ```
 
@@ -32,8 +34,4 @@ node scripts/rawspec-v2-cli.mjs next
 
 ## Fechamento
 
-Ao concluir a tarefa, apresente o que foi implementado, os arquivos alterados, as verificações executadas e uma mensagem de commit pronta, sem executá-la:
-
-```bash
-node scripts/rawspec-v2-cli.mjs commit-message TASK-001 --change 003-rawspec-v2
-```
+Ao concluir a tarefa, o `/continuespec` executa as verificações e, se passarem, faz commit e push na branch da tarefa.

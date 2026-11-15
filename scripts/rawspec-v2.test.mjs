@@ -1090,7 +1090,9 @@ describe('comandos v2', () => {
 
     expect(content).toContain('argument-hint:')
     expect(content).toContain('rawspec-v2-cli.mjs')
-    expect(content).toContain('Nunca faça `git commit` nem `git push`')
+    if (name !== 'archivespec') {
+      expect(content).toMatch(/commit-task|create-branch/)
+    }
   })
 })
 
