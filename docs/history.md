@@ -397,3 +397,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Automatizar a verificação de responsividade sobre o build de produção em celular, tablet e desktop.
 - Impacto: @playwright/test instalado; e2e/ com config e 5 verificacoes; 15 testes e2e a passar; scripts test:e2e e test:all; vitest exclui e2e/.
 - Evidência: Teste negativo provado com overflow de 3000px; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado), pnpm build e pnpm test:e2e aprovados em 2026-11-15; commit 00bb565 pushado.
+
+## 2026-11-15 — Evento — Push do workflow de CI bloqueado pelo âmbito do token
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: O commit f142eab da TASK-005 foi criado localmente, mas o git push foi rejeitado pelo GitHub por o token OAuth nao ter o ambito 'workflow'.
+- Motivo: O GitHub exige o ambito 'workflow' para criar ou alterar ficheiros em .github/workflows/.
+- Impacto: O workflow de CI esta escrito e validado localmente, mas ausente do repositorio remoto; a TASK-005 nao pode ser arquivada e a TASK-006 fica bloqueada.
+- Evidência: Erro 'refusing to allow an OAuth App to create or update workflow .github/workflows/ci.yml without workflow scope'; plano de ação criado em specs/changes/005-refactor-portfolio-baseline/action-plans/TASK-005-2026-11-15-push-workflow-bloqueado.md com Status PENDING ACCEPTANCE.
