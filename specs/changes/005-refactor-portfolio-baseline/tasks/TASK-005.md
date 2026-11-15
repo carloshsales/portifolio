@@ -1,11 +1,11 @@
 # TASK-005 — Introduzir integração contínua
 
 - Change: 005-refactor-portfolio-baseline
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: TASK-003, TASK-004
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-15
+- Verificação: VERIFIED (2026-11-15) — .github/workflows/ci.yml criado com name CI, triggers push e pull_request, permissions contents read, concurrency com cancel-in-progress e job quality em ubuntu-latest com timeout 15 minutos; 10 steps: checkout, pnpm/action-setup com version 12 e run_install false, setup-node com node-version 22 e cache pnpm, pnpm install --frozen-lockfile, pnpm lint, pnpm typecheck, pnpm test, pnpm build, playwright install --with-deps chromium, pnpm test:e2e; YAML validado estruturalmente com parser yaml (10 steps lidos, triggers e job corretos); todos os comandos do workflow executados localmente na ordem, com exit 0 em pnpm install --frozen-lockfile, pnpm lint, pnpm typecheck, pnpm test, pnpm build e pnpm test:e2e; o passo --with-deps e especifico de Linux e foi identificado como tal; dependencia temporaria yaml removida apos a validacao; hooks do Husky mantidos inalterados; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado) e pnpm build aprovados
+- Evidência: .github/workflows/ci.yml criado com name CI, triggers push e pull_request, permissions contents read, concurrency com cancel-in-progress e job quality em ubuntu-latest com timeout 15 minutos; 10 steps: checkout, pnpm/action-setup com version 12 e run_install false, setup-node com node-version 22 e cache pnpm, pnpm install --frozen-lockfile, pnpm lint, pnpm typecheck, pnpm test, pnpm build, playwright install --with-deps chromium, pnpm test:e2e; YAML validado estruturalmente com parser yaml (10 steps lidos, triggers e job corretos); todos os comandos do workflow executados localmente na ordem, com exit 0 em pnpm install --frozen-lockfile, pnpm lint, pnpm typecheck, pnpm test, pnpm build e pnpm test:e2e; o passo --with-deps e especifico de Linux e foi identificado como tal; dependencia temporaria yaml removida apos a validacao; hooks do Husky mantidos inalterados; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado) e pnpm build aprovados
 - Plano de ação: none
 
 ## Objetivo

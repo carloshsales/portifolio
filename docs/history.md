@@ -388,3 +388,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Substituir a verificação manual de acessibilidade por um teste automatizado que falha o pnpm test.
 - Impacto: vitest-axe instalado como dependencia de desenvolvimento; src/test/accessibility.test.tsx com 2 testes; aplicacao sem violacoes automaticas em 20 regras.
 - Evidência: Teste negativo provado com violacao image-alt; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado) e pnpm build aprovados em 2026-11-15; commit 85af9f0 pushado.
+
+## 2026-11-15 — Evento — TASK-004 da change 005 concluída
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-004 (automatizar a verificação de responsividade) foi concluída e verificada.
+- Motivo: Automatizar a verificação de responsividade sobre o build de produção em celular, tablet e desktop.
+- Impacto: @playwright/test instalado; e2e/ com config e 5 verificacoes; 15 testes e2e a passar; scripts test:e2e e test:all; vitest exclui e2e/.
+- Evidência: Teste negativo provado com overflow de 3000px; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado), pnpm build e pnpm test:e2e aprovados em 2026-11-15; commit 00bb565 pushado.
