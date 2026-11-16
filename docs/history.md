@@ -485,3 +485,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: As tres tarefas estavam COMPLETED e VERIFIED, a suite de qualidade passou e o gate de ambito foi validado numa execucao real, com o commit bloqueado e o repositorio intacto.
 - Impacto: O commit-task passou a fazer staging restrito ao ambito da task, com o novo codigo E_SCOPE_VIOLATION. docs/projeto.md esta coerente com o orquestrador e com a ADR-005. Nenhum ficheiro da aplicacao foi alterado.
 - Evidencia: node scripts/rawspec-v2-cli.mjs check-archive-change reportou eligible true sem blockers antes do arquivamento; validacao real com src/test/fora-do-ambito.ts detectado em outOfScope e commit bloqueado; 141 testes passam com 7 novos; pnpm lint, typecheck, test, build, test:e2e (15 em 3 viewports) e prettier --check aprovados em 2026-11-16.
+
+## 2026-11-16 — Evento — Conclusão TASK-002 — Configurar qualidade e Git Hooks
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: TASK-002 concluída e verificada: centralizado lint-staged no package.json e atualizado o hook pre-commit; lint, typecheck, testes, formatação, build, E2E e teste de bloqueio do hook passaram. Revisão em par aprovada. Commit/push pendentes por indisponibilidade do guardiao com acesso Git.
+- Motivo: TASK-002 concluída e verificada: centralizado lint-staged no package.json e atualizado o hook pre-commit; lint, typecheck, testes, formatação, build, E2E e teste de bloqueio do hook passaram. Revisão em par aprovada. Commit/push pendentes por indisponibilidade do guardiao com acesso Git.
+- Impacto: não informado
+- Evidência: não informada

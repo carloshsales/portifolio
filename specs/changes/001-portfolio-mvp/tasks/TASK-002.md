@@ -1,11 +1,11 @@
 # TASK-002 — Configurar qualidade e Git Hooks
 
 - Change: 001-portfolio-mvp
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: TASK-001
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-16
+- Verificação: VERIFIED (2026-11-16) — pnpm lint, typecheck, test (141 passaram, 1 ignorado), format:check, build e test:e2e (15 passaram); hooks pre-commit e pre-push executados; pre-commit bloqueou ficheiro temporario com erro de ESLint; core.hooksPath=.husky/_; revisoes A e B aprovadas; clareza 90/100.
+- Evidência: pnpm lint, typecheck, test (141 passaram, 1 ignorado), format:check, build e test:e2e (15 passaram); hooks pre-commit e pre-push executados; pre-commit bloqueou ficheiro temporario com erro de ESLint; core.hooksPath=.husky/_; revisoes A e B aprovadas; clareza 90/100.
 - Plano de ação: none
 
 ## Objetivo
