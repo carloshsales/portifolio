@@ -7,6 +7,11 @@ Este projeto usa o formato de especificações RawSpec v2, documentado em
 `specs/changes/NNN-slug/tasks/TASK-NNN.md` e são executadas pelo helper
 `scripts/rawspec-v2.mjs`, através da CLI `scripts/rawspec-v2-cli.mjs`.
 
+A documentação geral do projeto — visão, âmbito, identidade visual, stack,
+prioridades e princípios de trabalho — está em
+[`docs/projeto.md`](docs/projeto.md). É a referência a consultar para melhorar o
+teor das perguntas e das decisões, e não substitui a inspeção do repositório.
+
 ## Regra de execução: resumo prévio e resolução de discrepâncias
 
 Ao ser pedido a execução de uma tarefa, o agente **tem de apresentar primeiro um
@@ -103,5 +108,7 @@ pnpm format:check # verificação de formatação com Prettier
   `src/styles/tokens.css`.
 - **Conteúdo real** vive em `src/content/` e é exposto ao código através de
   `src/data/`. Não inventar projetos, experiências ou informações profissionais.
-- **Mensagens e comentários em português europeu.**
+- **Interface e conteúdo em português brasileiro** (pt-BR). Comentários e
+  documentação do código-fonte seguem o registo atual do repositório, em
+  português europeu.
 - **Histórico append-only.** Nunca reescrever entradas em `docs/history.md`.
