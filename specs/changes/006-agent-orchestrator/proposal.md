@@ -156,6 +156,9 @@ O tier máximo é o tier 2. Não há tier de arbitragem com custo elevado.
 - R8. Todo agente devolve evidência estruturada do que executou.
 - R9. O custo e os tokens de cada execução ficam registados.
 - R10. O `AGENTS.md` passa a estar integrado e a ser lido automaticamente.
+- R11. Nenhum ficheiro fora do âmbito declarado da task é commited. A garantia
+  vem do gate de âmbito aplicado antes do commit, não das permissões de caminho,
+  que se provaram contornáveis por shell. Ver `design.md` §5.3.1.
 
 ### 5.2 Não funcionais
 
