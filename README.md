@@ -4,6 +4,7 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 
 ## Documentação
 
+- `docs/projeto.md` — documentação geral do projeto: visão, âmbito, identidade visual, stack, prioridades e princípios de trabalho.
 - `docs/rawspec-v2.md` — formato das especificações v2, comandos, exemplos e catálogo de erros.
 - `docs/deployment.md` — como publicar o projeto: requisitos, candidatos e critérios de decisão.
 - `docs/conteudo-real.md` — inventário do conteúdo a fornecer para o portfólio deixar de estar vazio.

@@ -13,7 +13,7 @@ const ICONS: Record<SocialIcon, ComponentType<{ className?: string }>> = {
 
 export function Contact() {
   return (
-    <Section id="contato" title="Contato" subtitle="Onde me podes encontrar.">
+    <Section id="contato" title="Contato" subtitle="Onde me pode encontrar.">
       {profile.social.length === 0 ? (
         <p className={styles.empty}>Ainda não há canais de contato para apresentar.</p>
       ) : (
