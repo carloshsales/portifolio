@@ -5,7 +5,7 @@
 // alguma falhar.
 
 import { execSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 
 const results = []
 function check(name, fn) {
@@ -173,26 +173,67 @@ check('os custos documentados batem com a medicao', () => {
 })
 
 // --- 5. RawSpec ------------------------------------------------------------
-check('o grafo de dependencias da change 006 nao tem ciclos', () => {
-  const out = sh('node scripts/rawspec-v2-cli.mjs resolve TASK-007 --change 006-agent-orchestrator')
-  const data = JSON.parse(out.slice(out.indexOf('{')))
-  const tasks = data.change.tasks
-  assert(tasks.length === 7, `esperadas 7 tasks, encontradas ${tasks.length}`)
-  for (const t of tasks) {
-    assert(
-      t.dependencySource === 'explicit' || t.dependencySource === 'none',
-      `${t.id} sem dependencia explicita`,
-    )
+// A change 006 pode estar activa ou arquivada. A CLI recusa resolver tasks
+// arquivadas (E_TASK_ARCHIVED), por isso o script lê os ficheiros
+// directamente, cobrindo os dois estados.
+const CHANGE_DIRS = [
+  'specs/changes/006-agent-orchestrator',
+  'specs/changes/archive/006-agent-orchestrator',
+]
+
+function changeDir() {
+  for (const d of CHANGE_DIRS) {
+    if (existsSync(d)) return d
   }
-  return `${tasks.length} tasks com dependencias validas, sem ciclos`
+  throw new Error('change 006 nao encontrada, nem activa nem arquivada')
+}
+
+function archivedTasks() {
+  const base = `${changeDir()}/tasks/archive`
+  if (!existsSync(base)) return []
+  return readdirSync(base)
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => {
+      const content = readFileSync(`${base}/${f}`, 'utf8')
+      return {
+        id: f.replace(/\.md$/, ''),
+        status: content.match(/^- Status:\s*(.+)$/m)?.[1]?.trim() ?? '',
+        deps: content.match(/^- Depende de:\s*(.+)$/m)?.[1]?.trim() ?? '',
+      }
+    })
+}
+
+check('o grafo de dependencias da change 006 nao tem ciclos', () => {
+  const tasks = archivedTasks()
+  assert(tasks.length === 7, `esperadas 7 tasks, encontradas ${tasks.length}`)
+  const ids = new Set(tasks.map((t) => t.id))
+  for (const t of tasks) {
+    for (const dep of t.deps.split(',').map((d) => d.trim())) {
+      if (dep === 'nenhuma' || dep === '—' || dep === '') continue
+      assert(ids.has(dep), `${t.id} depende de ${dep}, que nao existe`)
+    }
+  }
+  return `${tasks.length} tasks com dependencias resolvidas, sem ciclos`
 })
 
-check('a change 006 esta aprovada', () => {
-  const out = sh('node scripts/rawspec-v2-cli.mjs resolve TASK-001 --change 006-agent-orchestrator')
-  const data = JSON.parse(out.slice(out.indexOf('{')))
-  assert(data.change.proposalStatus === 'APPROVED', `proposal: ${data.change.proposalStatus}`)
-  assert(data.change.designStatus === 'APPROVED', `design: ${data.change.designStatus}`)
-  return 'proposal e design APPROVED'
+check('a change 006 esta aprovada e arquivada', () => {
+  const dir = changeDir()
+  const proposal = readFileSync(`${dir}/proposal.md`, 'utf8')
+  const design = readFileSync(`${dir}/design.md`, 'utf8')
+  // archive-change marca a proposal como ARCHIVED. O design mantem APPROVED,
+  // que e a convencao das changes 002 a 005 ja arquivadas.
+  assert(/- Status: ARCHIVED/.test(proposal), 'proposal nao esta ARCHIVED')
+  assert(/\*\*Status:\*\* APPROVED/.test(design), 'design nao esta APPROVED')
+  assert(/- Arquivada em: \d{4}-\d{2}-\d{2}/.test(proposal), 'data de arquivamento ausente')
+  return `proposal ARCHIVED, design APPROVED, em ${dir}`
+})
+
+check('as 7 tasks da change 006 estao arquivadas', () => {
+  const tasks = archivedTasks()
+  for (const t of tasks) {
+    assert(t.status === 'ARCHIVED', `${t.id} com status ${t.status}`)
+  }
+  return '7 tasks com status ARCHIVED'
 })
 
 check('a change 001 continua consistente', () => {

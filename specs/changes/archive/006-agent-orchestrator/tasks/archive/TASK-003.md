@@ -1,12 +1,13 @@
 # TASK-003 — Criar a configuração base do OpenCode
 
 - Change: 006-agent-orchestrator
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-001, TASK-002
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — opencode.json criado com schema publicado, 11 regras de permissao globais (11 validas, 0 campos invalidos, nenhuma chave desconhecida contra o schema em vigor), cache write de 7475 tokens confirmado em sessao real (ttl 1h activo), escrita directa em src/content/ bloqueada pela ferramenta write; limitacao de bypass por shell verificada em 5 vias e registada em design.md 5.3.1, plano de acao TASK-003-2026-11-16-limitacao-das-permissoes-de-caminho.md, e gate de ambito definido como garantia real; pnpm lint, typecheck, test (134 passando, 1 pulado), build e prettier aprovados em 2026-11-16
 - Evidência: opencode.json criado com schema publicado, 11 regras de permissao globais (11 validas, 0 campos invalidos, nenhuma chave desconhecida contra o schema em vigor), cache write de 7475 tokens confirmado em sessao real (ttl 1h activo), escrita directa em src/content/ bloqueada pela ferramenta write; limitacao de bypass por shell verificada em 5 vias e registada em design.md 5.3.1, plano de acao TASK-003-2026-11-16-limitacao-das-permissoes-de-caminho.md, e gate de ambito definido como garantia real; pnpm lint, typecheck, test (134 passando, 1 pulado), build e prettier aprovados em 2026-11-16
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 
