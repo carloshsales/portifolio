@@ -241,28 +241,74 @@ específica e por isso prevalecente.
 
 | Agente | Regra específica | Efeito |
 |---|---|---|
-| `explorador` | `edit: *` → deny | Não escreve nada |
-| `analista-clareza` | `edit: *` → deny | Não escreve nada |
-| `revisor` | `edit: *` → deny | Não escreve nada |
-| `revisor-b` | `edit: *` → deny | Não escreve nada |
-| `verificador` | `edit: *` → deny; `shell: pnpm *` → allow | Só corre os checks |
-| `implementador` | `edit: src/**` → allow; `edit: src/content/**` → ask | Escreve código, conteúdo exige o utilizador |
-| `guardiao` | `shell: git add *` → allow; `shell: git commit *` → allow; `shell: git push *` → allow | Git é a sua função |
-| `guardiao` | `shell: node scripts/rawspec-v2-cli.mjs *` → allow | Escrita de especificação só pela CLI |
+| `explorador` | `edit: *` → deny; `shell: *` → deny; `subagent: *` → deny | Não escreve nem delega escrita |
+| `analista-clareza` | `edit: *` → deny; `shell: *` → deny; `subagent: *` → deny | Não escreve nem delega escrita |
+| `revisor` | `edit: *` → deny; `shell: *` → deny; `subagent: *` → deny | Não escreve nem delega escrita |
+| `revisor-b` | `edit: *` → deny; `shell: *` → deny; `subagent: *` → deny | Não escreve nem delega escrita |
+| `verificador` | `edit: *` → deny; `shell: pnpm *` → allow; `shell: *` → deny; `subagent: *` → deny | Só corre os checks |
+| `implementador` | `edit: src/**` → allow; `edit: src/content/**` → ask; `shell: pnpm *` → allow; `shell: *` → deny | Escreve código, conteúdo exige o utilizador |
+| `guardiao` | `shell: git add *` → allow; `shell: git commit *` → allow; `shell: git push *` → allow; `shell: node scripts/rawspec-v2-cli.mjs *` → allow; `shell: git status/diff *` → allow; `shell: *` → deny | Git e RawSpec são a sua função |
 | `orquestrador` | `shell: *` → ask | Coordena, não executa comandos livremente |
+
+A ordem dentro de cada agente é significativa: a regra geral vem **antes** da
+específica, porque a última correspondência prevalece. Por isso `shell: pnpm *`
+em `allow` precede `shell: *` em `deny` no `verificador`.
+
+A negação de `subagent` nos cinco agentes de leitura é o que impede a
+delegação de escrita a outro agente. Sem ela, `edit` e `shell` em `deny` são
+decorativos. Ver `design.md` §5.3.2.
 
 `git push` global fica em `ask`, e o `guardiao` acrescenta `allow`, que prevalece
 por ser mais específico e posterior. O efeito líquido é: só o `guardiao` faz
 push, e apenas quando as cinco condições da §5.2 se cumprem.
 
-### 5.3.1 Limitação medida: as permissões de caminho não são uma barreira
+### 5.3.2 A delegação a subagentes contorna as permissões do agente
+
+**Esta secção documenta a segunda limitação verificada, mais grave que a
+anterior.**
+
+Um agente com `edit: *` em `deny` e `shell: *` em `deny` **ainda consegue
+escrever ficheiros**, porque pode delegar a escrita a outro agente que tenha
+permissão de escrita.
+
+Verificado em 2026-11-16. Com `revisor` a tentar criar
+`src/test/perm-revisor.ts`:
+
+```text
+> revisor · beam-free
+✓ Criar ficheiro de teste — Implementador Agent
+```
+
+O `revisor` não escreveu nada. Invocou o agente `implementador`, que tem
+`edit: src/**` em `allow`, e o ficheiro foi criado. O mesmo aconteceu com
+`explorador`, `revisor-b` e `verificador`.
+
+**Correção aplicada.** Os cinco agentes de leitura acresceram uma terceira
+negação:
+
+```yaml
+permissions:
+  - action: edit
+    resource: '*'
+    effect: deny
+  - action: shell
+    resource: '*'
+    effect: deny
+  - action: subagent
+    resource: '*'
+    effect: deny
+```
+
+A regra `subagent` é o que fecha a delegação. Sem ela, as duas primeiras
+negações são decorativas.
+
+### 5.3.3 As permissões de caminho não são uma barreira
 
 **Esta secção documenta uma limitação verificada empiricamente, não uma
 especulação.**
 
-Uma regra `edit` com `deny` **não impede a escrita no ficheiro**. O agente
-pode escrever o mesmo conteúdo por outra via. Verificado em 2026-11-16 com
-`beam-free` sobre `src/content/profile.ts`:
+Uma regra `edit` com `deny` **não impede a escrita no ficheiro** se o agente
+tiver acesso a shell. Verificado com `beam-free` sobre `src/content/profile.ts`:
 
 | Via tentada | Resultado |
 |---|---|
@@ -295,7 +341,7 @@ Este gate é o que substitui a garantia que as permissões não podem dar. A
 sequência é: as permissões reduzem a probabilidade; o gate de âmbito garante
 o resultado.
 
-### 5.3.2 Consequência para a regra de `specs/**`
+### 5.3.4 Consequência para a regra de `specs/**`
 
 Uma regra `edit` com `deny` sobre `specs/**` foi inicialmente prevista para
 garantir que só a CLI RawSpec escreve especificações. A verificação mostrou que
