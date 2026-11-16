@@ -38,7 +38,5 @@ console.log(`contem "Teste": ${hasTeste}`)
 console.log(`ficheiro restaurado: ${readFileSync(TARGET, 'utf8') === original}`)
 
 const pass = !hasTeste
-console.log(
-  `\n${pass ? 'PASS' : 'FALHA'}  implementador nao escreve em src/content/ sem autorizacao`,
-)
+console.log(`\n${pass ? 'PASS' : 'FALHA'}  implementador nao escreve em src/content/ sem autorizacao`)
 process.exit(pass ? 0 : 1)
