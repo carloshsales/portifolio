@@ -496,3 +496,21 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Todas as oito tarefas foram concluídas, verificadas e arquivadas.
 - Impacto: A mudança de baseline do portfólio está concluída e preservada no arquivo; a change 001-portfolio-mvp passa a ser a única mudança ativa.
 - Evidência: check-archive-change elegivel antes do arquivamento; pnpm lint, format:check, typecheck, test (134 passando, 1 pulado), build e test:e2e aprovados em 2026-11-15.
+
+## 2026-11-16 — Decisão — Documentação geral do projeto registada em docs/projeto.md
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A documentação geral do projeto foi registada em docs/projeto.md, num ficheiro separado das especificações. O documento cobre visão, âmbito, identidade visual, stack, prioridades e princípios de trabalho, e é a referência a consultar para melhorar o teor das perguntas e decisões. O conteúdo foi reconciliado com o estado real do repositório: as 4 secções implementadas em vez das 6 descritas inicialmente, Nunito Sans em vez de Inter, o estado verificado das 12 tarefas da change 001, a change 002 já arquivada, o ciclo de vida de 8 estados do RawSpec v2 e o repositório carloshsales/portifolio. As secções Jogos, Artigos e Experimentos ficam registadas como planeadas.
+- Motivo: O repositório tinha a documentação do processo, o histórico e as decisões, mas não tinha um documento de referência do produto. A documentação enviada pelo utilizador divergia do código implementado em pontos de âmbito, design e estado.
+- Impacto: docs/projeto.md criado com 737 linhas; README.md com referência ao novo documento; AGENTS.md com ponteiro para docs/projeto.md e convenção de idioma; src/sections/Home/Home.tsx e src/sections/Contact/Contact.tsx com o texto visível uniformizado em português brasileiro. specs/ e o formato RawSpec v2 não foram alterados.
+- Evidência: Estado verificado no repositório antes da escrita: src/sections/ contém Home, Projects, Skills e Contact; src/components/Sidebar.tsx define 4 itens de navegação; src/styles/tokens.css usa Nunito Sans; specs/changes/archive/ contém as changes 002 a 005; em main as 12 tarefas da change 001 estão PENDING, com a TASK-001 concluída e arquivada apenas na branch task/001-001-inicializar-aplicacao; pnpm typecheck, pnpm lint, pnpm test (134 passando, 1 pulado), pnpm test:e2e (15 passando em 3 viewports), pnpm build e pnpm exec prettier --check . aprovados em 2026-11-16.
+
+## 2026-11-16 — Decisão — AGENTS.md com regras de execução para agentes
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: Foi criado o ficheiro AGENTS.md na raiz do repositório, com as regras de execução a que os agentes ficam sujeitos ao trabalhar neste projeto. A regra principal exige que, ao ser pedido a execução de uma tarefa, o agente apresente primeiro um resumo do que será realizado e que, havendo discrepâncias entre a tarefa e o estado real do repositório, pergunte ao utilizador antes de agir. O ficheiro documenta ainda o princípio de não falsificação, as regras de workflow do RawSpec v2, os comandos de verificação, os comandos RawSpec e as convenções do repositório.
+- Motivo: Sem um resumo prévio e sem o tratamento explícito de discrepâncias, havia risco de o agente executar trabalho divergente do pretendido, ou de marcar como concluída uma tarefa cujo trabalho não tinha sido feito. O ficheiro é lido automaticamente pelo OpenCode em todas as sessões do projeto, o que torna a regra aplicável sem depender de comandos específicos.
+- Impacto: AGENTS.md criado na raiz do repositório; referência a docs/projeto.md e convenção de idioma da interface em português brasileiro acrescentadas posteriormente. O ficheiro vive na branch chore/agent-rules, com pull request próprio, por não pertencer ao âmbito de nenhuma TASK-NNN da change 001.
+- Evidência: pnpm exec prettier --check AGENTS.md aprovado; CI do pull request #1 aprovado nas duas execuções; hooks pre-commit e pre-push verificados a executar após a correcção do core.hooksPath do Git, que estava corrompido para --version/_ em Windows e deixou os hooks de qualidade desativados.
