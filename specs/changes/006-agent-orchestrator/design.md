@@ -399,8 +399,8 @@ humana. O pipeline para aí e apresenta a questão.
 | # | Teste | Tipo |
 |---|---|---|
 | T1 | `opencode.json` valida contra `https://opencode.ai/config.json` | Configuração |
-| T2 | Os sete agentes são descobertos e cada um declara `mode`, `model` e permissões | Configuração |
-| T3 | `explorador`, `analista-clareza`, `revisor` e `verificador` não conseguem escrever | Comportamento |
+| T2 | Os oito agentes são descobertos e cada um declara `mode`, `model` e permissões | Configuração |
+| T3 | `explorador`, `analista-clareza`, `revisor`, `revisor-b` e `verificador` não conseguem escrever nem delegar escrita | Comportamento |
 | T4 | `implementador` consegue escrever em `src/**` mas precisa de autorização em `src/content/**` | Comportamento |
 | T5 | `orquestrador` para quando o score de clareza é inferior a 90 | Comportamento |
 | T6 | O `guardiao` não faz push quando uma das cinco condições falha | Comportamento |
@@ -436,22 +436,26 @@ uma acção mais delimitada e consome tokens de contexto acrescido.
 
 | Cenário | Custo/task | 12 tasks MVP | 30 execuções/mês |
 |---|---|---|---|
-| Pipeline completo, com revisão em par | **$0,0248** | **$0,30** | **$0,74** |
-| Com escalonamento do revisor | $0,0388 | $0,47 | $1,16 |
-| Com escalonamento duplo | $0,0528 | $0,63 | $1,58 |
-| Referência: revisão simples | $0,0108 | $0,13 | $0,32 |
+| Pipeline completo, com revisão em par | **$0,0229** | **$0,27** | **$0,69** |
+| Com escalonamento do revisor | $0,0491 | $0,59 | $1,47 |
+| Com escalonamento duplo | $0,0529 | $0,63 | $1,59 |
+| Referência: revisão simples | $0,0089 | $0,11 | $0,27 |
 
-O pipeline de oito etapas custa **$0,0248 por task**. O limite de USD 0,50
-por task fixado no requisito N1 tem uma margem de 20×.
+O pipeline de oito etapas custa **$0,0229 por task**. O limite de USD 0,50
+por task fixado no requisito N1 tem uma margem de 21×.
 
 A revisão em par acrescenta $0,0140 por task face à revisão simples — cerca de
-$0,17 por mês com 30 execuções, e $0,17 no total para as 12 tasks restantes do
+$0,42 por mês com 30 execuções, e $0,17 no total para as 12 tasks restantes do
 MVP.
+
+Os valores são recalculados a partir da medição por
+`node bakeoff/calc-cost.mjs`, não escritos à mão.
 
 ### 8.3 Porque é tão mais barato que a estimativa anterior
 
 A primeira estimativa, baseada em 30K tokens de input e 8K de output por etapa,
-custava $0,061 por task. A medição deu $0,0108 — **5,7× mais barato**.
+custava $0,061 por task. A medição deu $0,0229 com revisão em par — **2,7×
+mais barato**. A revisão simples custa $0,0089, ou 6,9× menos.
 
 A razão está no tamanho do contexto. As etapas reais do pipeline recebem
 contexto mínimo: a tarefa, o ficheiro, o resultado da etapa anterior. O
@@ -473,17 +477,17 @@ o seu custo é insensitive ao tamanho do contexto.
 
 | Configuração | Custo/task | Relação |
 |---|---|---|
-| Orquestrador proposto | $0,0108 | referência |
+| Orquestrador proposto | $0,0229 | referência |
 | Só `beam-free` | ~$0,001 | qualidade insuficiente: sem verificação TypeScript real |
-| Sessões manuais actuais | $0,65 | 60× mais caro |
-| Só `gpt-5.5` em todas as etapas | $1,68 | 155× mais caro |
-| Só `gpt-5.5-pro` em todas as etapas | $10,08 | 933× mais caro |
+| Sessões manuais actuais | $0,65 | 28× mais caro |
+| Só `gpt-5.5` em todas as etapas | $1,68 | 73× mais caro |
+| Só `gpt-5.5-pro` em todas as etapas | $10,08 | 440× mais caro |
 
 ## 9. Critérios de aceite
 
 - `opencode.json` existe, valida contra o schema, e define permissões globais,
-  sete agentes e dois comandos.
-- Os sete agentes existem em `.opencode/agents/`, cada um com `mode`, `model` e
+  oito agentes e dois comandos.
+- Os oito agentes existem em `.opencode/agents/`, cada um com `mode`, `model` e
   permissões coerentes com a §5.3.
 - `/orquestrar` e `/clarity` existem em `.opencode/commands/`.
 - A tabela de routing da §4.1 está reproduzida em `docs/orquestrador.md`, com

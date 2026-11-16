@@ -1,11 +1,11 @@
 # TASK-006 — Documentar o orquestrador e registar o ADR
 
 - Change: 006-agent-orchestrator
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: TASK-005
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-16
+- Verificação: VERIFIED (2026-11-16) — docs/orquestrador.md criado com 8 secoes: tabela de routing medida (8 agentes com modelo, variante, custos e score), faixas de escalonamento, regras de escalonamento, tabela dos 8 agentes, permissoes globais e por agente, as duas limitacoes medidas do modelo de permissoes, pipeline com revisao em par e regra de desempate, 5 condicoes de commit e push, economia de tokens e comandos de verificacao. ADR-007 criada com as 6 secoes exigidas por docs/rawspec-v2.md secao 6.2, registando as 4 alternativas consideradas e as consequencias negativas. Entrada de decisao acrescentada a docs/history.md (50 entradas, encoding UTF-8 integro, append-only preservado). Custos recalculados a partir da medicao por node bakeoff/calc-cost.mjs: 0,0229 por task com revisao em par, corrigidos os valores typed a mao nos 5 ficheiros. README.md referencia docs/orquestrador.md e os dois comandos novos. pnpm lint, typecheck, test (134 passando, 1 pulado), build, test:e2e e prettier aprovados em 2026-11-16
+- Evidência: docs/orquestrador.md criado com 8 secoes: tabela de routing medida (8 agentes com modelo, variante, custos e score), faixas de escalonamento, regras de escalonamento, tabela dos 8 agentes, permissoes globais e por agente, as duas limitacoes medidas do modelo de permissoes, pipeline com revisao em par e regra de desempate, 5 condicoes de commit e push, economia de tokens e comandos de verificacao. ADR-007 criada com as 6 secoes exigidas por docs/rawspec-v2.md secao 6.2, registando as 4 alternativas consideradas e as consequencias negativas. Entrada de decisao acrescentada a docs/history.md (50 entradas, encoding UTF-8 integro, append-only preservado). Custos recalculados a partir da medicao por node bakeoff/calc-cost.mjs: 0,0229 por task com revisao em par, corrigidos os valores typed a mao nos 5 ficheiros. README.md referencia docs/orquestrador.md e os dois comandos novos. pnpm lint, typecheck, test (134 passando, 1 pulado), build, test:e2e e prettier aprovados em 2026-11-16
 - Plano de ação: none
 
 ## Objetivo

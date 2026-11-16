@@ -9,6 +9,7 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 - `docs/deployment.md` — como publicar o projeto: requisitos, candidatos e critérios de decisão.
 - `docs/conteudo-real.md` — inventário do conteúdo a fornecer para o portfólio deixar de estar vazio.
 - `docs/history.md` — histórico append-only de decisões, eventos e detalhes.
+- `docs/orquestrador.md` — orquestrador de agentes: routing de modelos, gates, permissões e economia de tokens.
 - `docs/decisions/` — Architecture Decision Records (ADRs).
 - `specs/templates/` — templates de tarefa, proposta, design, plano de ação e entrada de histórico.
 - `AGENTS.md` — regras de execução a que os agentes ficam sujeitos neste repositório.
