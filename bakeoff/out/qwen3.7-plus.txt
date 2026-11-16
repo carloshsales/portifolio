@@ -1,0 +1,14 @@
+﻿At C:\Users\Carlos Henrique\AppData\Roaming\npm\opencode.ps1:14 char:3
+ 
+> build ┬À qwen3.7-plus
+[0mÔåÆ [0mRead bakeoff/fixture.tsx 
+[0mÔ£▒ [0mGlob "src/data/**/*" [90m3 matches[0m
+[0mÔ£▒ [0mGlob "src/content/**/*" [90m3 matches[0m
+> build ┬À qwen3.7-plus
+```
+D1 | Import direto de src/content/ em vez de src/data/ | bakeoff/fixture.tsx:6
+D2 | Alt gen├®rico "Foto" em vez de "Fotografia de <nome>" | bakeoff/fixture.tsx:19
+D3 | Resumo renderizado sem verificar se existe conte├║do | bakeoff/fixture.tsx:25
+D4 | A├º├Áes renderizadas sem verificar conte├║do correspondente | bakeoff/fixture.tsx:27
+```
+

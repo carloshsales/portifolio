@@ -1,0 +1,38 @@
+﻿At C:\Users\Carlos Henrique\AppData\Roaming\npm\opencode.ps1:14 char:3
+ 
+> build ┬À beam-free
+[0mÔåÆ [0mRead bakeoff/fixture.tsx 
+> build ┬À beam-free
+[0mÔåÆ [0mRead bakeoff/README.md 
+[0mÔ£▒ [0mGlob "src/sections/Home/Home.tsx" [90m1 match[0m
+> build ┬À beam-free
+[0mÔåÆ [0mRead src/sections/Home/Home.tsx 
+> build ┬À beam-free
+[0mÔ£▒ [0mGrep "aria-current" [90m7 matches[0m
+> build ┬À beam-free
+[0mÔåÆ [0mRead bakeoff/score.mjs 
+[0mÔ£▒ [0mGlob "bakeoff/out/*" [90m0 matches[0m
+> build ┬À beam-free
+[0mÔ£▒ [0mGlob "bakeoff/out/*" [90m0 matches[0m
+> build ┬À beam-free
+[0m$ [0mGet-ChildItem -Path "C:\workspace\projects\portfolio\bakeoff" -Recurse -File | Select-Object -ExpandProperty 
+FullName
+C:\workspace\projects\portfolio\bakeoff\build-results.mjs
+C:\workspace\projects\portfolio\bakeoff\fixture.tsx
+C:\workspace\projects\portfolio\bakeoff\opencode.json
+C:\workspace\projects\portfolio\bakeoff\prompt.txt
+C:\workspace\projects\portfolio\bakeoff\README.md
+C:\workspace\projects\portfolio\bakeoff\results.json
+C:\workspace\projects\portfolio\bakeoff\score.mjs
+> build ┬À beam-free
+[0mÔåÆ [0mRead src/content/profile.ts 
+[0mÔåÆ [0mRead src/data/profile.ts 
+> build ┬À beam-free
+[0mÔåÆ [0mRead src/components/Section.tsx 
+> build ┬À beam-free
+D1 | Import directo de src/content/profile em vez de src/data/profile | bakeoff/fixture.tsx:6
+D2 | alt generico ("Foto") em vez de "Fotografia de <nome>" | bakeoff/fixture.tsx:19
+D3 | Resumo renderizado sem guarda hasSummary | bakeoff/fixture.tsx:25
+D4 | Acoes renderizadas sem verificar conteudo correspondente | bakeoff/fixture.tsx:27
+D6 | Falta width/height na img (layout shift) | bakeoff/fixture.tsx:17
+

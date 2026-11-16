@@ -4,3 +4,7 @@ coverage
 pnpm-lock.yaml
 specs
 docs
+bakeoff/out
+bakeoff/results.json
+bakeoff/prompt.txt
+bakeoff/fixture.tsx
