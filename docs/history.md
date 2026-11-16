@@ -433,3 +433,21 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: O ├ómbito 'workflow' do token OAuth foi autorizado, permitindo publicar o workflow de CI.
 - Impacto: .github/workflows/ci.yml publicado no main e na branch 005-005; GitHub Actions executado com 10 steps verdes; defeito do pnpm/action-setup corrigido; actions actualizadas para v5; plano de acao marcado como RESOLVED.
 - Evid├¬ncia: gh auth status confirma o ambito workflow; runs 43769021078 e 43769178321 concluidos com success; pnpm lint, format:check, typecheck, test (134 passando, 1 pulado), build e test:e2e aprovados em 2026-11-15; commit 5fad617 pushado.
+
+## 2026-11-16 — Evento — TASK-006 da change 005 concluída
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-006 (documentar a publicação sem fixar o destino) foi concluída e verificada.
+- Motivo: Preparar a publicação de forma agnóstica ao destino, para que a escolha do deploy possa ser feita depois com base em requisitos concretos.
+- Impacto: docs/deployment.md criado com 8 secções e 5 candidatos comparados; README.md com nova secção Publicação; nenhum ficheiro de configuração de fornecedor criado; sinalizado o ficheiro foto-perfil.png de 1,8 MB.
+- Evidência: Todos os factos documentados verificados contra o repositorio; ausencia de vercel.json, netlify.toml, .nojekyll, _headers, _redirects, wrangler.toml e firebase.json confirmada; pnpm lint, format:check, typecheck, test (134 passando, 1 pulado) e build aprovados em 2026-11-15; commit 3a9c5dd pushado.
+
+## 2026-11-16 — Evento — TASK-007 da change 005 concluída
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-007 (preparar a task de dados reais) foi concluída e verificada.
+- Motivo: Deixar preparado, com formato e campos definidos, o trabalho de preencher o conteúdo real do portfólio.
+- Impacto: docs/conteudo-real.md criado com o inventário completo do que é preciso fornecer; tarefas TASK-005 a TASK-010 da change 001 reescritas em formato v2 com escopos disjuntos; TASK-009 criada como tarefa exclusiva de escrita em src/content/; TASK-010 libertada da dependência dos dados.
+- Evidência: Grafo de dependências validado pelo parser sem ciclos, com 13 tarefas e dependencySource explicit; escopos disjuntos verificados por inspecao das tarefas; pnpm lint, pnpm format:check, pnpm typecheck e pnpm test (134 passando, 1 pulado) aprovados em 2026-11-15; commit c1b259e pushado.

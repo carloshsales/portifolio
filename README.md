@@ -5,6 +5,7 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 ## Documentação
 
 - `docs/rawspec-v2.md` — formato das especificações v2, comandos, exemplos e catálogo de erros.
+- `docs/deployment.md` — como publicar o projeto: requisitos, candidatos e critérios de decisão.
 - `docs/history.md` — histórico append-only de decisões, eventos e detalhes.
 - `docs/decisions/` — Architecture Decision Records (ADRs).
 - `specs/templates/` — templates de tarefa, proposta, design, plano de ação e entrada de histórico.
@@ -36,3 +37,13 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+## Publicação
+
+```bash
+pnpm build          # gera dist/
+pnpm preview        # serve dist/ localmente
+pnpm test:e2e       # testes de responsividade sobre o build
+```
+
+O destino do deploy ainda não foi decidido. Os requisitos, os candidatos e os critérios de escolha estão em [`docs/deployment.md`](docs/deployment.md).
