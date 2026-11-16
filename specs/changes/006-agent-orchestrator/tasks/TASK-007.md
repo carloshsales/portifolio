@@ -1,11 +1,11 @@
 # TASK-007 — Validar o orquestrador ponta a ponta e registar a mudança
 
 - Change: 006-agent-orchestrator
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: TASK-006
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-16
+- Verificação: VERIFIED (2026-11-16) — Validacao ponta a ponta: node bakeoff/validate.mjs com 14/14 verificacoes conformes (config contra o schema publicado, 8 agentes com frontmatter completo, todos os modelos em opencode-go, 3 negacoes nos 5 agentes de leitura, 2 comandos com referencias validas, tabela de routing completa, ADR-007 com as 6 secoes, history.md integro com 50 entradas, custos documentados a bater com a medicao, grafo sem ciclos, change aprovada, change 001 consistente). Comportamento verificado: 8/8 agentes descobertos, 6/6 casos de permissao conformes, implementador bloqueado em src/content/, gate de ambito detecta e bloqueia escritas fora do ambito. Teste real do /clarity sobre a TASK-005 devolveu 55/100 com dois bloqueios fundamentados, sem escrever ficheiros. Suite completa aprovada: pnpm lint, typecheck, test (134 passando, 1 pulado), build, test:e2e (15 em 3 viewports) e prettier. O bake-off preservado como ferramenta de regressao.
+- Evidência: Validacao ponta a ponta: node bakeoff/validate.mjs com 14/14 verificacoes conformes (config contra o schema publicado, 8 agentes com frontmatter completo, todos os modelos em opencode-go, 3 negacoes nos 5 agentes de leitura, 2 comandos com referencias validas, tabela de routing completa, ADR-007 com as 6 secoes, history.md integro com 50 entradas, custos documentados a bater com a medicao, grafo sem ciclos, change aprovada, change 001 consistente). Comportamento verificado: 8/8 agentes descobertos, 6/6 casos de permissao conformes, implementador bloqueado em src/content/, gate de ambito detecta e bloqueia escritas fora do ambito. Teste real do /clarity sobre a TASK-005 devolveu 55/100 com dois bloqueios fundamentados, sem escrever ficheiros. Suite completa aprovada: pnpm lint, typecheck, test (134 passando, 1 pulado), build, test:e2e (15 em 3 viewports) e prettier. O bake-off preservado como ferramenta de regressao.
 - Plano de ação: none
 
 ## Objetivo
