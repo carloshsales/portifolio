@@ -26,7 +26,8 @@ construído.
 - O gate de clareza avaliado sobre a TASK-005 da change 001 devolve uma pontuação com evidências, e o resultado está registado.
 - Uma discrepância real entre a task e o repositório é detectada e reportada, sem escrita de ficheiros.
 - Uma tentativa de escrita em `src/content/` é bloqueada sem autorização do utilizador.
-- Uma tentativa de escrita fora do âmbito declarado de uma task é impedida.
+- Uma tentativa de escrita fora do âmbito declarado de uma task é impedida de chegar ao commit, pelo gate de âmbito do `guardiao`.
+- A limitação verificada de que o bypass por shell contorna as permissões de caminho está replicada: uma escrita por shell a `src/content/` é detectada pelo gate de âmbito e revertida, mesmo quando a ferramenta de escrita foi bloqueada.
 - A suíte completa passa: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:e2e`.
 - Entrada de evento em `docs/history.md` a registar a conclusão da change.
 

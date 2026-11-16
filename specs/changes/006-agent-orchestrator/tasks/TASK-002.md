@@ -1,11 +1,11 @@
 # TASK-002 — Remover worktrees órfãos
 
 - Change: 006-agent-orchestrator
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: nenhuma
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-16
+- Verificação: VERIFIED (2026-11-16) — 10 de 12 worktrees removidos; 2 mantidos por terem alteracoes nao commitadas (jolly-wizard com 5 ficheiros modificados em src/ e specs/, witty-knight com 3 ficheiros modificados em scripts/ e specs/), conforme a regra da propria task; branches preservadas (46 branches, nenhuma apagada); git worktree list mostra apenas o worktree principal e os 2 com alteracoes; pnpm typecheck aprovado em 2026-11-16
+- Evidência: 10 de 12 worktrees removidos; 2 mantidos por terem alteracoes nao commitadas (jolly-wizard com 5 ficheiros modificados em src/ e specs/, witty-knight com 3 ficheiros modificados em scripts/ e specs/), conforme a regra da propria task; branches preservadas (46 branches, nenhuma apagada); git worktree list mostra apenas o worktree principal e os 2 com alteracoes; pnpm typecheck aprovado em 2026-11-16
 - Plano de ação: none
 
 ## Objetivo
