@@ -1,5 +1,6 @@
-// Verifica se os oito agentes do orquestrador sao descobertos pelo OpenCode
-// e que respondem com o modelo correcto.
+// Verifica que os agentes do orquestrador sao descobertos pelo OpenCode,
+// distinguindo erros reais do ruido do PowerShell.
+//
 // Uso: node bakeoff/check-agents.mjs
 
 import { execSync } from 'node:child_process'
@@ -19,17 +20,20 @@ function run(agent) {
   try {
     const out = execSync(
       `opencode run --agent ${agent} --model "opencode-go/beam-free" "Responde apenas: OK"`,
-      { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, shell: 'C:\\Windows\\System32\\cmd.exe' },
+      {
+        encoding: 'utf8',
+        maxBuffer: 16 * 1024 * 1024,
+        shell: 'C:\\Windows\\System32\\cmd.exe',
+      },
     )
     const clean = out.replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
     const banner = clean.split('\n').filter((l) => l.startsWith('> ')).pop()
-    const err = clean.split('\n').find((l) => /^\s*Error/.test(l))
+    const err = clean.split('\n').find((l) => /^\s*Error:/.test(l))
     return { ok: !err, banner: banner ? banner.trim() : '', err: err ? err.trim() : '' }
   } catch (e) {
-    const out = (e.stdout ?? '') + (e.stderr ?? '')
-    const clean = out.replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
-    const err = clean.split('\n').find((l) => /^\s*Error/.test(l))
-    return { ok: false, banner: '', err: err ? err.trim() : e.message.slice(0, 120) }
+    const out = ((e.stdout ?? '') + (e.stderr ?? '')).replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+    const err = out.split('\n').find((l) => /^\s*Error:/.test(l))
+    return { ok: false, banner: '', err: err ? err.trim() : e.message.slice(0, 140) }
   }
 }
 

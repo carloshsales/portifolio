@@ -21,6 +21,13 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 - `/archivespec [CHANGE-ID]` — arquiva uma mudança elegível.
 - `/logspec` — registra histórico e, opcionalmente, cria um ADR.
 
+## Comandos do orquestrador
+
+- `/orquestrar [TASK-ID]` — executa o pipeline completo de uma tarefa: exploração, clareza, aprovação, implementação, verificação, revisão em par e registo.
+- `/clarity [TASK-ID]` — avalia a clareza de uma tarefa contra os dez critérios, sem tocar em ficheiros.
+
+O routing de modelos por etapa e a economia de tokens estão em [`docs/orquestrador.md`](docs/orquestrador.md).
+
 ## Branch por tarefa
 
 Toda tarefa usa uma branch `task/NNN-NNN-slug`, criada no início. Ao concluir com verificações aprovadas, o commit e o push são feitos automaticamente, respeitando os hooks do Husky.
