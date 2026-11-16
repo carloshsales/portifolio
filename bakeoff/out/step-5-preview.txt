@@ -1,0 +1,19 @@
+﻿At C:\Users\Carlos Henrique\AppData\Roaming\npm\opencode.ps1:14 char:3
+ 
+> build ┬À step-5-preview
+[0mÔåÆ [0mRead bakeoff/fixture.tsx 
+> build ┬À step-5-preview
+Vou verificar o cat├ílogo de defeitos no README do bakeoff para confirmar o que ├® considerado defeito neste contexto.
+[0mÔ£▒ [0mGlob "bakeoff/**/*" [90m15 matches[0m
+> build ┬À step-5-preview
+[0mÔåÆ [0mRead bakeoff/README.md 
+> build ┬À step-5-preview
+[0mÔ£▒ [0mGrep "aria|current|nav" [90min bakeoff/fixture.tsx ┬À 0 matches[0m
+> build ┬À step-5-preview
+D1 | Import directo de `src/content/profile` em vez de `src/data/profile` | bakeoff/fixture.tsx:6
+D2 | `alt` gen├®rico ("Foto") em vez de `Fotografia de <nome>` | bakeoff/fixture.tsx:19
+D3 | Resumo renderizado sem guarda `hasSummary` (falha com conte├║do vazio) | bakeoff/fixture.tsx:25
+D4 | A├º├Áes renderizadas sem verificar se existe conte├║do (projetos/contactos) | bakeoff/fixture.tsx:27
+D6 | Falta de `width`/`height` na `<img>` (provoca layout shift) | bakeoff/fixture.tsx:21
+D7 | T├¡tulo com fallback hardcoded `'In├¡cio'` em vez do nome do perfil | bakeoff/fixture.tsx:12
+

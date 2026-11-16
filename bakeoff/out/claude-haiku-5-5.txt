@@ -1,0 +1,12 @@
+﻿At C:\Users\Carlos Henrique\AppData\Roaming\npm\opencode.ps1:14 char:3
+ 
+> build ┬À claude-haiku-5-5
+[0mÔåÆ [0mRead bakeoff/fixture.tsx 
+> build ┬À claude-haiku-5-5
+D1 | Import directo de `src/content/profile` em vez de `src/data/` | bakeoff/fixture.tsx:6
+D2 | Texto alternativo gen├®rico "Foto" em vez de `Fotografia de <nome>` | bakeoff/fixture.tsx:19
+D3 | Resumo renderizado sem guarda para conte├║do vazio, por isso n├úo ├® ocultado | bakeoff/fixture.tsx:25
+D4 | Bloco de a├º├Áes renderizado sem verificar se existe conte├║do correspondente | bakeoff/fixture.tsx:27
+D5 | Import `projects` n├úo utilizado | bakeoff/fixture.tsx:7
+D6 | Imagem sem `width`/`height`, causa layout shift | bakeoff/fixture.tsx:17
+
