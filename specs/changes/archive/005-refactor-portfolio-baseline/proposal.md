@@ -1,6 +1,7 @@
 # Change 005 — Baseline do portfólio: limpeza, qualidade e preparação de publicação
 
-- Status: APPROVED
+- Status: ARCHIVED
+- Arquivada em: 2026-11-16
 - Tipo: Melhoria de processo de engenharia
 - Prioridade: Alta
 - Data: 2026-11-15

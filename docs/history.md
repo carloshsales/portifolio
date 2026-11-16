@@ -487,3 +487,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Comprovar que a mudança está completa, que a change 001 permanece consistente e que o histórico reflete as decisões tomadas.
 - Impacto: README.md actualizado com as referências a docs/conteudo-real.md e à integração contínua; histórico registado com as decisões da change 005.
 - Evidência: pnpm lint, format:check, typecheck, test (134 passando, 1 pulado), build e test:e2e (15 testes em 3 viewports) aprovados; bundle sem placeholders verificado por scan; specs/changes contém apenas mudanças APPROVED e executáveis; change 001 com 12 tasks coerentes; commit e push realizados em 2026-11-15.
+
+## 2026-11-16 — Evento — Change 005 arquivada
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A change 005-refactor-portfolio-baseline foi aprovada e movida para specs/changes/archive/005-refactor-portfolio-baseline.
+- Motivo: Todas as oito tarefas foram concluídas, verificadas e arquivadas.
+- Impacto: A mudança de baseline do portfólio está concluída e preservada no arquivo; a change 001-portfolio-mvp passa a ser a única mudança ativa.
+- Evidência: check-archive-change elegivel antes do arquivamento; pnpm lint, format:check, typecheck, test (134 passando, 1 pulado), build e test:e2e aprovados em 2026-11-15.
