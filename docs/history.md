@@ -1,4 +1,4 @@
-# Histórico do projeto
+﻿# Histórico do projeto
 
 Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca são reescritas; novas ocorrências são adicionadas ao final.
 
@@ -469,3 +469,11 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Todas as tarefas estavam COMPLETED e VERIFIED, o grafo de dependencias validado sem ciclos, a suite de qualidade aprovada e a validacao ponta a ponta com 14/14 verificacoes conformes. O plano de acao deixou de estar pendente depois de o gate de ambito ter sido implementado e testado.
 - Impacto: A change 006 passa a ser a segunda unica change activa no projecto, a par da 001-portfolio-mvp. O orquestrador de agentes fica disponivel para a execucao da change 001. Nenhum ficheiro da aplicacao foi alterado por esta change: opencode.json, .opencode/agents, .opencode/commands, docs/orquestrador.md, ADR-007 e os scripts de verificacao em bakeoff/.
 - Evidencia: check-archive-change reportou eligible true sem blockers antes do arquivamento; as sete tarefas foram arquivadas com archive-task --approved; node bakeoff/validate.mjs devolve 14/14; node bakeoff/check-permissions.mjs devolve 6/6; node bakeoff/check-scope-gate.mjs devolve PASS; pnpm lint, typecheck, test (134 passando, 1 pulado), build, test:e2e (15 em 3 viewports) e prettier aprovados em 2026-11-16.
+## 2026-11-16 - Decisao - Commit-task com staging restrito ao ambito da task
+
+- Autor: Carlos Henrique
+- Origem: sessao
+- Decisao: O commit-task deixou de executar git add -A. Passa a fazer staging apenas dos ficheiros declarados na secao ## Arquivos da task e dos ficheiros de especificacao que a CLI actualiza: o ficheiro da task, o plano de acao e docs/history.md. Um ficheiro tocado fora do ambito bloqueia o commit com o novo codigo E_SCOPE_VIOLATION, que lista os ficheiros culpados sem descartar trabalho. Em paralelo, as secoes 6.3 e 7.3 de docs/projeto.md foram reescritas: a 6.3 passa a descrever o orquestrador de agentes e a 7.3 passa a ser coerente com a ADR-005, o que obrigou a corrigir tambem o principio 11 da secao 12.
+- Motivo: docs/rawspec-v2.md secao 9 e docs/projeto.md secao 7.3 determinavam staging apenas em caminhos exactos e proibiam git add -A. O commit de5ef71 levou 32 ficheiros em vez dos 3 declarados na TASK-001, o que quebrava a rastreabilidade que o RawSpec v2 existe para garantir. As secoes 6.3 e 7.3 divergiam do estado real do projecto: a 6.3 afirmava que a preferencia era nao construir um orquestrador, que ja existe, e a 7.3 exigia autorizacao explicita para commit e push, em contradicao com a ADR-005.
+- Impacto: scripts/rawspec-v2.mjs passa a extrair a secao ## Arquivos para scope.files e a aplicar o gate de ambito antes do staging; novo codigo E_SCOPE_VIOLATION documentado em docs/rawspec-v2.md, com a politica de staging e o gate descritos na secao 15.2.1; 7 testes novos. docs/projeto.md secoes 6.3, 7.3 e principio 11 da secao 12 reescritos. As secoes 6.2, 7.1, 7.2 e 7.4 nao foram alteradas.
+- Evidencia: Validacao real em 2026-11-16: uma escrita em src/test/fora-do-ambito.ts, que nao consta do ambito da TASK-003, foi detectada pelo commit-task e listada em outOfScope, com o commit bloqueado e o repositorio intacto. 94 testes do helper e 141 do projecto passam; 7 testes novos cobrem a extracao do ambito, o staging restrito e o bloqueio. pnpm lint, typecheck, test, build, test:e2e (15 em 3 viewports) e prettier --check aprovados.
