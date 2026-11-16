@@ -392,34 +392,56 @@ O projeto utiliza IA para auxiliar:
 O objetivo é utilizar IA com controlo e validação humana, não delegar decisões
 críticas sem revisão.
 
-### 6.3 Agentes do OpenCode
+### 6.3 Orquestrador de agentes
 
-Responsabilidades desejadas:
+O projecto usa um orquestrador de agentes próprio, definido como configuração
+nativa do OpenCode: agentes, comandos e permissões declarados em ficheiros
+versionados. Não há código próprio, plugins nem serviços adicionais. A
+referência completa está em [`docs/orquestrador.md`](orquestrador.md) e a
+decisão está registada na ADR-007.
 
-**Plan**
+**Oito agentes:**
 
-- analisar requisitos;
-- planear soluções;
-- decompor funcionalidades;
-- identificar dependências;
-- preparar especificações.
+| Agente | Papel |
+|---|---|
+| `orquestrador` | Coordena o pipeline e apresenta o progresso. |
+| `explorador` | Mapeia o repositório e detecta divergências. |
+| `analista-clareza` | Avalia a tarefa contra os dez critérios dos §8.5. |
+| `implementador` | Escreve o código, restrito ao âmbito da tarefa. |
+| `revisor` | Revê o diff, com foco em correcção funcional. |
+| `revisor-b` | Segunda opinião, com foco em acessibilidade, tipagem, performance e segurança. |
+| `verificador` | Corre as verificações e regista a evidência. |
+| `guardiao` | Actualiza o estado RawSpec, o histórico e o Git. |
 
-**Explore**
+**Pipeline de oito etapas:**
 
-- investigar o repositório;
-- identificar componentes e dependências;
-- analisar implementações existentes;
-- trabalhar em modo somente leitura.
+1. exploração;
+2. clareza, com gate aos 90/100;
+3. aprovação humana;
+4. implementação;
+5. verificação;
+6. revisão em par;
+7. registo.
 
-**Build**
+A revisão em par tem dois agentes com focos distintos. Quando discordam, o
+`guardiao` desempate com a confirmação do `verificador`.
 
-- implementar tarefas aprovadas;
-- respeitar o âmbito;
-- executar verificações;
-- apresentar evidências.
+**Routing de modelos.** Cada etapa tem um modelo atribuído, medido num
+bake-off sobre a TASK-005 real. O routing medido custa **$0,0229 por tarefa**,
+contra $0,65 das sessões manuais. Todos os modelos são do provider
+`opencode-go`.
 
-A preferência atual é utilizar agentes nativos, sem construir um orquestrador
-personalizado.
+**Comandos:**
+
+- `/orquestrar [TASK-ID]` — executa o pipeline completo.
+- `/clarity [TASK-ID]` — avalia a clareza de uma tarefa, sem tocar em
+  ficheiros.
+
+**Limites conhecidos.** As permissões de caminho do OpenCode não são uma
+barreira de integridade: uma escrita por shell contorna a negação de edição,
+e a delegação a subagentes contorna as negativas de `edit` e `shell`. A
+garantia real de âmbito é um gate aplicado depois da acção e antes do commit,
+que compara os ficheiros tocados com a secção `## Arquivos` da tarefa.
 
 ---
 
@@ -443,12 +465,26 @@ merge.
 
 ### 7.3 Restrições
 
+Cada tarefa é executada em branch própria, conforme a ADR-005. O commit e o
+push são automáticos quando as cinco condições se cumprem:
+
+1. a tarefa está `COMPLETED` e `VERIFIED`;
+2. a pontuação de clareza é igual ou superior a 90/100;
+3. `lint`, `typecheck`, `test` e `build` passam;
+4. os hooks do Husky passam, sem `--no-verify`;
+5. os ficheiros tocados estão dentro do âmbito declarado na secção
+   `## Arquivos` da tarefa.
+
+Se uma condição falhar, não há commit nem push. O `guardiao` regista a razão.
+
+Permanecem as seguintes restrições:
+
 - não trocar de branch automaticamente;
 - não criar worktrees para tarefas comuns;
-- não executar commits sem autorização explícita;
-- não executar pushes sem autorização explícita;
 - não descartar alterações não commitadas;
 - não utilizar `git add -A` indiscriminadamente;
+- não usar `--no-verify` para contornar verificações;
+- não reescrever o histórico;
 - inspecionar o estado do Git antes de alterações relevantes.
 
 ### 7.4 Husky
@@ -691,7 +727,8 @@ projeto. O grafo effective está no ficheiro de cada tarefa, no campo
 8. Os testes precisam de ser executados e as suas evidências registadas.
 9. O âmbito não deve crescer sem necessidade.
 10. O utilizador mantém a decisão final sobre mudanças relevantes.
-11. Não executar commits ou pushes sem autorização.
+11. O commit e o push seguem a regra da ADR-005: automáticos quando as cinco
+    condições da secção 7.3 se cumprem, e bloqueados quando alguma falha.
 12. Não criar worktrees desnecessárias.
 13. O agente apresenta o resumo do trabalho antes de o executar e pergunta ao
     utilizador sempre que existam discrepâncias.
