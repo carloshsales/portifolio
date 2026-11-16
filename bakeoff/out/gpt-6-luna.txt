@@ -1,0 +1,16 @@
+﻿At C:\Users\Carlos Henrique\AppData\Roaming\npm\opencode.ps1:14 char:3
+ 
+> build ┬À gpt-6-luna
+[0mÔåÆ [0mRead bakeoff/fixture.tsx 
+> build ┬À gpt-6-luna
+[0mÔåÆ [0mRead bakeoff/README.md 
+[0mÔåÆ [0mRead src/data/projects.ts 
+[0mÔåÆ [0mRead src/data/profile.ts 
+[0mÔåÆ [0mRead src/sections/Home/Home.tsx 
+> build ┬À gpt-6-luna
+D1 | Importa o perfil directamente de `src/content/` em vez de `src/data/` | bakeoff/fixture.tsx:6
+D2 | O texto alternativo ├® gen├®rico, n├úo descreve a pessoa | bakeoff/fixture.tsx:19
+D3 | O resumo ├® sempre renderizado, mesmo quando est├í vazio | bakeoff/fixture.tsx:25
+D4 | As a├º├Áes s├úo sempre renderizadas, mesmo sem conte├║do correspondente | bakeoff/fixture.tsx:27
+D6 | A imagem n├úo define `width` e `height`, podendo causar deslocamento do layout | bakeoff/fixture.tsx:17
+
