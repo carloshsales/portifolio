@@ -1,12 +1,13 @@
 # TASK-001 — Inicializar aplicação
 
 - Change: 001-portfolio-mvp
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — pnpm typecheck, pnpm lint e pnpm test (134 passando, 1 pulado) aprovados; pnpm build gera dist/index.html e dist/assets/ em 275ms; pnpm dev responde HTTP 200 em http://localhost:5173 e pnpm preview responde HTTP 200 em http://localhost:4173; tsconfig.json com strict, noUnusedLocals, noUnusedParameters, noFallthroughCasesInSwitch e noUncheckedSideEffectImports; os 10 diretorios previstos (src/assets, components, sections, data, content, styles, types, test, hooks e public/images) existem; src/main.tsx monta em StrictMode e lanca erro explicito sem o elemento #root; src/types/index.ts declara Profile, Project, SkillGroup e SocialLink; corrigido core.hooksPath do Git, que estava corrompido para --version/_ por causa do hook post-checkout do Husky no Windows, restaurado para .husky/_ e removido o diretorio --version criado pelo env do Git for Windows; hooks pre-commit e pre-push verificados sob Git Bash
 - Evidência: pnpm typecheck, pnpm lint e pnpm test (134 passando, 1 pulado) aprovados; pnpm build gera dist/index.html e dist/assets/ em 275ms; pnpm dev responde HTTP 200 em http://localhost:5173 e pnpm preview responde HTTP 200 em http://localhost:4173; tsconfig.json com strict, noUnusedLocals, noUnusedParameters, noFallthroughCasesInSwitch e noUncheckedSideEffectImports; os 10 diretorios previstos (src/assets, components, sections, data, content, styles, types, test, hooks e public/images) existem; src/main.tsx monta em StrictMode e lanca erro explicito sem o elemento #root; src/types/index.ts declara Profile, Project, SkillGroup e SocialLink; corrigido core.hooksPath do Git, que estava corrompido para --version/_ por causa do hook post-checkout do Husky no Windows, restaurado para .husky/_ e removido o diretorio --version criado pelo env do Git for Windows; hooks pre-commit e pre-push verificados sob Git Bash
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 
