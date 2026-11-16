@@ -1,12 +1,13 @@
 # TASK-001 — Corrigir o staging do commit-task
 
 - Change: 007-consistencia-do-projecto
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — commit-task deixa de executar git add -A: o staging passa a usar caminhos explicitos, um git add por ficheiro. Gate de ambito implementado com git status --porcelain --untracked-files=all, a comparar contra a secao ## Arquivos da task e os ficheiros de especificacao que a CLI actualiza; ficheiros fora do ambito bloqueiam o commit com E_SCOPE_VIOLATION, que lista os culpados, sem descartar trabalho. Novo codigo E_SCOPE_VIOLATION documentado em docs/rawspec-v2.md, com a politica de staging e o gate descritos na secao 15.2.1. Parser passa a extrair a secao ## Arquivos para scope.files. 7 testes novos: 3 de extracao do ambito e 4 de comportamento do gate; 94 testes do helper e 141 do projecto passam em 2026-11-16; pnpm lint, typecheck, test, build e prettier aprovados
 - Evidência: commit-task deixa de executar git add -A: o staging passa a usar caminhos explicitos, um git add por ficheiro. Gate de ambito implementado com git status --porcelain --untracked-files=all, a comparar contra a secao ## Arquivos da task e os ficheiros de especificacao que a CLI actualiza; ficheiros fora do ambito bloqueiam o commit com E_SCOPE_VIOLATION, que lista os culpados, sem descartar trabalho. Novo codigo E_SCOPE_VIOLATION documentado em docs/rawspec-v2.md, com a politica de staging e o gate descritos na secao 15.2.1. Parser passa a extrair a secao ## Arquivos para scope.files. 7 testes novos: 3 de extracao do ambito e 4 de comportamento do gate; 94 testes do helper e 141 do projecto passam em 2026-11-16; pnpm lint, typecheck, test, build e prettier aprovados
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 

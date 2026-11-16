@@ -1,12 +1,13 @@
 # TASK-002 — Actualizar as secções 6.3 e 7.3 de docs/projeto.md
 
 - Change: 007-consistencia-do-projecto
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-001
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — Secao 6.3 reescrita: descreve o orquestrador com os 8 agentes (todos verificados como presentes no documento), o pipeline de 8 etapas, o routing medido e o custo de 0,0229 por task, igual ao de docs/orquestrador.md. A frase 'sem construir um orquestrador personalizado' deixou de existir. Secao 7.3 reescrita: descreve a regra da ADR-005 com as 5 condicoes e mantem as proibicoes explicitas, incluindo a prohibition de git add -A indiscriminada. Principio 11 da secao 12, que ainda exigia autorizacao explicita para commit e push, foi alinhado com a ADR-005. Secoes 6.2, 7.1, 7.2 e 7.4 nao alteradas. pnpm lint, typecheck, test (141 passando, 1 pulado) e prettier aprovados em 2026-11-16
 - Evidência: Secao 6.3 reescrita: descreve o orquestrador com os 8 agentes (todos verificados como presentes no documento), o pipeline de 8 etapas, o routing medido e o custo de 0,0229 por task, igual ao de docs/orquestrador.md. A frase 'sem construir um orquestrador personalizado' deixou de existir. Secao 7.3 reescrita: descreve a regra da ADR-005 com as 5 condicoes e mantem as proibicoes explicitas, incluindo a prohibition de git add -A indiscriminada. Principio 11 da secao 12, que ainda exigia autorizacao explicita para commit e push, foi alinhado com a ADR-005. Secoes 6.2, 7.1, 7.2 e 7.4 nao alteradas. pnpm lint, typecheck, test (141 passando, 1 pulado) e prettier aprovados em 2026-11-16
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 

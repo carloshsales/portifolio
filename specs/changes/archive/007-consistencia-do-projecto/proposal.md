@@ -1,6 +1,7 @@
 # Change 007 — Correcções de consistência do projecto
 
-- Status: APPROVED
+- Status: ARCHIVED
+- Arquivada em: 2026-11-16
 - Tipo: Correção
 - Prioridade: Média
 - Data: 2026-11-16

@@ -1,12 +1,13 @@
 # TASK-003 — Validar a correcção e registar a mudança
 
 - Change: 007-consistencia-do-projecto
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-001, TASK-002
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — Validacao do gate de ambito: uma escrita deliberada em src/test/fora-do-ambito.ts, que nao consta da secao ## Arquivos da TASK-003, foi detectada pelo commit-task e listada como outOfScope, sem alterar o repositorio. Suite completa aprovada: pnpm lint, typecheck, test (141 passando, 1 pulado), build, test:e2e (15 em 3 viewports) e prettier --check.
 - Evidência: Validacao do gate de ambito: uma escrita deliberada em src/test/fora-do-ambito.ts, que nao consta da secao ## Arquivos da TASK-003, foi detectada pelo commit-task e listada como outOfScope, sem alterar o repositorio. Suite completa aprovada: pnpm lint, typecheck, test (141 passando, 1 pulado), build, test:e2e (15 em 3 viewports) e prettier --check.
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 
