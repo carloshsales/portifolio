@@ -1,12 +1,13 @@
 # TASK-004 — Criar os agentes especializados
 
 - Change: 006-agent-orchestrator
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-003
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — 8 agentes criados e descobertos pelo OpenCode (node bakeoff/check-agents.mjs: 8/8); 6/6 casos de permissao conformes (node bakeoff/check-permissions.mjs), verificados pelo estado do sistema de ficheiros e nao pela narracao do agente; implementador bloqueado em src/content/ (node bakeoff/check-content-gate.mjs: PASS). Duas limitacoes do modelo de permissoes verificadas e documentadas em design.md 5.3.2 e 5.3.3: a delegacao a subagentes contorna as negativas de edit e shell, corrigida com subagent deny nos 5 agentes de leitura; a escrita por shell contorna a negativa de caminho, coberta pelo gate de ambito pos-escrita. pnpm lint, typecheck, test (134 passando, 1 pulado), build e prettier aprovados em 2026-11-16
 - Evidência: 8 agentes criados e descobertos pelo OpenCode (node bakeoff/check-agents.mjs: 8/8); 6/6 casos de permissao conformes (node bakeoff/check-permissions.mjs), verificados pelo estado do sistema de ficheiros e nao pela narracao do agente; implementador bloqueado em src/content/ (node bakeoff/check-content-gate.mjs: PASS). Duas limitacoes do modelo de permissoes verificadas e documentadas em design.md 5.3.2 e 5.3.3: a delegacao a subagentes contorna as negativas de edit e shell, corrigida com subagent deny nos 5 agentes de leitura; a escrita por shell contorna a negativa de caminho, coberta pelo gate de ambito pos-escrita. pnpm lint, typecheck, test (134 passando, 1 pulado), build e prettier aprovados em 2026-11-16
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 

@@ -1,12 +1,13 @@
 # TASK-005 — Criar os comandos do orquestrador
 
 - Change: 006-agent-orchestrator
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-004
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — Dois comandos criados: /orquestrar (agent orquestrador, modelo gpt-6-luna) e /clarity (agent analista-clareza, modelo gpt-6-luna, subagent true). Referencia a agentes validada contra os 8 ficheiros em .opencode/agents; erro de grafia 'analyst-clareza' corrigido para 'analista-clareza'. Teste real do /clarity sobre a TASK-005 da change 001 devolveu pontuacao 55/100 com dois bloqueios fundamentados (criterios de aceitacao subjectivos e dependencia TASK-004 por verificar) e nao escreveu qualquer ficheiro. pnpm lint, typecheck, test (134 passando, 1 pulado) e prettier aprovados em 2026-11-16
 - Evidência: Dois comandos criados: /orquestrar (agent orquestrador, modelo gpt-6-luna) e /clarity (agent analista-clareza, modelo gpt-6-luna, subagent true). Referencia a agentes validada contra os 8 ficheiros em .opencode/agents; erro de grafia 'analyst-clareza' corrigido para 'analista-clareza'. Teste real do /clarity sobre a TASK-005 da change 001 devolveu pontuacao 55/100 com dois bloqueios fundamentados (criterios de aceitacao subjectivos e dependencia TASK-004 por verificar) e nao escreveu qualquer ficheiro. pnpm lint, typecheck, test (134 passando, 1 pulado) e prettier aprovados em 2026-11-16
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 
