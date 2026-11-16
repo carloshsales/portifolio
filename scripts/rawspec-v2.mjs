@@ -286,6 +286,50 @@ function readField(body, name, fenced) {
 }
 
 /**
+ * Extrai a secção `## Arquivos` de uma tarefa.
+ *
+ * A secção lista os caminhos do âmbito da tarefa, entre crases, com um
+ * qualificador opcional entre parênteses:
+ *
+ * ```markdown
+ * ## Arquivos
+ *
+ * - `src/sections/Home/Home.tsx` (revisão)
+ * - `src/content/profile.ts` (leitura; sem escrita)
+ * ```
+ *
+ * O qualificador é informativo. Indica o que fazer com o ficheiro, não se
+ * pode escrever nele. O gate de âmbito não faz essa distinção: um ficheiro
+ * listado é um ficheiro permitido.
+ *
+ * @param {Array<{text: string, line: number}>} body linhas do corpo da tarefa.
+ * @param {Set<number>} fenced linhas dentro de blocos de código.
+ * @returns {{files: string[], source: 'explicit'|'none'}} âmbito da tarefa.
+ */
+export function readScope(body, fenced) {
+  const files = []
+  let inside = false
+  let sawSection = false
+
+  for (const entry of body) {
+    if (fenced.has(entry.line)) continue
+    const heading = /^##\s+(.+?)\s*$/.exec(entry.text)
+    if (heading) {
+      inside = heading[1].trim().toLowerCase() === 'arquivos'
+      if (inside) sawSection = true
+      continue
+    }
+    if (!inside) continue
+    const item = /^\s*[-*]\s+(.*)$/.exec(entry.text)
+    if (!item) continue
+    const path = /`([^`]+)`/.exec(item[1])
+    if (path) files.push(path[1].trim())
+  }
+
+  return { files: [...new Set(files)], source: sawSection ? 'explicit' : 'none' }
+}
+
+/**
  * Verifica se há campos conhecidos duplicados.
  *
  * @param {Array<{text: string, line: number}>} body linhas do corpo da tarefa.
@@ -482,6 +526,8 @@ export function parseTaskFile(filePath) {
   const startValue = startField ? startField.value.trim() : ''
   const startedAt = startValue !== '' && startValue !== '—' ? startValue : null
 
+  const scope = readScope(body, fenced)
+
   const archivedField = readField(body, 'Arquivada em', fenced)
   const archivedValue = archivedField ? archivedField.value.trim() : ''
   const archivedAt = archivedValue !== '' && archivedValue !== '—' ? archivedValue : null
@@ -498,6 +544,7 @@ export function parseTaskFile(filePath) {
     actionPlan,
     startedAt,
     archivedAt,
+    scope,
     file: filePath,
   }
 }
@@ -1932,6 +1979,96 @@ export function createTaskBranch(repoRoot, taskId, { changeId } = {}) {
 }
 
 /**
+ * Lista os ficheiros tocados no repositório, relativos à raiz.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @returns {string[]} caminhos relativos, sem estado do índice.
+ */
+function listChangedFiles(repoRoot) {
+  // --untracked-files=all expande os directórios não versionados em ficheiros
+  // individuais. Sem esta opção, um directório novo aparece como "src/" e o
+  // gate não consegue distinguir o que está dentro do âmbito.
+  const output = runCommand(
+    'git',
+    ['status', '--porcelain', '--untracked-files=all'],
+    repoRoot,
+    'E_GIT_ERROR',
+  )
+  const files = []
+  for (const line of output.split(/\r?\n/)) {
+    if (line.trim() === '') continue
+    // o porcelain usa "XY <caminho>" ou "XY <origem> -> <destino>"
+    const path = line.slice(3).trim()
+    if (path === '') continue
+    const arrow = path.split(' -> ')
+    files.push((arrow[1] ?? arrow[0]).replace(/^"|"$/g, ''))
+  }
+  return [...new Set(files)]
+}
+
+/**
+ * Normaliza um caminho para comparação, sem marcas de separador.
+ *
+ * @param {string} path caminho a normalizar.
+ * @returns {string} caminho normalizado.
+ */
+function normalizeScopePath(path) {
+  return path.replace(/\\/g, '/').replace(/^\.\//, '')
+}
+
+/**
+ * Lista os ficheiros de especificação que a CLI actualiza durante a task.
+ *
+ * São parte do trabalho da task e têm de ser commited:
+ * - o ficheiro da task;
+ * - o plano de acção, se existir;
+ * - `docs/history.md`, se a task registou histórico.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {object} located localização da task.
+ * @param {object} task task carregada.
+ * @returns {string[]} caminhos relativos à raiz do repositório.
+ */
+function specificationFiles(repoRoot, located, task) {
+  const files = []
+
+  const relative = (absolute) => {
+    const root = repoRoot.replace(/\\/g, '/').replace(/\/$/, '')
+    const target = absolute.replace(/\\/g, '/')
+    return target.startsWith(`${root}/`) ? target.slice(root.length + 1) : target
+  }
+
+  if (located?.source) files.push(relative(located.source))
+  if (located?.dest && existsSync(located.dest)) files.push(relative(located.dest))
+  if (task.actionPlan) files.push(normalizeScopePath(task.actionPlan))
+
+  const history = join(repoRoot, 'docs', 'history.md')
+  if (existsSync(history)) files.push('docs/history.md')
+
+  return [...new Set(files)]
+}
+
+/**
+ * Verifica se um caminho tocado está dentro do âmbito declarado da task.
+ *
+ * O âmbito vem da secção `## Arquivos`. Um ficheiro é considerado dentro se
+ * o seu caminho coincide com um dos declarados, ou se está dentro de um
+ * diretório declarado.
+ *
+ * @param {string} file caminho relativo do ficheiro tocado.
+ * @param {string[]} scopeFiles caminhos declarados na task.
+ * @returns {boolean} `true` quando o ficheiro está dentro do âmbito.
+ */
+function isWithinScope(file, scopeFiles) {
+  const target = normalizeScopePath(file)
+  return scopeFiles.some((declared) => {
+    const scope = normalizeScopePath(declared).replace(/\/$/, '')
+    if (target === scope) return true
+    return target.startsWith(`${scope}/`)
+  })
+}
+
+/**
  * Conclui a tarefa com commit e push, respeitando os hooks do Husky.
  *
  * @param {string} repoRoot caminho raiz do repositório.
@@ -1944,7 +2081,7 @@ export function commitAndPushTask(
   taskId,
   { changeId, branch, remote = 'origin', push = true, checks } = {},
 ) {
-  const { task } = loadTask(repoRoot, taskId, changeId)
+  const { task, located } = loadTask(repoRoot, taskId, changeId)
   const done = task.status === 'COMPLETED' || task.status === 'ARCHIVED'
   if (!done || task.verification !== 'VERIFIED') {
     throw new RawspecError('E_TASK_STATE', `Tarefa ${task.id} não está COMPLETED + VERIFIED`, {
@@ -1959,7 +2096,34 @@ export function commitAndPushTask(
   const message = buildCommitMessage(repoRoot, taskId, { changeId })
   const targetBranch = branch ?? currentBranch(repoRoot)
 
-  runCommand('git', ['add', '-A'], repoRoot, 'E_GIT_ERROR')
+  // Gate de âmbito. As permissões de caminho não são uma barreira: uma
+  // escrita feita por shell contorna a negação de edição. Este gate é a
+  // garantia real, e corre antes do staging para que nada seja commited
+  // quando falha.
+  const scopeFiles = task.scope?.files ?? []
+  const specFiles = specificationFiles(repoRoot, located, task)
+  const allowed = new Set([...scopeFiles, ...specFiles].map(normalizeScopePath))
+
+  const changed = listChangedFiles(repoRoot)
+  const inScope = changed.filter((file) => allowed.has(normalizeScopePath(file)))
+  const outOfScope = changed.filter(
+    (file) =>
+      !allowed.has(normalizeScopePath(file)) &&
+      !isWithinScope(file, scopeFiles) &&
+      !isWithinScope(file, specFiles),
+  )
+
+  if (outOfScope.length > 0) {
+    throw new RawspecError('E_SCOPE_VIOLATION', `Ficheiros fora do âmbito da task ${task.id}`, {
+      task: task.id,
+      outOfScope,
+      inScope,
+    })
+  }
+
+  for (const file of inScope) {
+    runCommand('git', ['add', '--', file], repoRoot, 'E_GIT_ERROR')
+  }
   runCommand('git', ['commit', '-m', message], repoRoot, 'E_GIT_ERROR')
 
   let pushed = false
