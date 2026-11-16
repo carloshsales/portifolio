@@ -1,6 +1,7 @@
 # Change 006 — Orquestrador de agentes
 
-- Status: APPROVED
+- Status: ARCHIVED
+- Arquivada em: 2026-11-16
 - Tipo: Melhoria de processo
 - Prioridade: Média
 - Data: 2026-11-15

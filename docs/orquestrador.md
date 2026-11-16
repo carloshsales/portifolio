@@ -232,11 +232,20 @@ Os scripts em `bakeoff/` verificam o comportamento real, não a narracao do
 agente.
 
 ```bash
-node bakeoff/check-agents.mjs        # os 8 agentes são descobertos
-node bakeoff/check-permissions.mjs    # quem escreve e quem não escreve
-node bakeoff/check-content-gate.mjs   # o conteúdo real exige autorização
-node bakeoff/score.mjs bakeoff/results.json   # o ranking medido
-node bakeoff/calc-cost.mjs           # o custo por task, recalculado
+node bakeoff/validate.mjs                     # 14 verificações de configuração, agentes, comandos e documentação
+node bakeoff/check-agents.mjs                 # os 8 agentes são descobertos
+node bakeoff/check-permissions.mjs             # quem escreve e quem não escreve
+node bakeoff/check-content-gate.mjs            # o conteúdo real exige autorização
+node bakeoff/check-scope-gate.mjs              # o gate de âmbito bloqueia escritas fora do âmbito
+node bakeoff/score.mjs bakeoff/results.json    # o ranking medido
+node bakeoff/calc-cost.mjs                    # o custo por task, recalculado
+```
+
+`validate.mjs` é a verificação de regressão do projecto. Confere a
+configuração contra o schema publicado, o frontmatter dos oito agentes, os
+modelos, as três negações dos agentes de leitura, as referências dos comandos,
+a integridade do histórico, a coerência dos custos documentados com a medição
+e o grafo de dependências da change.
 ```
 
 ## 8. Ficheiros relacionados

@@ -29,6 +29,15 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 
 O routing de modelos por etapa e a economia de tokens estão em [`docs/orquestrador.md`](docs/orquestrador.md).
 
+A verificação do orquestrador corre com:
+
+```bash
+node bakeoff/validate.mjs              # 14 verificações de configuração, agentes e documentação
+node bakeoff/check-agents.mjs          # os 8 agentes são descobertos
+node bakeoff/check-permissions.mjs      # quem escreve e quem não escreve
+node bakeoff/check-scope-gate.mjs       # o gate de âmbito bloqueia escritas fora do âmbito
+```
+
 ## Branch por tarefa
 
 Toda tarefa usa uma branch `task/NNN-NNN-slug`, criada no início. Ao concluir com verificações aprovadas, o commit e o push são feitos automaticamente, respeitando os hooks do Husky.
