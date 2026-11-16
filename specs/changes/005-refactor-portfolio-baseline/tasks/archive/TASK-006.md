@@ -1,12 +1,13 @@
 # TASK-006 — Documentar a publicação sem fixar o destino
 
 - Change: 005-refactor-portfolio-baseline
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-001
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — docs/deployment.md criado com 8 secoes (o que e publicado, requisitos do alojamento, 5 candidatos com custo/complexidade/limitacoes, criterios de decisao, sequencia de publicacao, pontos de atencao, checklist de verificacao, decisoes relacionadas); README.md atualizado com referencia ao documento e nova seccao Publicacao com pnpm build, pnpm preview e pnpm test:e2e; todos os factos documentados verificados contra o repositorio: comando de build tsc --noEmit && vite build, output dist/, node >=22.0.0, pnpm@12.18.0, sem base no vite.config.ts, sem router (apenas ancoras href='#'), assets com hash index-<hash>.js e index-<hash>.css, Google Fonts com 2 preconnect, foto-perfil.png 1808 kB e foto-perfil.jpg 64 kB; nenhum ficheiro de configuracao de fornecedor criado (verificado para vercel.json, netlify.toml, .nojekyll, _headers, _redirects, wrangler.toml, firebase.json - todos ausentes); pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado) e pnpm build aprovados
 - Evidência: docs/deployment.md criado com 8 secoes (o que e publicado, requisitos do alojamento, 5 candidatos com custo/complexidade/limitacoes, criterios de decisao, sequencia de publicacao, pontos de atencao, checklist de verificacao, decisoes relacionadas); README.md atualizado com referencia ao documento e nova seccao Publicacao com pnpm build, pnpm preview e pnpm test:e2e; todos os factos documentados verificados contra o repositorio: comando de build tsc --noEmit && vite build, output dist/, node >=22.0.0, pnpm@12.18.0, sem base no vite.config.ts, sem router (apenas ancoras href='#'), assets com hash index-<hash>.js e index-<hash>.css, Google Fonts com 2 preconnect, foto-perfil.png 1808 kB e foto-perfil.jpg 64 kB; nenhum ficheiro de configuracao de fornecedor criado (verificado para vercel.json, netlify.toml, .nojekyll, _headers, _redirects, wrangler.toml, firebase.json - todos ausentes); pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado) e pnpm build aprovados
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 
