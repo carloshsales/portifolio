@@ -6,6 +6,7 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 
 - `docs/rawspec-v2.md` — formato das especificações v2, comandos, exemplos e catálogo de erros.
 - `docs/deployment.md` — como publicar o projeto: requisitos, candidatos e critérios de decisão.
+- `docs/conteudo-real.md` — inventário do conteúdo a fornecer para o portfólio deixar de estar vazio.
 - `docs/history.md` — histórico append-only de decisões, eventos e detalhes.
 - `docs/decisions/` — Architecture Decision Records (ADRs).
 - `specs/templates/` — templates de tarefa, proposta, design, plano de ação e entrada de histórico.
@@ -21,6 +22,10 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 ## Branch por tarefa
 
 Toda tarefa usa uma branch `task/NNN-NNN-slug`, criada no início. Ao concluir com verificações aprovadas, o commit e o push são feitos automaticamente, respeitando os hooks do Husky.
+
+## Integração contínua
+
+O workflow `.github/workflows/ci.yml` corre em cada push e pull request: `lint`, `typecheck`, `test`, `build` e `test:e2e`. Os hooks locais do Husky (`pre-commit` e `pre-push`) mantêm-se como garantia imediata e não são substituídos pelo CI.
 
 ## Especificações
 

@@ -1,11 +1,11 @@
 # TASK-008 — Validar ponta a ponta e registrar a mudança
 
 - Change: 005-refactor-portfolio-baseline
-- Status: PENDING
+- Status: COMPLETED
 - Depende de: TASK-005, TASK-006, TASK-007
-- Início: —
-- Verificação: PENDING
-- Evidência: —
+- Início: 2026-11-16
+- Verificação: VERIFIED (2026-11-16) — pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado), pnpm build e pnpm test:e2e (15 testes em 3 viewports) aprovados em 2026-11-15; bundle verificado sem placeholders por scan de dist/assets e dist/index.html; specs/changes contém apenas 001-portfolio-mvp e 005-refactor-portfolio-baseline, ambas APPROVED e executáveis, com 002, 003 e 004 em archive; change 001 com 12 tasks coerentes, todas as ativas em PENDING e dependencySource explicit, grafo sem ciclos; README.md actualizado com referencia a docs/conteudo-real.md e a seccao de integracao continua; historico registado com as decisoes de conteudo isolado, TASK-006, TASK-007 e o fecho da change 005; nenhum commit ou push automatico sem a sequencia da branch por tarefa
+- Evidência: pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (134 passando, 1 pulado), pnpm build e pnpm test:e2e (15 testes em 3 viewports) aprovados em 2026-11-15; bundle verificado sem placeholders por scan de dist/assets e dist/index.html; specs/changes contém apenas 001-portfolio-mvp e 005-refactor-portfolio-baseline, ambas APPROVED e executáveis, com 002, 003 e 004 em archive; change 001 com 12 tasks coerentes, todas as ativas em PENDING e dependencySource explicit, grafo sem ciclos; README.md actualizado com referencia a docs/conteudo-real.md e a seccao de integracao continua; historico registado com as decisoes de conteudo isolado, TASK-006, TASK-007 e o fecho da change 005; nenhum commit ou push automatico sem a sequencia da branch por tarefa
 - Plano de ação: none
 
 ## Objetivo
