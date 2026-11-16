@@ -30,7 +30,7 @@ export function Home() {
                 </a>
               ) : null}
               <a href="#contato" className={styles.secondary}>
-                Contacto
+                Contato
               </a>
             </div>
           ) : null}
