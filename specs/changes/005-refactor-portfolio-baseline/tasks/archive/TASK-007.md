@@ -1,12 +1,13 @@
 # TASK-007 — Preparar a task de dados reais
 
 - Change: 005-refactor-portfolio-baseline
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-002
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — docs/conteudo-real.md criado com 9 secoes (ficheiros a editar, identidade, contactos, projetos, habilidades, fotografia, ordem de preenchimento, validacao, ficheiros relacionados), incluindo tabela campo a campo com obrigatoriedade e exemplo, regras de conteudo por seccao e checklist de validacao; tarefas da change 001 alinhadas em formato v2 com os 8 criterios de clareza: TASK-005 (secao inicial), TASK-006 (projetos), TASK-007 (habilidades), TASK-008 (contacto) reescritas com objetivo, ficheiros, entregaveis, regras, testes, aceitacao e checklist; TASK-009 (preencher o conteudo real) criada como tarefa exclusiva de escrita em src/content/; TASK-010 (responsividade e performance) reescrita em formato v2 e liberada da dependencia de TASK-009, passando a depender de TASK-005 a TASK-008; escopos disjuntos verificados: TASK-005 a TASK-008 apenas leem src/content/ e proibem explicitamente a escrita, apenas TASK-009 escreve; grafo de dependencias da change 001 validado pelo parser sem ciclos, com 13 tarefas e dependencySource explicit em todas; pnpm lint, pnpm format:check, pnpm typecheck e pnpm test (134 passando, 1 pulado) aprovados
 - Evidência: docs/conteudo-real.md criado com 9 secoes (ficheiros a editar, identidade, contactos, projetos, habilidades, fotografia, ordem de preenchimento, validacao, ficheiros relacionados), incluindo tabela campo a campo com obrigatoriedade e exemplo, regras de conteudo por seccao e checklist de validacao; tarefas da change 001 alinhadas em formato v2 com os 8 criterios de clareza: TASK-005 (secao inicial), TASK-006 (projetos), TASK-007 (habilidades), TASK-008 (contacto) reescritas com objetivo, ficheiros, entregaveis, regras, testes, aceitacao e checklist; TASK-009 (preencher o conteudo real) criada como tarefa exclusiva de escrita em src/content/; TASK-010 (responsividade e performance) reescrita em formato v2 e liberada da dependencia de TASK-009, passando a depender de TASK-005 a TASK-008; escopos disjuntos verificados: TASK-005 a TASK-008 apenas leem src/content/ e proibem explicitamente a escrita, apenas TASK-009 escreve; grafo de dependencias da change 001 validado pelo parser sem ciclos, com 13 tarefas e dependencySource explicit em todas; pnpm lint, pnpm format:check, pnpm typecheck e pnpm test (134 passando, 1 pulado) aprovados
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 
