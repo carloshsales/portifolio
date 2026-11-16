@@ -451,3 +451,39 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Deixar preparado, com formato e campos definidos, o trabalho de preencher o conteúdo real do portfólio.
 - Impacto: docs/conteudo-real.md criado com o inventário completo do que é preciso fornecer; tarefas TASK-005 a TASK-010 da change 001 reescritas em formato v2 com escopos disjuntos; TASK-009 criada como tarefa exclusiva de escrita em src/content/; TASK-010 libertada da dependência dos dados.
 - Evidência: Grafo de dependências validado pelo parser sem ciclos, com 13 tarefas e dependencySource explicit; escopos disjuntos verificados por inspecao das tarefas; pnpm lint, pnpm format:check, pnpm typecheck e pnpm test (134 passando, 1 pulado) aprovados em 2026-11-15; commit c1b259e pushado.
+
+## 2026-11-16 — Evento — TASK-006 da change 005 concluída
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-006 (documentar a publicação sem fixar o destino) foi concluída e verificada.
+- Motivo: Escrever a documentação de publicação de forma agnóstica ao destino, para que a escolha do deploy possa ser feita depois.
+- Impacto: docs/deployment.md criado com 8 secções e 5 candidatos comparados; README.md com nova secção Publicação; nenhum ficheiro de configuração de fornecedor criado; sinalizado o ficheiro foto-perfil.png de 1,8 MB.
+- Evidência: Factos documentados verificados contra o repositório; ausencia de vercel.json, netlify.toml, .nojekyll, _headers, _redirects, wrangler.toml e firebase.json confirmada; pnpm lint, format:check, typecheck, test (134 passando, 1 pulado) e build aprovados em 2026-11-15; commit 3a9c5dd pushado.
+
+## 2026-11-16 — Evento — TASK-007 da change 005 concluída
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-007 (preparar a task de dados reais) foi concluída e verificada.
+- Motivo: Deixar preparado, com formato e campos definidos, o trabalho de preencher o conteúdo real do portfólio.
+- Impacto: docs/conteudo-real.md criado com o inventário completo do que é preciso fornecer; tarefas TASK-005 a TASK-010 da change 001 reescritas em formato v2 com escopos disjuntos; TASK-009 criada como tarefa exclusiva de escrita em src/content/.
+- Evidência: Grafo de dependências validado pelo parser sem ciclos, com 12 tarefas e dependencySource explicit; pnpm lint, format:check, typecheck e pnpm test (134 passando, 1 pulado) aprovados em 2026-11-15; commit c1b259e pushado.
+
+## 2026-11-16 — Decisão — Conteúdo real isolado do código de apresentação
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: O conteúdo do utilizador passa a viver exclusivamente em src/content/, lido através de src/data/. A revisão das secções e o preenchimento do conteúdo foram separados em tarefas distintas.
+- Motivo: As tarefas da change 001 misturavam implementação e dados, o que gerava sobreposição de escopo e tornava o preenchimento de dados dependente de decisões de implementação.
+- Impacto: TASK-005 a TASK-008 da change 001 revêm apenas a apresentação e proíbem explicitamente a escrita em src/content/; TASK-009 é a única tarefa que escreve conteúdo, e depende da conclusão das quatro; TASK-010 deixou de depender de TASK-009 para não bloquear a revisão de performance.
+- Evidência: Escopos disjuntos verificados por inspeção das doze tasks da change 001; grafo de dependências validado pelo parser sem ciclos; pnpm lint, typecheck e test aprovados em 2026-11-15.
+
+## 2026-11-16 — Evento — Change 005 validada ponta a ponta
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A TASK-008 (validar ponta a ponta e registar a mudança) foi concluída e verificada.
+- Motivo: Comprovar que a mudança está completa, que a change 001 permanece consistente e que o histórico reflete as decisões tomadas.
+- Impacto: README.md actualizado com as referências a docs/conteudo-real.md e à integração contínua; histórico registado com as decisões da change 005.
+- Evidência: pnpm lint, format:check, typecheck, test (134 passando, 1 pulado), build e test:e2e (15 testes em 3 viewports) aprovados; bundle sem placeholders verificado por scan; specs/changes contém apenas mudanças APPROVED e executáveis; change 001 com 12 tasks coerentes; commit e push realizados em 2026-11-15.
