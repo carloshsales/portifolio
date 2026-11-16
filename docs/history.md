@@ -496,3 +496,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Todas as oito tarefas foram concluídas, verificadas e arquivadas.
 - Impacto: A mudança de baseline do portfólio está concluída e preservada no arquivo; a change 001-portfolio-mvp passa a ser a única mudança ativa.
 - Evidência: check-archive-change elegivel antes do arquivamento; pnpm lint, format:check, typecheck, test (134 passando, 1 pulado), build e test:e2e aprovados em 2026-11-15.
+
+## 2026-11-16 — Decisão — TASK-001 a TASK-004 da change 001 reescritas como revisão do código existente
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: As quatro tarefas foram reescritas em formato v2 para passarem a ser tarefas de revisão e consolidação do código já implementado, em vez de construção a partir de raiz. A aplicação React + TypeScript + Vite, o TypeScript Strict, a cadeia de qualidade com ESLint, Vitest, Testing Library e Husky, os tokens e estilos globais e a estrutura de navegação já estavam implementados no repositório, introduzidos no commit inicial 3a1f9eb e consolidados durante a change 005-refactor-portfolio-baseline. O grafo de dependências PENDING -> TASK-002 -> TASK-003 -> TASK-004 -> TASK-005 foi preservado e o conteúdo de cada tarefa foi reescrito com objetivo, arquivos, entregáveis, regras, testes e aceitação concretos, seguindo o mesmo formato de TASK-005 a TASK-008.
+- Motivo: O código real estava mais avançado do que o registado nas tarefas, o que bloqueava toda a cadeia de dependências e tornava a execução das tarefas um exercício de falsificação de trabalho.
+- Impacto: TASK-001, TASK-002, TASK-003 e TASK-004 reescritas em formato v2; conteúdo de src/content/ permanece intocado e pertence a TASK-009; nenhuma dependência ou script alterado.
+- Evidência: node scripts/rawspec-v2-cli.mjs next --change 001-portfolio-mvp aponta para TASK-002 com E_DEPENDENCY_PENDING para TASK-001 após a conclusão; resolve de TASK-001 e TASK-004 confirma o grafo intacto; pnpm exec prettier --check nos ficheiros das tarefas aprovado; pnpm typecheck, pnpm lint, pnpm test (134 passando, 1 pulado) e pnpm build aprovados em 2026-11-16.
