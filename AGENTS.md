@@ -90,12 +90,20 @@ pnpm test:e2e    # suíte Playwright
 pnpm format:check # verificação de formatação com Prettier
 ```
 
+### Divisão de responsabilidades
+
+- **Utilizador (fluxo padrão):** executa manualmente apenas `pnpm test` e `pnpm test:e2e`, por esta ordem, e envia a evidência de cada comando: o comando exato e o resultado final (código de saída 0 ou resumo de sucesso). O `pnpm test:e2e` corre `pnpm build` antes do Playwright, porque o `vite preview` serve `dist/`, que é ignorado pelo Git.
+- **Orquestrador:** apresenta esses comandos ao utilizador e aguarda os resultados antes da revisão e do registo.
+- **Verificador:** avalia essa evidência sem executar shell. Se um comando falhar, o pipeline para para correção. Se a evidência estiver em falta ou for ambígua, pede complemento e não avança.
+- **`commit-task` (guardião):** depois da evidência e das revisões, executa `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem. Se uma falhar, não há commit nem push. Os hooks do Husky permanecem ativos e podem repetir verificações.
+- Os sete scripts `bakeoff/*` não fazem parte do fluxo padrão.
+
 ## Comandos RawSpec
 
 | Comando                                        | Responsabilidade                                  |
 | ---------------------------------------------- | ------------------------------------------------- |
 | `/startspec [TASK-ID] [--change CHANGE-ID]`    | Cria a branch da tarefa e inicia.                 |
-| `/continuespec [TASK-ID] [--change CHANGE-ID]` | Continua, verifica, conclui, e commita e pusha.   |
+| `/continuespec [TASK-ID] [--change CHANGE-ID]` | Continua, regista evidência e commita e pusha.    |
 | `/arquivespec TASK-ID [--change CHANGE-ID]`    | Arquiva uma tarefa após aprovação.                |
 | `/archivespec [CHANGE-ID]`                     | Arquiva uma mudança elegível.                     |
 | `/logspec ...`                                 | Registra histórico e, opcionalmente, cria um ADR. |

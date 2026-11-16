@@ -16,9 +16,10 @@ import {
   readdirSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs'
-import { basename, dirname, join, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path'
 
 /** Status válidos de uma tarefa. */
 export const TASK_STATUSES = ['PENDING', 'IN PROGRESS', 'VERIFYING', 'COMPLETED', 'ARCHIVED']
@@ -1679,6 +1680,17 @@ export function createAdrSkeleton(repoRoot, { id, title } = {}) {
 const COMMIT_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'build']
 
 /**
+ * Descreve as verificações para a linha `Tests:` da mensagem de commit.
+ *
+ * @param {string[][]} checks argumentos de cada verificação `pnpm`.
+ * @returns {string} comandos por ordem de execução, ou `nenhuma`.
+ */
+function describeChecks(checks) {
+  if (checks.length === 0) return 'nenhuma'
+  return checks.map((args) => `pnpm ${args.join(' ')}`).join('; ')
+}
+
+/**
  * Gera a mensagem de commit de uma tarefa concluída.
  *
  * @param {string} repoRoot caminho raiz do repositório.
@@ -1718,7 +1730,7 @@ export function buildCommitMessage(
   }
 
   const targetSummary = summary ?? task.title
-  const targetTests = tests ?? 'pnpm lint; pnpm typecheck; pnpm test; pnpm build'
+  const targetTests = tests ?? describeChecks(COMMIT_CHECKS)
   return [
     `${type}(rawspec): ${targetSummary}`,
     '',
@@ -1895,7 +1907,44 @@ export function migrateLegacyChange(changeDir, { today = defaultToday() } = {}) 
 }
 
 /**
+ * Resolve o directório Git de um repositório.
+ *
+ * Num repositório normal, `.git` é um directório. Num worktree, `.git` é um
+ * ficheiro com a forma `gitdir: <caminho>`, que aponta para o directório Git
+ * real do repositório partilhado.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @returns {string} directório Git, ou o caminho de `.git` se não for resolvivel.
+ */
+function resolveGitDir(repoRoot) {
+  const dotGit = join(repoRoot, '.git')
+  try {
+    if (statSync(dotGit).isDirectory()) return dotGit
+  } catch {
+    return dotGit
+  }
+
+  try {
+    const content = readFileSync(dotGit, 'utf8').trim()
+    const match = /^gitdir:\s*(.+)$/m.exec(content)
+    if (match) {
+      const target = match[1].trim()
+      return isAbsolute(target) ? target : resolve(repoRoot, target)
+    }
+  } catch {
+    return dotGit
+  }
+
+  return dotGit
+}
+
+/**
  * Executa um comando no repositório, convertendo falhas em `RawspecError`.
+ *
+ * O `GIT_DIR` é fixado ao directório Git do próprio repositório. Sem isto, o
+ * Git descobre o repositório por ascensão de directórios e, num worktree,
+ * onde `.git` é um ficheiro, os comandos são executados no repositório
+ * partilhado em vez do repositório indicado.
  *
  * @param {string} command comando a executar.
  * @param {string[]} args argumentos.
@@ -1909,6 +1958,11 @@ function runCommand(command, args, repoRoot, errorCode) {
       cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        GIT_DIR: resolveGitDir(repoRoot),
+        GIT_WORK_TREE: repoRoot,
+      },
     })
   } catch (error) {
     const stderr = error.stderr
@@ -1924,22 +1978,36 @@ function runCommand(command, args, repoRoot, errorCode) {
   }
 }
 
+/** Verificações executadas antes do commit, por ordem. */
+export const COMMIT_CHECKS = [['lint'], ['typecheck'], ['test'], ['build']]
+
 /**
- * Executa as verificações obrigatórias antes do commit.
+ * Executa uma verificação `pnpm` no repositório, falhando com `E_CHECKS_FAILED`.
  *
  * @param {string} repoRoot caminho raiz do repositório.
- * @param {{checks?: string[][]}} [options] verificações injetadas.
+ * @param {string[]} args argumentos do `pnpm`, por exemplo `['lint']`.
+ */
+function runPnpmCheck(repoRoot, args) {
+  if (process.platform === 'win32') {
+    runCommand('cmd', ['/c', 'pnpm', ...args], repoRoot, 'E_CHECKS_FAILED')
+  } else {
+    runCommand('pnpm', args, repoRoot, 'E_CHECKS_FAILED')
+  }
+}
+
+/**
+ * Executa as verificações obrigatórias antes do commit, por ordem.
+ *
+ * A primeira falha interrompe a sequência e lança `E_CHECKS_FAILED`, pelo que
+ * nenhum commit nem push acontece.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {{checks?: string[][], runCheck?: (repoRoot: string, args: string[]) => void}} [options] verificações e executor injetados.
  * @returns {boolean} `true` quando todas passam.
  */
-export function runChecks(repoRoot, { checks } = {}) {
-  const commands = checks ?? [['typecheck'], ['test'], ['build']]
-  const isWindows = process.platform === 'win32'
-  for (const args of commands) {
-    if (isWindows) {
-      runCommand('cmd', ['/c', 'pnpm', ...args], repoRoot, 'E_CHECKS_FAILED')
-    } else {
-      runCommand('pnpm', args, repoRoot, 'E_CHECKS_FAILED')
-    }
+export function runChecks(repoRoot, { checks, runCheck = runPnpmCheck } = {}) {
+  for (const args of checks ?? COMMIT_CHECKS) {
+    runCheck(repoRoot, args)
   }
   return true
 }
@@ -2071,15 +2139,17 @@ function isWithinScope(file, scopeFiles) {
 /**
  * Conclui a tarefa com commit e push, respeitando os hooks do Husky.
  *
+ * As verificações correm antes do commit, por ordem. Uma falha impede o commit e o push.
+ *
  * @param {string} repoRoot caminho raiz do repositório.
  * @param {string} taskId identificador da tarefa.
- * @param {{changeId?: string, branch?: string, remote?: string, push?: boolean, checks?: string[][]}} [options] opções.
+ * @param {{changeId?: string, branch?: string, remote?: string, push?: boolean, checks?: string[][], runCheck?: (repoRoot: string, args: string[]) => void}} [options] opções.
  * @returns {{branch: string, commit: string, pushed: boolean}} resultado.
  */
 export function commitAndPushTask(
   repoRoot,
   taskId,
-  { changeId, branch, remote = 'origin', push = true, checks } = {},
+  { changeId, branch, remote = 'origin', push = true, checks, runCheck } = {},
 ) {
   const { task, located } = loadTask(repoRoot, taskId, changeId)
   const done = task.status === 'COMPLETED' || task.status === 'ARCHIVED'
@@ -2091,9 +2161,13 @@ export function commitAndPushTask(
     })
   }
 
-  runChecks(repoRoot, { checks })
+  const commands = checks ?? COMMIT_CHECKS
+  runChecks(repoRoot, { checks: commands, runCheck })
 
-  const message = buildCommitMessage(repoRoot, taskId, { changeId })
+  const message = buildCommitMessage(repoRoot, taskId, {
+    changeId,
+    tests: describeChecks(commands),
+  })
   const targetBranch = branch ?? currentBranch(repoRoot)
 
   // Gate de âmbito. As permissões de caminho não são uma barreira: uma
