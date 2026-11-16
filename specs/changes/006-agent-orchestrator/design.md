@@ -230,8 +230,6 @@ Regras globais em `opencode.json`:
     { "action": "shell", "resource": "git checkout -- *", "effect": "deny" },
     { "action": "shell", "resource": "git clean *", "effect": "deny" },
     { "action": "edit", "resource": "src/content/**", "effect": "deny" },
-    { "action": "edit", "resource": "specs/**", "effect": "deny" },
-    { "action": "edit", "resource": "docs/history.md", "effect": "deny" },
     { "action": "read", "resource": "*.env", "effect": "ask" }
   ]
 }
@@ -250,12 +248,67 @@ específica e por isso prevalecente.
 | `verificador` | `edit: *` → deny; `shell: pnpm *` → allow | Só corre os checks |
 | `implementador` | `edit: src/**` → allow; `edit: src/content/**` → ask | Escreve código, conteúdo exige o utilizador |
 | `guardiao` | `shell: git add *` → allow; `shell: git commit *` → allow; `shell: git push *` → allow | Git é a sua função |
-| `guardiao` | `edit: specs/**` → allow apenas via CLI | Escrita de especificação só pela CLI |
+| `guardiao` | `shell: node scripts/rawspec-v2-cli.mjs *` → allow | Escrita de especificação só pela CLI |
 | `orquestrador` | `shell: *` → ask | Coordena, não executa comandos livremente |
 
 `git push` global fica em `ask`, e o `guardiao` acrescenta `allow`, que prevalece
 por ser mais específico e posterior. O efeito líquido é: só o `guardiao` faz
 push, e apenas quando as cinco condições da §5.2 se cumprem.
+
+### 5.3.1 Limitação medida: as permissões de caminho não são uma barreira
+
+**Esta secção documenta uma limitação verificada empiricamente, não uma
+especulação.**
+
+Uma regra `edit` com `deny` **não impede a escrita no ficheiro**. O agente
+pode escrever o mesmo conteúdo por outra via. Verificado em 2026-11-16 com
+`beam-free` sobre `src/content/profile.ts`:
+
+| Via tentada | Resultado |
+|---|---|
+| Ferramenta `write` | Bloqueada: "Permission denied: edit" |
+| `Set-Content` | Bloqueada: "Permission denied: shell" |
+| `echo ZZZ > ficheiro` | Bloqueada: "Permission denied: shell" |
+| `node -e "fs.writeFileSync(...)"` | Bloqueada: "Permission denied: shell" |
+| `[System.IO.File]::WriteAllText('...')` | **Executada com sucesso** |
+
+As regras de shell também são contornáveis: uma regra `deny` com o padrão
+`*src/content*` bloqueou onze tentativas e falhou na décima segunda, que usou
+uma forma alternativa do mesmo caminho.
+
+**Consequência para o desenho.** As permissões de caminho são uma barreira de
+esforço, não uma garantia de integridade. A garantia real passa a ser o gate
+de âmbito, aplicado depois da acção e antes do commit.
+
+**Gate de âmbito pós-escrita.** Antes de qualquer `git add`, o `guardiao`
+compara o conjunto de ficheiros tocados com a lista de `## Arquivos` da task:
+
+```bash
+git status --porcelain
+```
+
+O comando lista todos os ficheiros alterados, independentemente de como
+foram escritos. Um ficheiro fora do âmbito bloqueia o commit e o push, e o
+`guardiao` reverte a escrita fora do âmbito.
+
+Este gate é o que substitui a garantia que as permissões não podem dar. A
+sequência é: as permissões reduzem a probabilidade; o gate de âmbito garante
+o resultado.
+
+### 5.3.2 Consequência para a regra de `specs/**`
+
+Uma regra `edit` com `deny` sobre `specs/**` foi inicialmente prevista para
+garantir que só a CLI RawSpec escreve especificações. A verificação mostrou que
+essa regra é contraproducente:
+
+- não impede a escrita por shell, que é o seu objectivo;
+- impede a manutenção legítima das especificações pela CLI e pelos agentes que
+  a executam;
+- a garantia pretendida é assegurada pelo gate de âmbito, que é verificável.
+
+A regra foi removida. A escrita de especificações é controlada pela permissão
+de shell do `guardiao`, que permite apenas `node scripts/rawspec-v2-cli.mjs *`,
+combinada com o gate de âmbito.
 
 ### 5.4 Etapas isoladas
 

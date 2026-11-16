@@ -30,8 +30,9 @@ variante, permissões e prompt de sistema coerentes com a tabela de routing.
 - Cada agente tem um `description` que explica quando deve ser lançado, porque o OpenCode usa esse texto para escolher o agente.
 - `explorador`, `analista-clareza`, `revisor`, `revisor-b` e `verificador` não conseguem escrever ficheiros.
 - `implementador` escreve em `src/**` e precisa de autorização em `src/content/**`.
-- `guardiao` tem permissão de `git add`, `git commit` e `git push`, e de escrita em `specs/**`.
+- `guardiao` tem permissão de `git add`, `git commit` e `git push`, e de escrita em `specs/**` apenas através da CLI RawSpec.
 - `orquestrador` tem `shell` em `ask`.
+- `guardiao` implementa o gate de âmbito: antes de qualquer `git add`, compara `git status --porcelain` com a lista de `## Arquivos` da task e bloqueia o commit se houver ficheiros fora do âmbito.
 - Cada agente tem `steps` definido, para limitar custo e evitar execuções sem fim.
 - O corpo de cada ficheiro é o prompt de sistema do agente, em português, e descreve o formato de saída `ESTADO / MOTIVO / EVIDENCIA / ARQUIVOS`.
 - `revisor` e `revisor-b` têm prompts distintos, com instruções de foco diferentes, para reduzir a correlação entre os achados.
