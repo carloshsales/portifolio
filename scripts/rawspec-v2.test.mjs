@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
+  COMMIT_CHECKS,
   RawspecError,
   appendHistory,
   archiveChange,
@@ -35,6 +36,7 @@ import {
   parseTaskFile,
   resolveTask,
   resolveWithinRepo,
+  runChecks,
   selectNextTask,
   startTask,
   updateTaskFile,
@@ -1250,18 +1252,126 @@ describe('fluxo ponta a ponta', () => {
   })
 })
 
+describe('verificações do commit-task', () => {
+  it('usa lint, typecheck, test e build, por esta ordem', () => {
+    expect(COMMIT_CHECKS).toEqual([['lint'], ['typecheck'], ['test'], ['build']])
+  })
+
+  it('executa as verificações por ordem', () => {
+    const calls = []
+
+    runChecks(workDir, {
+      runCheck: (_repoRoot, args) => {
+        calls.push(args.join(' '))
+      },
+    })
+
+    expect(calls).toEqual(['lint', 'typecheck', 'test', 'build'])
+  })
+
+  it('para na primeira verificação que falha', () => {
+    const calls = []
+    const runCheck = (_repoRoot, args) => {
+      calls.push(args.join(' '))
+      if (args[0] === 'typecheck') {
+        throw new RawspecError('E_CHECKS_FAILED', 'typecheck falhou')
+      }
+    }
+
+    const error = captureError(() => runChecks(workDir, { runCheck }))
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_CHECKS_FAILED')
+    expect(calls).toEqual(['lint', 'typecheck'])
+  })
+})
+
 describe('branch e commit por tarefa', () => {
+  /**
+   * Resolve o directório Git do repositório de teste.
+   *
+   * @param {string} repo directório do repositório de teste.
+   * @returns {string} caminho do directório Git.
+   */
+  function repoGitDir(repo) {
+    return join(repo, '.git')
+  }
+
+  /**
+   * Executa um comando Git dentro do repositório de teste.
+   *
+   * `GIT_DIR` e `GIT_WORK_TREE` são fixados ao repositório de teste. Sem isto,
+   * o Git descobre o repositório por ascensão de directórios e, num worktree,
+   * onde `.git` é um ficheiro, os comandos escrevem no repositório partilhado
+   * em vez do repositório de teste.
+   *
+   * @param {string} repo directório do repositório de teste.
+   * @param {string[]} args argumentos do Git.
+   * @returns {string} saída do comando.
+   */
   function git(repo, args) {
     return execFileSync('git', args, {
       cwd: repo,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        GIT_DIR: repoGitDir(repo),
+        GIT_WORK_TREE: repo,
+      },
     })
+  }
+
+  /**
+   * Executa um comando Git isolado do repositório real.
+   *
+   * @param {string} cwd directório de trabalho do comando.
+   * @param {string[]} args argumentos do Git.
+   * @param {{gitDir?: string, workTree?: string}} [env] directórios a fixar.
+   * @returns {string} saída do comando.
+   */
+  function gitIsolated(cwd, args, env = {}) {
+    return execFileSync('git', args, {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        GIT_DIR: env.gitDir,
+        GIT_WORK_TREE: env.workTree,
+      },
+    })
+  }
+
+  /**
+   * Inicializa um repositório isolado, sem possibilidade de reinitializar o
+   * repositório real.
+   *
+   * O `GIT_DIR` é fixado para um directório novo, por isso o `git init` não
+   * pode tocar no repositório partilhado, mesmo executado a partir de um
+   * worktree.
+   *
+   * @param {string} repo directório do novo repositório.
+   */
+  function initRepo(repo) {
+    const gitDir = join(repo, '.git')
+    mkdirSync(gitDir, { recursive: true })
+    gitIsolated(repo, ['init', '--initial-branch=main'], { gitDir, workTree: repo })
+  }
+
+  /**
+   * Inicializa um repositório vazio, isolado, para simular um remote.
+   *
+   * @param {string} bare caminho do novo repositório vazio.
+   */
+  function initBareRepo(bare) {
+    mkdirSync(bare, { recursive: true })
+    gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
   }
 
   function createRepoWithTask(status = 'COMPLETED') {
     const repo = mkdtempSync(join(workDir, 'repo-'))
-    git(repo, ['init'])
+    initRepo(repo)
     git(repo, ['config', 'user.email', 'test@example.com'])
     git(repo, ['config', 'user.name', 'Test'])
     git(repo, ['config', 'commit.gpgsign', 'false'])
@@ -1435,6 +1545,46 @@ describe('branch e commit por tarefa', () => {
     expect(git(repo, ['rev-parse', '--short', 'HEAD']).trim()).toBe(before)
   })
 
+  it('executa lint, typecheck, test e build antes de commitar', () => {
+    const repo = createRepoWithTask()
+    touchTask(repo)
+    const calls = []
+    const runCheck = (_repoRoot, args) => {
+      calls.push(args.join(' '))
+    }
+
+    commitAndPushTask(repo, 'TASK-001', { push: false, runCheck })
+
+    expect(calls).toEqual(['lint', 'typecheck', 'test', 'build'])
+    expect(git(repo, ['log', '-1', '--pretty=%B'])).toContain(
+      'Tests: pnpm lint; pnpm typecheck; pnpm test; pnpm build',
+    )
+  })
+
+  it('não commita nem faz push quando o lint falha', () => {
+    const repo = createRepoWithTask()
+    const bare = join(workDir, 'remote-lint.git')
+    initBareRepo(bare)
+    git(repo, ['remote', 'add', 'origin', bare])
+    createTaskBranch(repo, 'TASK-001')
+    touchTask(repo)
+    const before = git(repo, ['rev-parse', '--short', 'HEAD']).trim()
+    const calls = []
+    const runCheck = (_repoRoot, args) => {
+      calls.push(args.join(' '))
+      if (args[0] === 'lint') {
+        throw new RawspecError('E_CHECKS_FAILED', 'lint falhou')
+      }
+    }
+
+    const error = captureError(() => commitAndPushTask(repo, 'TASK-001', { push: true, runCheck }))
+
+    expect(error.code).toBe('E_CHECKS_FAILED')
+    expect(calls).toEqual(['lint'])
+    expect(git(repo, ['rev-parse', '--short', 'HEAD']).trim()).toBe(before)
+    expect(git(repo, ['ls-remote', '--heads', 'origin']).trim()).toBe('')
+  })
+
   it('recusa tarefa incompleta', () => {
     const repo = createRepoWithTask('PENDING')
 
@@ -1448,7 +1598,7 @@ describe('branch e commit por tarefa', () => {
   it('faz push quando há remote', () => {
     const repo = createRepoWithTask()
     const bare = join(workDir, 'remote.git')
-    execFileSync('git', ['init', '--bare', bare], { stdio: 'ignore' })
+    initBareRepo(bare)
     git(repo, ['remote', 'add', 'origin', bare])
     createTaskBranch(repo, 'TASK-001')
     touchTask(repo)

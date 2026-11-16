@@ -20,9 +20,9 @@ Inicia uma tarefa `PENDING` do RawSpec v2 em sua própria branch.
 ## Como executar
 
 ```bash
-node scripts/rawspec-v2-cli.mjs resolve TASK-001 --change 003-rawspec-v2
-node scripts/rawspec-v2-cli.mjs create-branch TASK-001 --change 003-rawspec-v2
-node scripts/rawspec-v2-cli.mjs start TASK-001 --change 003-rawspec-v2
+node scripts/rawspec-v2-cli.mjs resolve TASK-NNN --change NNN-slug
+node scripts/rawspec-v2-cli.mjs create-branch TASK-NNN --change NNN-slug
+node scripts/rawspec-v2-cli.mjs start TASK-NNN --change NNN-slug
 ```
 
 Sem argumento:
@@ -34,4 +34,4 @@ node scripts/rawspec-v2-cli.mjs next
 
 ## Fechamento
 
-Ao concluir a tarefa, o `/continuespec` executa as verificações e, se passarem, faz commit e push na branch da tarefa.
+Ao terminar a implementação, use `/continuespec` para passar a tarefa a `VERIFYING`. O utilizador executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e envia a evidência. Depois das revisões aprovadas, `/continuespec` regista a verificação e executa `commit-task`, que roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`. Se passarem, faz commit e push na branch da tarefa.

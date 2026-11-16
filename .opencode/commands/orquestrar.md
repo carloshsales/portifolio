@@ -1,12 +1,13 @@
 ---
-description: Executa o pipeline completo de uma tarefa RawSpec, da exploração ao registo
+description: Executa o pipeline de uma tarefa RawSpec, da exploração ao registo, com verificação manual pelo utilizador
 agent: orquestrador
 model: opencode-go/gpt-6-luna#high
 ---
 
 # /orquestrar
 
-Executa o pipeline de uma tarefa RawSpec v2.
+Executa o pipeline de uma tarefa RawSpec v2. A verificação é feita pelo utilizador,
+que executa `pnpm test` e `pnpm test:e2e` e envia a evidência.
 
 `TASK-ID` identifica a task a executar, por exemplo `TASK-005`. A change é
 inferida do ficheiro da task. Sem argumento, apresenta as tasks elegíveis.
@@ -48,30 +49,47 @@ Executa as etapas por ordem, usando os agentes indicados.
    Se houver discrepância entre a task e o repositório, pára e pergunta.
 
 4. **Implementação** — invoca o agente `implementador`, restrito aos ficheiros
-   de `## Arquivos`.
+   de `## Arquivos`. Ao terminar, pede ao `guardiao` o `begin-verify`, para a task
+   passar a `VERIFYING`.
 
-5. **Verificação** — invoca o agente `verificador`.
+5. **Verificação manual** — apresentas ao utilizador os comandos, por esta ordem:
 
-   Se falhar, volta a 4. Na segunda falha pelo mesmo motivo, o
-   `implementador` sobe de tier de modelo.
+   1. `pnpm test`
+   2. `pnpm test:e2e`
 
-6. **Revisão em par** — invoca os agentes `revisor` e `revisor-b`.
+   Pedes a evidência de cada um: o comando exato e o resultado final (código de
+   saída 0 ou resumo de sucesso). **Aguardas** a resposta. Não avanças sem ela.
 
-   - Ambos reprovam: volta a 4 com os dois conjuntos de achados.
-   - Discordam: invoca o `guardiao` para desempate, que confirma o achado com
-     o `verificador`.
+   Envias a evidência ao agente `verificador`, que a avalia sem executar shell.
+
+   - Se falhar: pára e apresenta a saída relevante ao utilizador. Pede ao
+     `guardiao` o `fail` com o motivo e volta a 4. Na segunda falha pelo mesmo
+     motivo, o `implementador` sobe de tier de modelo.
+   - Se estiver em falta ou for ambígua: pede o complemento e aguarda.
+
+6. **Revisor A** — invoca o agente `revisor`, com foco em correcção funcional.
+
+7. **Revisor B** — invoca o agente `revisor-b`, com foco em acessibilidade,
+   tipagem, performance e segurança.
+
+   - Ambos reprovam: pede ao `guardiao` o `fail` e volta a 4 com os dois
+     conjuntos de achados.
+   - Discordam: invoca o `guardiao` para desempate.
    - Ambos aprovam: continua.
 
-7. **Registo** — invoca o agente `guardiao`.
+8. **Registo** — invoca o agente `guardiao`.
 
-   O `guardiao` faz a verificação de âmbito, actualiza o estado RawSpec pela
-   CLI, regista o histórico e o ADR quando aplicável, e faz commit e push se
-   as cinco condições se cumprirem.
+   O `guardiao` regista a verificação com `verify`, acrescenta o histórico e o
+   ADR quando aplicável, e executa `commit-task`. Este comando corre
+   `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem,
+   aplica o gate de âmbito e faz commit e push se tudo passar. Os hooks do Husky
+   podem repetir parte destas verificações.
 
 ## Regras
 
 - Não escrevas código tu próprio. Delega.
-- Não faças commit nem push. Essa responsabilidade é do `guardiao`.
+- Não executes `pnpm test` nem `pnpm test:e2e`. Apresenta-os ao utilizador e aguarda a evidência.
+- Não faças commit nem push. Essa responsabilidade é do `guardiao`, através do `commit-task`.
 - Não escrevas em `src/content/`. O conteúdo real é do utilizador.
 - Nunca alteres o status de aprovação de uma mudança ou de uma task.
 - Se qualquer gate falhar, pára e apresenta o resultado. Não avances.
@@ -85,6 +103,9 @@ TAREFA: <id> — <título>
 ESTADO: <etapa em que ficou>
 PONTUACAO: <clareza>/100
 FICHEIROS: <tocados>
-VERIFICACOES: <resultado>
+COMANDOS: <na verificação: pnpm test, depois pnpm test:e2e — aguardo a evidência; senão "nenhum">
+VERIFICACOES: <resultado do verificador, ou "pendente">
+BRANCH: <branch da tarefa, ou "nenhuma">
+PUSH: <enviado para origin/<branch>, não enviado, ou falhou com a primeira linha do erro>
 PEDIDO: <o que precisas do utilizador, ou "nenhum">
 ```

@@ -404,14 +404,14 @@ decisão está registada na ADR-007.
 
 | Agente | Papel |
 |---|---|
-| `orquestrador` | Coordena o pipeline e apresenta o progresso. |
+| `orquestrador` | Coordena o pipeline, apresenta os comandos de verificação ao utilizador e aguarda a evidência. |
 | `explorador` | Mapeia o repositório e detecta divergências. |
 | `analista-clareza` | Avalia a tarefa contra os dez critérios dos §8.5. |
 | `implementador` | Escreve o código, restrito ao âmbito da tarefa. |
 | `revisor` | Revê o diff, com foco em correcção funcional. |
 | `revisor-b` | Segunda opinião, com foco em acessibilidade, tipagem, performance e segurança. |
-| `verificador` | Corre as verificações e regista a evidência. |
-| `guardiao` | Actualiza o estado RawSpec, o histórico e o Git. |
+| `verificador` | Avalia a evidência de `pnpm test` e `pnpm test:e2e` enviada pelo utilizador. Não executa shell. |
+| `guardiao` | Actualiza o estado RawSpec, o histórico e o Git, com commit e push via `commit-task`. |
 
 **Pipeline de oito etapas:**
 
@@ -419,12 +419,14 @@ decisão está registada na ADR-007.
 2. clareza, com gate aos 90/100;
 3. aprovação humana;
 4. implementação;
-5. verificação;
-6. revisão em par;
-7. registo.
+5. verificação: o utilizador executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e o `verificador` avalia a evidência;
+6. revisão A (`revisor`);
+7. revisão B (`revisor-b`);
+8. registo: o `guardiao` regista a verificação e executa `commit-task`, que roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`.
 
 A revisão em par tem dois agentes com focos distintos. Quando discordam, o
-`guardiao` desempate com a confirmação do `verificador`.
+`guardiao` desempata, pedindo ao utilizador a reprodução do achado, que o
+`verificador` avalia.
 
 **Routing de modelos.** Cada etapa tem um modelo atribuído, medido num
 bake-off sobre a TASK-005 real. O routing medido custa **$0,0229 por tarefa**,
@@ -433,7 +435,7 @@ contra $0,65 das sessões manuais. Todos os modelos são do provider
 
 **Comandos:**
 
-- `/orquestrar [TASK-ID]` — executa o pipeline completo.
+- `/orquestrar [TASK-ID]` — executa o pipeline, parando para a evidência do utilizador antes da revisão e do registo.
 - `/clarity [TASK-ID]` — avalia a clareza de uma tarefa, sem tocar em
   ficheiros.
 
@@ -468,14 +470,16 @@ merge.
 Cada tarefa é executada em branch própria, conforme a ADR-005. O commit e o
 push são automáticos quando as cinco condições se cumprem:
 
-1. a tarefa está `COMPLETED` e `VERIFIED`;
+1. a tarefa está `COMPLETED` e `VERIFIED`, com a evidência de `pnpm test` e
+   `pnpm test:e2e` aceite pelo verificador;
 2. a pontuação de clareza é igual ou superior a 90/100;
-3. `lint`, `typecheck`, `test` e `build` passam;
+3. `lint`, `typecheck`, `test` e `build` passam no `commit-task`, por esta ordem;
 4. os hooks do Husky passam, sem `--no-verify`;
 5. os ficheiros tocados estão dentro do âmbito declarado na secção
    `## Arquivos` da tarefa.
 
-Se uma condição falhar, não há commit nem push. O `guardiao` regista a razão.
+Se uma condição falhar antes do commit, não há commit nem push. Se o push falhar
+depois do commit, o commit fica local. Em ambos os casos, o `guardiao` regista a razão.
 
 Permanecem as seguintes restrições:
 
@@ -494,7 +498,8 @@ Configuração atual:
 - `pre-commit`: `lint-staged` (ESLint e Prettier nos ficheiros preparados);
 - `pre-push`: `typecheck`, testes e build.
 
-Estas configurações devem ser preservadas enquanto continuarem funcionais.
+Estas configurações devem ser preservadas enquanto continuarem funcionais. Os
+hooks são sempre executados e podem repetir as verificações do `commit-task`.
 
 ---
 
@@ -724,11 +729,14 @@ projeto. O grafo effective está no ficheiro de cada tarefa, no campo
 5. A regra dos 90% de clareza é obrigatória.
 6. A aprovação humana é obrigatória.
 7. O código existente deve ser inspecionado antes de ser alterado.
-8. Os testes precisam de ser executados e as suas evidências registadas.
+8. Os testes precisam de ser executados e as suas evidências registadas. No fluxo
+   padrão, o utilizador executa `pnpm test` e `pnpm test:e2e`, e o verificador
+   avalia a evidência.
 9. O âmbito não deve crescer sem necessidade.
 10. O utilizador mantém a decisão final sobre mudanças relevantes.
 11. O commit e o push seguem a regra da ADR-005: automáticos quando as cinco
-    condições da secção 7.3 se cumprem, e bloqueados quando alguma falha.
+    condições da secção 7.3 se cumprem, e bloqueados quando alguma falha. O
+    `commit-task` corre `lint`, `typecheck`, `test` e `build` antes do commit.
 12. Não criar worktrees desnecessárias.
 13. O agente apresenta o resumo do trabalho antes de o executar e pergunta ao
     utilizador sempre que existam discrepâncias.

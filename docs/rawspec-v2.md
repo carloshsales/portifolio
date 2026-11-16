@@ -10,7 +10,7 @@ Referência do formato das especificações: uma tarefa por arquivo, arquivament
 4. Ambiguidade é resolvida pelo usuário.
 5. Escrita mínima e atômica.
 6. Sem destruição.
-7. Sem commit ou push automático.
+7. Commit e push automáticos só na sequência da branch por tarefa (§15 e ADR-005), com os gates cumpridos e sem `--no-verify`.
 8. Histórico obrigatório e append-only.
 9. Baixo acoplamento: um único parser compartilhado.
 10. Modificabilidade: templates e documentação versionados.
@@ -151,12 +151,12 @@ Tipos: `Decisão`, `Evento`, `Detalhe`.
 | Comando | Responsabilidade |
 |---|---|
 | `/startspec [TASK-ID] [--change CHANGE-ID]` | Inicia tarefa `PENDING`. |
-| `/continuespec [TASK-ID] [--change CHANGE-ID]` | Continua, verifica e conclui. |
+| `/continuespec [TASK-ID] [--change CHANGE-ID]` | Continua, regista a evidência de verificação e conclui com `commit-task`. |
 | `/arquivespec TASK-ID [--change CHANGE-ID]` | Arquiva tarefa após aprovação. |
 | `/archivespec [CHANGE-ID]` | Arquiva mudança elegível. |
 | `/logspec ...` | Registra histórico. |
 
-Regras comuns: resolver antes de agir, perguntar em ambiguidade, validar aprovação e dependências, nunca alterar aprovação, nunca fazer commit ou push.
+Regras comuns: resolver antes de agir, perguntar em ambiguidade, validar aprovação e dependências, nunca alterar aprovação, nunca fazer commit ou push fora do `commit-task` (§15).
 
 ## 8. Migração de mudanças legadas
 
@@ -175,11 +175,23 @@ Regras comuns: resolver antes de agir, perguntar em ambiguidade, validar aprova�
 
 ## 10. Verificações
 
-- `pnpm lint`
-- `pnpm typecheck`
-- `pnpm test`
-- `pnpm build`
-- `pnpm exec prettier --check` nos arquivos alterados
+Automáticas, executadas pelo `commit-task` por esta ordem (§15.2):
+
+1. `pnpm lint`
+2. `pnpm typecheck`
+3. `pnpm test`
+4. `pnpm build`
+
+Manuais, executadas pelo utilizador no fluxo padrão, antes da revisão e do registo, por esta ordem:
+
+1. `pnpm test`
+2. `pnpm test:e2e`
+
+`pnpm test:e2e` executa `pnpm build` antes do Playwright, porque o `vite preview` serve `dist/`, que é ignorado pelo Git e não existe num clone novo.
+
+O verificador avalia a evidência das verificações manuais sem executar shell. Os hooks do Husky podem repetir parte das verificações automáticas (§15.3).
+
+A formatação com Prettier é aplicada pelo hook `pre-commit` (lint-staged) aos arquivos preparados; não é uma verificação manual.
 
 ## 11. CLI e exemplos
 
@@ -197,6 +209,7 @@ node scripts/rawspec-v2-cli.mjs begin-verify TASK-005
 node scripts/rawspec-v2-cli.mjs verify TASK-005 --evidence "testes aprovados"
 node scripts/rawspec-v2-cli.mjs fail TASK-005 --evidence "lint falhou"
 node scripts/rawspec-v2-cli.mjs commit-message TASK-005
+node scripts/rawspec-v2-cli.mjs commit-task TASK-005 --change 001-portfolio-mvp
 
 # arquivamento
 node scripts/rawspec-v2-cli.mjs check-archive-task TASK-005
@@ -223,7 +236,7 @@ Evidence: <resumo do resultado>
 Action-Plan: <caminho ou none>
 ```
 
-`type` aceita `feat`, `fix`, `refactor`, `test`, `docs`, `chore` e `build`. A mensagem é uma saída do comando; nenhum commit é executado.
+`type` aceita `feat`, `fix`, `refactor`, `test`, `docs`, `chore` e `build`. A mensagem é uma saída do comando; nenhum commit é executado. No `commit-task`, a linha `Tests:` lista as verificações efetivamente executadas, por ordem.
 
 ## 13. Catálogo de erros
 
@@ -284,9 +297,13 @@ Exemplo: `task/001-005-implementar-secao-inicial`.
 
 1. `/startspec` resolve a tarefa e cria a branch com `create-branch`.
 2. A tarefa é iniciada com `start`.
-3. Ao atingir `COMPLETED` + `VERIFIED`, `/continuespec` executa `commit-task`.
-4. `commit-task` roda `pnpm typecheck`, `pnpm test` e `pnpm build`.
-5. Se passarem, faz o gate de âmbito, faz `git add` com caminhos explícitos, `git commit` com a mensagem gerada e `git push -u origin <branch>`.
+3. Ao concluir a implementação, a tarefa passa a `VERIFYING` com `begin-verify`. O utilizador executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e envia a evidência. O verificador avalia-a sem executar shell.
+4. Depois das revisões, o `guardiao` regista a verificação com `verify` (`COMPLETED` + `VERIFIED`) e executa `commit-task`.
+5. `commit-task` roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem. Se uma falhar, para e não há commit nem push.
+6. Se passarem, faz o gate de âmbito, faz `git add` com caminhos explícitos, `git commit` com a mensagem gerada e `git push -u origin <branch>`.
+7. O relatório indica a branch e o resultado do push.
+
+Se a evidência falhar ou uma revisão reprovar, o `guardiao` regista `fail` com o motivo, e a tarefa volta a `IN PROGRESS`.
 
 ### 15.2.1 Gate de âmbito
 
@@ -304,7 +321,7 @@ O gate existe porque as permissões de caminho do OpenCode não são uma barreir
 - `pre-commit`: `lint-staged` (ESLint + Prettier nos arquivos staged).
 - `pre-push`: `pnpm typecheck`, `pnpm test`, `pnpm build`.
 
-Os hooks são sempre executados e bloqueiam commit ou push em caso de falha.
+Os hooks são sempre executados, podem repetir verificações já feitas pelo `commit-task` e bloqueiam commit ou push em caso de falha. Não são contornados com `--no-verify`.
 
 ### 15.4 Regras
 
@@ -320,6 +337,6 @@ Os hooks são sempre executados e bloqueiam commit ou push em caso de falha.
 |---|---|
 | `E_BRANCH_EXISTS` | A branch da tarefa já existe. |
 | `E_GIT_ERROR` | Comando Git falhou. |
-| `E_CHECKS_FAILED` | `typecheck`, `test` ou `build` falhou. |
+| `E_CHECKS_FAILED` | `lint`, `typecheck`, `test` ou `build` falhou. |
 | `E_TASK_STATE` | A tarefa não está concluída e verificada. |
 
