@@ -1,12 +1,13 @@
 # TASK-001 — Reparar o histórico e integrar as regras de execução
 
 - Change: 006-agent-orchestrator
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — docs/history.md sem entradas duplicadas (49 entradas) e sem codificacao corrompida (0 caracteres U+FFFD); AGENTS.md integrado com 114 linhas; README.md com referencia; pnpm lint, typecheck e test (134 passando, 1 pulado) e prettier --check aprovados em 2026-11-16
 - Evidência: docs/history.md sem entradas duplicadas (49 entradas) e sem codificacao corrompida (0 caracteres U+FFFD); AGENTS.md integrado com 114 linhas; README.md com referencia; pnpm lint, typecheck e test (134 passando, 1 pulado) e prettier --check aprovados em 2026-11-16
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Objetivo
 
