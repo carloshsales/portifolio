@@ -22,7 +22,10 @@ function run(agent) {
       { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, shell: 'C:\\Windows\\System32\\cmd.exe' },
     )
     const clean = out.replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
-    const banner = clean.split('\n').filter((l) => l.startsWith('> ')).pop()
+    const banner = clean
+      .split('\n')
+      .filter((l) => l.startsWith('> '))
+      .pop()
     const err = clean.split('\n').find((l) => /^\s*Error/.test(l))
     return { ok: !err, banner: banner ? banner.trim() : '', err: err ? err.trim() : '' }
   } catch (e) {
