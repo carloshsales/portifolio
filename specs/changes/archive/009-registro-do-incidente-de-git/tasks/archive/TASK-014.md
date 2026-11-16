@@ -1,12 +1,13 @@
 # TASK-014 — Registar o incidente de Git e a correcção da causa raiz
 
 - Change: 009-registro-do-incidente-de-git
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — pnpm test: exit 0, 146 aprovados e 1 ignorado; pnpm test:e2e: exit 0, 15 aprovados em 3 viewports (mobile, tablet, desktop)
 - Evidência: pnpm test: exit 0, 146 aprovados e 1 ignorado; pnpm test:e2e: exit 0, 15 aprovados em 3 viewports (mobile, tablet, desktop)
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Contexto
 
@@ -53,6 +54,9 @@ descobrirem por ascensão de directórios.
 - `docs/history.md` (alteração)
 - `docs/projeto.md` (alteração)
 - `specs/changes/009-registro-do-incidente-de-git/proposal.md` (preservado no commit; proposta aprovada, sem alteração de conteúdo)
+- `specs/changes/009-registro-do-incidente-de-git/tasks/TASK-014.md` (movido para o arquivo pelo arquivamento da tarefa)
+- `specs/changes/archive/009-registro-do-incidente-de-git/proposal.md` (movido pelo arquivamento da mudança)
+- `specs/changes/archive/009-registro-do-incidente-de-git/tasks/archive/TASK-014.md` (movido pelo arquivamento da tarefa)
 
 ## Entregáveis
 
@@ -78,6 +82,9 @@ descobrirem por ascensão de directórios.
   concreto: num worktree, `.git` é um ficheiro `gitdir:` e `git init` reinitializa o
   repositório partilhado.
 - Nenhuma entrada existente de `docs/history.md` foi alterada, reordenada ou removida.
+- A tarefa e a mudança ficam arquivadas, com a proposta e a task em
+  `specs/changes/archive/009-registro-do-incidente-de-git`, e o arquivamento é
+  registado em `docs/history.md` como um `Evento` próprio.
 
 ## Regras
 
