@@ -156,6 +156,9 @@ O tier máximo é o tier 2. Não há tier de arbitragem com custo elevado.
 - R8. Todo agente devolve evidência estruturada do que executou.
 - R9. O custo e os tokens de cada execução ficam registados.
 - R10. O `AGENTS.md` passa a estar integrado e a ser lido automaticamente.
+- R11. Nenhum ficheiro fora do âmbito declarado da task é commited. A garantia
+  vem do gate de âmbito aplicado antes do commit, não das permissões de caminho,
+  que se provaram contornáveis por shell. Ver `design.md` §5.3.1.
 
 ### 5.2 Não funcionais
 
@@ -211,7 +214,7 @@ O tier máximo é o tier 2. Não há tier de arbitragem com custo elevado.
 | D6 — prioridade do routing | Precisão e qualidade acima de latência | As variantes de effort são `max`/`high`, não `low`/`medium`. O tempo de execução não é critério |
 | D7 — fundamentação do routing | Medição, não preço de catálogo | Os modelos foram comparados num bake-off sobre a TASK-005 real. Resultados em `bakeoff/README.md` |
 | D8 — provider | Exclusivamente `opencode-go` | O provider `opencode` (Personal) falha com "Insufficient balance" na conta. `muse-spark-1.3-contributor` e os modelos `deepseek` exigem consentimento adicional |
-| D9 — revisão | Em par | `revisor` com `gpt-6-luna` e `revisor-b` com `kimi-k2.7-code`. Custo de $0,0248 por task. A limitação de independência, medida no bake-off, está registada no design |
+| D9 — revisão | Em par | `revisor` com `gpt-6-luna` e `revisor-b` com `kimi-k2.7-code`. Custo de $0,0229 por task. A limitação de independência, medida no bake-off, está registada no design |
 
 ## 9. Aprovação
 

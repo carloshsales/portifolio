@@ -230,8 +230,6 @@ Regras globais em `opencode.json`:
     { "action": "shell", "resource": "git checkout -- *", "effect": "deny" },
     { "action": "shell", "resource": "git clean *", "effect": "deny" },
     { "action": "edit", "resource": "src/content/**", "effect": "deny" },
-    { "action": "edit", "resource": "specs/**", "effect": "deny" },
-    { "action": "edit", "resource": "docs/history.md", "effect": "deny" },
     { "action": "read", "resource": "*.env", "effect": "ask" }
   ]
 }
@@ -243,19 +241,120 @@ específica e por isso prevalecente.
 
 | Agente | Regra específica | Efeito |
 |---|---|---|
-| `explorador` | `edit: *` → deny | Não escreve nada |
-| `analista-clareza` | `edit: *` → deny | Não escreve nada |
-| `revisor` | `edit: *` → deny | Não escreve nada |
-| `revisor-b` | `edit: *` → deny | Não escreve nada |
-| `verificador` | `edit: *` → deny; `shell: pnpm *` → allow | Só corre os checks |
-| `implementador` | `edit: src/**` → allow; `edit: src/content/**` → ask | Escreve código, conteúdo exige o utilizador |
-| `guardiao` | `shell: git add *` → allow; `shell: git commit *` → allow; `shell: git push *` → allow | Git é a sua função |
-| `guardiao` | `edit: specs/**` → allow apenas via CLI | Escrita de especificação só pela CLI |
+| `explorador` | `edit: *` → deny; `shell: *` → deny; `subagent: *` → deny | Não escreve nem delega escrita |
+| `analista-clareza` | `edit: *` → deny; `shell: *` → deny; `subagent: *` → deny | Não escreve nem delega escrita |
+| `revisor` | `edit: *` → deny; `shell: *` → deny; `subagent: *` → deny | Não escreve nem delega escrita |
+| `revisor-b` | `edit: *` → deny; `shell: *` → deny; `subagent: *` → deny | Não escreve nem delega escrita |
+| `verificador` | `edit: *` → deny; `shell: pnpm *` → allow; `shell: *` → deny; `subagent: *` → deny | Só corre os checks |
+| `implementador` | `edit: src/**` → allow; `edit: src/content/**` → ask; `shell: pnpm *` → allow; `shell: *` → deny | Escreve código, conteúdo exige o utilizador |
+| `guardiao` | `shell: git add *` → allow; `shell: git commit *` → allow; `shell: git push *` → allow; `shell: node scripts/rawspec-v2-cli.mjs *` → allow; `shell: git status/diff *` → allow; `shell: *` → deny | Git e RawSpec são a sua função |
 | `orquestrador` | `shell: *` → ask | Coordena, não executa comandos livremente |
+
+A ordem dentro de cada agente é significativa: a regra geral vem **antes** da
+específica, porque a última correspondência prevalece. Por isso `shell: pnpm *`
+em `allow` precede `shell: *` em `deny` no `verificador`.
+
+A negação de `subagent` nos cinco agentes de leitura é o que impede a
+delegação de escrita a outro agente. Sem ela, `edit` e `shell` em `deny` são
+decorativos. Ver `design.md` §5.3.2.
 
 `git push` global fica em `ask`, e o `guardiao` acrescenta `allow`, que prevalece
 por ser mais específico e posterior. O efeito líquido é: só o `guardiao` faz
 push, e apenas quando as cinco condições da §5.2 se cumprem.
+
+### 5.3.2 A delegação a subagentes contorna as permissões do agente
+
+**Esta secção documenta a segunda limitação verificada, mais grave que a
+anterior.**
+
+Um agente com `edit: *` em `deny` e `shell: *` em `deny` **ainda consegue
+escrever ficheiros**, porque pode delegar a escrita a outro agente que tenha
+permissão de escrita.
+
+Verificado em 2026-11-16. Com `revisor` a tentar criar
+`src/test/perm-revisor.ts`:
+
+```text
+> revisor · beam-free
+✓ Criar ficheiro de teste — Implementador Agent
+```
+
+O `revisor` não escreveu nada. Invocou o agente `implementador`, que tem
+`edit: src/**` em `allow`, e o ficheiro foi criado. O mesmo aconteceu com
+`explorador`, `revisor-b` e `verificador`.
+
+**Correção aplicada.** Os cinco agentes de leitura acresceram uma terceira
+negação:
+
+```yaml
+permissions:
+  - action: edit
+    resource: '*'
+    effect: deny
+  - action: shell
+    resource: '*'
+    effect: deny
+  - action: subagent
+    resource: '*'
+    effect: deny
+```
+
+A regra `subagent` é o que fecha a delegação. Sem ela, as duas primeiras
+negações são decorativas.
+
+### 5.3.3 As permissões de caminho não são uma barreira
+
+**Esta secção documenta uma limitação verificada empiricamente, não uma
+especulação.**
+
+Uma regra `edit` com `deny` **não impede a escrita no ficheiro** se o agente
+tiver acesso a shell. Verificado com `beam-free` sobre `src/content/profile.ts`:
+
+| Via tentada | Resultado |
+|---|---|
+| Ferramenta `write` | Bloqueada: "Permission denied: edit" |
+| `Set-Content` | Bloqueada: "Permission denied: shell" |
+| `echo ZZZ > ficheiro` | Bloqueada: "Permission denied: shell" |
+| `node -e "fs.writeFileSync(...)"` | Bloqueada: "Permission denied: shell" |
+| `[System.IO.File]::WriteAllText('...')` | **Executada com sucesso** |
+
+As regras de shell também são contornáveis: uma regra `deny` com o padrão
+`*src/content*` bloqueou onze tentativas e falhou na décima segunda, que usou
+uma forma alternativa do mesmo caminho.
+
+**Consequência para o desenho.** As permissões de caminho são uma barreira de
+esforço, não uma garantia de integridade. A garantia real passa a ser o gate
+de âmbito, aplicado depois da acção e antes do commit.
+
+**Gate de âmbito pós-escrita.** Antes de qualquer `git add`, o `guardiao`
+compara o conjunto de ficheiros tocados com a lista de `## Arquivos` da task:
+
+```bash
+git status --porcelain
+```
+
+O comando lista todos os ficheiros alterados, independentemente de como
+foram escritos. Um ficheiro fora do âmbito bloqueia o commit e o push, e o
+`guardiao` reverte a escrita fora do âmbito.
+
+Este gate é o que substitui a garantia que as permissões não podem dar. A
+sequência é: as permissões reduzem a probabilidade; o gate de âmbito garante
+o resultado.
+
+### 5.3.4 Consequência para a regra de `specs/**`
+
+Uma regra `edit` com `deny` sobre `specs/**` foi inicialmente prevista para
+garantir que só a CLI RawSpec escreve especificações. A verificação mostrou que
+essa regra é contraproducente:
+
+- não impede a escrita por shell, que é o seu objectivo;
+- impede a manutenção legítima das especificações pela CLI e pelos agentes que
+  a executam;
+- a garantia pretendida é assegurada pelo gate de âmbito, que é verificável.
+
+A regra foi removida. A escrita de especificações é controlada pela permissão
+de shell do `guardiao`, que permite apenas `node scripts/rawspec-v2-cli.mjs *`,
+combinada com o gate de âmbito.
 
 ### 5.4 Etapas isoladas
 
@@ -300,8 +399,8 @@ humana. O pipeline para aí e apresenta a questão.
 | # | Teste | Tipo |
 |---|---|---|
 | T1 | `opencode.json` valida contra `https://opencode.ai/config.json` | Configuração |
-| T2 | Os sete agentes são descobertos e cada um declara `mode`, `model` e permissões | Configuração |
-| T3 | `explorador`, `analista-clareza`, `revisor` e `verificador` não conseguem escrever | Comportamento |
+| T2 | Os oito agentes são descobertos e cada um declara `mode`, `model` e permissões | Configuração |
+| T3 | `explorador`, `analista-clareza`, `revisor`, `revisor-b` e `verificador` não conseguem escrever nem delegar escrita | Comportamento |
 | T4 | `implementador` consegue escrever em `src/**` mas precisa de autorização em `src/content/**` | Comportamento |
 | T5 | `orquestrador` para quando o score de clareza é inferior a 90 | Comportamento |
 | T6 | O `guardiao` não faz push quando uma das cinco condições falha | Comportamento |
@@ -337,22 +436,26 @@ uma acção mais delimitada e consome tokens de contexto acrescido.
 
 | Cenário | Custo/task | 12 tasks MVP | 30 execuções/mês |
 |---|---|---|---|
-| Pipeline completo, com revisão em par | **$0,0248** | **$0,30** | **$0,74** |
-| Com escalonamento do revisor | $0,0388 | $0,47 | $1,16 |
-| Com escalonamento duplo | $0,0528 | $0,63 | $1,58 |
-| Referência: revisão simples | $0,0108 | $0,13 | $0,32 |
+| Pipeline completo, com revisão em par | **$0,0229** | **$0,27** | **$0,69** |
+| Com escalonamento do revisor | $0,0491 | $0,59 | $1,47 |
+| Com escalonamento duplo | $0,0529 | $0,63 | $1,59 |
+| Referência: revisão simples | $0,0089 | $0,11 | $0,27 |
 
-O pipeline de oito etapas custa **$0,0248 por task**. O limite de USD 0,50
-por task fixado no requisito N1 tem uma margem de 20×.
+O pipeline de oito etapas custa **$0,0229 por task**. O limite de USD 0,50
+por task fixado no requisito N1 tem uma margem de 21×.
 
 A revisão em par acrescenta $0,0140 por task face à revisão simples — cerca de
-$0,17 por mês com 30 execuções, e $0,17 no total para as 12 tasks restantes do
+$0,42 por mês com 30 execuções, e $0,17 no total para as 12 tasks restantes do
 MVP.
+
+Os valores são recalculados a partir da medição por
+`node bakeoff/calc-cost.mjs`, não escritos à mão.
 
 ### 8.3 Porque é tão mais barato que a estimativa anterior
 
 A primeira estimativa, baseada em 30K tokens de input e 8K de output por etapa,
-custava $0,061 por task. A medição deu $0,0108 — **5,7× mais barato**.
+custava $0,061 por task. A medição deu $0,0229 com revisão em par — **2,7×
+mais barato**. A revisão simples custa $0,0089, ou 6,9× menos.
 
 A razão está no tamanho do contexto. As etapas reais do pipeline recebem
 contexto mínimo: a tarefa, o ficheiro, o resultado da etapa anterior. O
@@ -374,17 +477,17 @@ o seu custo é insensitive ao tamanho do contexto.
 
 | Configuração | Custo/task | Relação |
 |---|---|---|
-| Orquestrador proposto | $0,0108 | referência |
+| Orquestrador proposto | $0,0229 | referência |
 | Só `beam-free` | ~$0,001 | qualidade insuficiente: sem verificação TypeScript real |
-| Sessões manuais actuais | $0,65 | 60× mais caro |
-| Só `gpt-5.5` em todas as etapas | $1,68 | 155× mais caro |
-| Só `gpt-5.5-pro` em todas as etapas | $10,08 | 933× mais caro |
+| Sessões manuais actuais | $0,65 | 28× mais caro |
+| Só `gpt-5.5` em todas as etapas | $1,68 | 73× mais caro |
+| Só `gpt-5.5-pro` em todas as etapas | $10,08 | 440× mais caro |
 
 ## 9. Critérios de aceite
 
 - `opencode.json` existe, valida contra o schema, e define permissões globais,
-  sete agentes e dois comandos.
-- Os sete agentes existem em `.opencode/agents/`, cada um com `mode`, `model` e
+  oito agentes e dois comandos.
+- Os oito agentes existem em `.opencode/agents/`, cada um com `mode`, `model` e
   permissões coerentes com a §5.3.
 - `/orquestrar` e `/clarity` existem em `.opencode/commands/`.
 - A tabela de routing da §4.1 está reproduzida em `docs/orquestrador.md`, com
