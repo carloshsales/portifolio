@@ -9,8 +9,10 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 - `docs/deployment.md` — como publicar o projeto: requisitos, candidatos e critérios de decisão.
 - `docs/conteudo-real.md` — inventário do conteúdo a fornecer para o portfólio deixar de estar vazio.
 - `docs/history.md` — histórico append-only de decisões, eventos e detalhes.
+- `docs/orquestrador.md` — orquestrador de agentes: routing de modelos, gates, permissões e economia de tokens.
 - `docs/decisions/` — Architecture Decision Records (ADRs).
 - `specs/templates/` — templates de tarefa, proposta, design, plano de ação e entrada de histórico.
+- `AGENTS.md` — regras de execução a que os agentes ficam sujeitos neste repositório.
 
 ## Comandos RawSpec
 
@@ -19,6 +21,22 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 - `/arquivespec TASK-ID [--change CHANGE-ID]` — arquiva uma tarefa após aprovação e commita.
 - `/archivespec [CHANGE-ID]` — arquiva uma mudança elegível.
 - `/logspec` — registra histórico e, opcionalmente, cria um ADR.
+
+## Comandos do orquestrador
+
+- `/orquestrar [TASK-ID]` — executa o pipeline completo de uma tarefa: exploração, clareza, aprovação, implementação, verificação, revisão em par e registo.
+- `/clarity [TASK-ID]` — avalia a clareza de uma tarefa contra os dez critérios, sem tocar em ficheiros.
+
+O routing de modelos por etapa e a economia de tokens estão em [`docs/orquestrador.md`](docs/orquestrador.md).
+
+A verificação do orquestrador corre com:
+
+```bash
+node bakeoff/validate.mjs              # 14 verificações de configuração, agentes e documentação
+node bakeoff/check-agents.mjs          # os 8 agentes são descobertos
+node bakeoff/check-permissions.mjs      # quem escreve e quem não escreve
+node bakeoff/check-scope-gate.mjs       # o gate de âmbito bloqueia escritas fora do âmbito
+```
 
 ## Branch por tarefa
 

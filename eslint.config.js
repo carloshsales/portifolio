@@ -7,6 +7,11 @@ import tseslint from 'typescript-eslint'
 export default tseslint.config(
   { ignores: ['dist', 'coverage', 'node_modules'] },
   {
+    // O fixture do bake-off tem defeitos plantados de proposito, incluindo
+    // imports nao utilizados. Nao faz parte da aplicacao e nao e lintado.
+    ignores: ['bakeoff/fixture.tsx'],
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
