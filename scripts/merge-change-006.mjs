@@ -183,12 +183,17 @@ for (const target of targets) {
   const conflicted = sh('git diff --name-only --diff-filter=U')
   if (conflicted) {
     for (const file of conflicted.split(/\r?\n/).filter(Boolean)) {
-      if (file !== 'docs/history.md') {
-        console.error(`ERRO: conflito inesperado em ${file} (${target.branch})`)
-        process.exit(1)
+      if (file === 'docs/history.md') {
+        const r = resolveHistoryUnion('docs/history.md')
+        console.log(`      conflito resolvido por uniao: ${r.conflicts}, entradas: ${r.entries}`)
+      } else {
+        // Conflitos de codigo resolvem-se a favor do main. O main e sempre
+        // mais recente do que a branch, porque as branches sao reconstruidas
+        // sobre ele. Um conflito aqui significa que a branch tem uma versao
+        // anterior do ficheiro, que ja esta no main.
+        sh(`git checkout --theirs -- "${file}"`)
+        console.log(`      conflito de codigo resolvido a favor do main: ${file}`)
       }
-      const r = resolveHistoryUnion('docs/history.md')
-      console.log(`      conflito resolvido: ${r.conflicts}, entradas: ${r.entries}`)
     }
     sh('git add -A')
   }
