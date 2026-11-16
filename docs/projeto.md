@@ -501,6 +501,25 @@ Configuração atual:
 Estas configurações devem ser preservadas enquanto continuarem funcionais. Os
 hooks são sempre executados e podem repetir as verificações do `commit-task`.
 
+### 7.5 Isolamento do repositório
+
+Todas as operações Git do helper RawSpec fixam `GIT_DIR` e `GIT_WORK_TREE` ao
+diretório Git do repositório indicado, em vez de o descobrirem por ascensão de
+diretórios. A função `resolveGitDir`, em `scripts/rawspec-v2.mjs`, resolve o
+diretório Git tanto quando `.git` é um diretório como quando é um ficheiro
+`gitdir:` de um worktree.
+
+O risco é concreto. Num worktree, `.git` é um ficheiro com a forma
+`gitdir: <caminho>`, e o Git segue esse ficheiro em vez de criar um repositório
+novo: um `git init` num diretório com um `.git` ficheiro reinitializa o
+repositório partilhado, e um `git init --separate-git-dir` move o `.git` real
+para outro sítio. Como o hook `pre-push` executa a suíte de testes a partir do
+worktree, uma suíte que não fixe o diretório Git escreve no repositório real.
+
+A suíte de testes do helper usa o mesmo mecanismo: os repositórios temporários
+são criados com um diretório Git isolado e todos os comandos Git correm com
+`GIT_DIR` e `GIT_WORK_TREE` fixos ao repositório de teste.
+
 ---
 
 ## 8. Planeamento e gestão das especificações
