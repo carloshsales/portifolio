@@ -1,12 +1,13 @@
 # TASK-013 — Orquestração, verificação pelo utilizador e push
 
 - Change: 008-orquestracao-verificacao-e-push
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — pnpm test: exit 0, 146 aprovados e 1 ignorado; pnpm test:e2e: exit 0, 15 aprovados em 3 viewports (mobile, tablet, desktop)
 - Evidência: pnpm test: exit 0, 146 aprovados e 1 ignorado; pnpm test:e2e: exit 0, 15 aprovados em 3 viewports (mobile, tablet, desktop)
 - Plano de ação: none
+- Arquivada em: 2026-11-16
 
 ## Contexto
 
@@ -32,6 +33,10 @@ Revisar e validar o fluxo já aplicado nos 12 ficheiros classificados como alter
 - `scripts/rawspec-v2.test.mjs` (alteração)
 - `package.json` (alteração)
 - `specs/changes/008-orquestracao-verificacao-e-push/proposal.md` (preservado no commit; proposta aprovada, sem alteração de conteúdo)
+- `specs/changes/008-orquestracao-verificacao-e-push/tasks/TASK-013.md` (movido para o arquivo pelo arquivamento da tarefa)
+- `specs/changes/archive/008-orquestracao-verificacao-e-push/proposal.md` (movido pelo arquivamento da mudança)
+- `specs/changes/archive/008-orquestracao-verificacao-e-push/tasks/archive/TASK-013.md` (movido pelo arquivamento da tarefa)
+
 ## Entregáveis
 
 - Revisão dos 12 ficheiros classificados como alteração, confirmando os requisitos abaixo e corrigindo apenas defeitos encontrados:

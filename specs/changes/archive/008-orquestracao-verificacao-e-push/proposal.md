@@ -1,6 +1,7 @@
 # Change 008 — Orquestração, verificação e push
 
-- Status: APPROVED
+- Status: ARCHIVED
+- Arquivada em: 2026-11-16
 - Tipo: Processo / ferramentas de desenvolvimento
 - Prioridade: Alta
 
