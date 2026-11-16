@@ -11,6 +11,7 @@ Portfólio profissional e sistema de especificações RawSpec v2.
 - `docs/history.md` — histórico append-only de decisões, eventos e detalhes.
 - `docs/decisions/` — Architecture Decision Records (ADRs).
 - `specs/templates/` — templates de tarefa, proposta, design, plano de ação e entrada de histórico.
+- `AGENTS.md` — regras de execução a que os agentes ficam sujeitos neste repositório.
 
 ## Comandos RawSpec
 

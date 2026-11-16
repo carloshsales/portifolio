@@ -1,0 +1,11 @@
+﻿At C:\Users\Carlos Henrique\AppData\Roaming\npm\opencode.ps1:14 char:3
+ 
+> build ┬À kimi-k2.7-code
+[0mÔåÆ [0mRead bakeoff/fixture.tsx 
+> build ┬À kimi-k2.7-code
+D1 | Importa├º├úo directa do perfil a partir de `src/content/` | bakeoff/fixture.tsx:6
+D2 | Texto alternativo gen├®rico (ÔÇ£FotoÔÇØ) em vez de ÔÇ£Fotografia de <nome>ÔÇØ | bakeoff/fixture.tsx:19
+D3 | Resumo mostrado mesmo quando o conte├║do est├í vazio | bakeoff/fixture.tsx:25
+D4 | Ac├º├Áes sempre renderizadas, independentemente de haver conte├║do correspondente | bakeoff/fixture.tsx:27
+D5 | Elemento `<img>` sem atributos `width`/`height`, provocando layout shift | bakeoff/fixture.tsx:17
+

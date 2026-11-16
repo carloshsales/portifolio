@@ -1,0 +1,14 @@
+﻿Revê o ficheiro `bakeoff/fixture.tsx` e identifica todos os defeitos.
+
+Contexto: este ficheiro é uma secção de um portfólio em React + TypeScript.
+Regras do projecto:
+- A secção lê de `src/data/`, nunca de `src/content/` directamente.
+- O texto alternativo da fotografia descreve a pessoa: `Fotografia de <nome>`.
+- A secção funciona com conteúdo vazio, ocultando o resumo e as ações.
+- As ações só aparecem quando existe conteúdo correspondente.
+
+Responde APENAS com uma lista de linhas no formato:
+D<n> | <descrição curta do defeito> | <ficheiro>:<linha>
+
+Não inventes defeitos que não existem. Se não encontrares defeitos, responde
+exatamente: SEM DEFEITOS

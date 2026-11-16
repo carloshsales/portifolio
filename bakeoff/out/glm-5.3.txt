@@ -1,0 +1,175 @@
+﻿At C:\Users\Carlos Henrique\AppData\Roaming\npm\opencode.ps1:14 char:3
+ 
+> build ┬À glm-5.3
+[0mÔ£▒ [0mGlob "bakeoff/**" [90m14 matches[0m
+[0mÔ£▒ [0mGlob "**/bakeoff/fixture.tsx" [90m1 match[0m
+> build ┬À glm-5.3
+[0mÔåÆ [0mRead bakeoff/fixture.tsx 
+> build ┬À glm-5.3
+[0mÔåÆ [0mRead bakeoff/README.md 
+[0mÔ£▒ [0mGlob "src/**/*" [90m32 matches[0m
+> build ┬À glm-5.3
+[0mÔåÆ [0mRead src/sections/Home/Home.tsx 
+> build ┬À glm-5.3
+[0mÔåÆ [0mRead src/data/profile.ts 
+[0mÔåÆ [0mRead src/content/profile.ts 
+[0mÔ£▒ [0mGrep "aria|current|In├¡cio|width|height" [90min bakeoff/fixture.tsx ┬À 2 matches[0m
+[0m$ [0mgit log --oneline --follow -- bakeoff/fixture.tsx; git log --oneline --follow -- src/sections/Home/Home.tsx; 
+git log --oneline -- bakeoff/README.md
+bccece8 docs: adiciona documentacao geral do projeto e uniformiza o idioma da interface
+2028077 feat(rawspec): Isolar o conte├║do do utilizador e remover placeholders
+943fe07 feat(portfolio): add navigation and content sections
+> build ┬À glm-5.3
+[0m$ [0mgit log --oneline -- src/sections/Home/Home.tsx
+bccece8 docs: adiciona documentacao geral do projeto e uniformiza o idioma da interface
+2028077 feat(rawspec): Isolar o conte├║do do utilizador e remover placeholders
+943fe07 feat(portfolio): add navigation and content sections
+[0m$ [0mgit log --oneline --all -- bakeoff/
+(no output)
+> build ┬À glm-5.3
+[0m$ [0mgit log -p --follow -- src/sections/Home/Home.tsx
+commit bccece86820b248af08c059df99cbbcba900a7bb
+Author: Test <test@example.com>
+Date:   Sun Nov 15 21:57:02 2026 -0300
+
+    docs: adiciona documentacao geral do projeto e uniformiza o idioma da interface
+    
+    Cria docs/projeto.md com a visao, o ambito, a identidade visual, a stack, as
+    prioridades e os principios de trabalho. O documento e a referencia de projeto,
+    separada das especificacoes em specs/ e do formato do processo em
+    docs/rawspec-v2.md.
+    
+    O texto visivel passa a estar uniformizado em portugues brasileiro: 'Contacto'
+    torna-se 'Contato' e 'Onde me podes encontrar' torna-se 'Onde me pode
+    encontrar'. Os comentarios do codigo-fonte mantem o registo atual, em
+    portugues europeu.
+    
+    Referencia a documentacao no README.
+
+diff --git a/src/sections/Home/Home.tsx b/src/sections/Home/Home.tsx
+index 6b3cf6a..5c67c8a 100644
+--- a/src/sections/Home/Home.tsx
++++ b/src/sections/Home/Home.tsx
+@@ -30,7 +30,7 @@ export function Home() {
+                 </a>
+               ) : null}
+               <a href="#contato" className={styles.secondary}>
+-                Contacto
+               </a>
+             </div>
+           ) : null}
+
+commit 20280774177931bffd4faf466e06dfc87ba8f58f
+Author: Test <test@example.com>
+Date:   Sun Nov 15 18:46:50 2026 -0300
+
+    feat(rawspec): Isolar o conte├║do do utilizador e remover placeholders
+    
+    Change: 005-refactor-portfolio-baseline
+    Task: TASK-002
+    Tests: pnpm lint; pnpm typecheck; pnpm test; pnpm build
+    Evidence: src/content/{profile,projects,skills}.ts criados com conteudo vazio; src/data/ reexporta com 
+normalizacao (filtro de social sem URL, projetos sem titulo/descricao, grupos sem skills); Home.tsx omite resumo e 
+acoes quando vazio e so mostra 'Ver projetos' se houver projetos; Sidebar.tsx usa 'Portfolio' como fallback e omite 
+identidade vazia; src/test/content.test.tsx criado; App.test.tsx ajustado para h1/h2; bundle sem placeholder 
+confirmado por scan de dist/assets; pnpm lint, pnpm format:check, pnpm typecheck, pnpm test (132 passando, 1 pulado) e 
+pnpm build aprovados; renderizacao verificada no browser sem qualquer placeholder
+    Action-Plan: none
+
+diff --git a/src/sections/Home/Home.tsx b/src/sections/Home/Home.tsx
+index 86c68d8..6b3cf6a 100644
+--- a/src/sections/Home/Home.tsx
++++ b/src/sections/Home/Home.tsx
+@@ -1,10 +1,15 @@
+ import { profile } from '../../data/profile'
++import { projects } from '../../data/projects'
+ import { Section } from '../../components/Section'
+ import styles from './Home.module.css'
+ 
+ export function Home() {
++
+   return (
+-    <Section id="inicio" title={profile.name} subtitle={profile.role}>
+       <div className={styles.hero}>
+         <img
+           src={profile.photoUrl}
+@@ -15,16 +20,20 @@ export function Home() {
+         />
+ 
+         <div className={styles.content}>
+-          <p className={styles.summary}>{profile.summary}</p>
+ 
+-          <div className={styles.actions}>
+-            <a href="#projetos" className={styles.primary}>
+-              Ver projetos
+-            </a>
+-            <a href="#contato" className={styles.secondary}>
+-              Contacto
+-            </a>
+-          </div>
+         </div>
+       </div>
+     </Section>
+
+commit 943fe07295908987446e529c777f9c25a9bc193e
+Author: Carlos Henrique <carlosh.sales@outlook.com>
+Date:   Sat Nov 14 21:32:04 2026 -0300
+
+    feat(portfolio): add navigation and content sections
+    
+    Change: 001-portfolio-mvp
+    Task: TASK-004, TASK-005, TASK-006, TASK-007, TASK-008
+    Tests: pnpm lint; pnpm typecheck; pnpm test; pnpm build; pnpm format:check
+    Evidence: lint, typecheck, 42 tests, build and format check passed
+    Action-Plan: none
+
+diff --git a/src/sections/Home/Home.tsx b/src/sections/Home/Home.tsx
+new file mode 100644
+index 0000000..86c68d8
+--- /dev/null
++++ b/src/sections/Home/Home.tsx
+@@ -0,0 +1,32 @@
++import { profile } from '../../data/profile'
++import { Section } from '../../components/Section'
++import styles from './Home.module.css'
++
++export function Home() {
++
++
++}
+[0m$ [0mgit status --porcelain; git check-ignore -v bakeoff/fixture.tsx
+?? bakeoff/
+?? specs/changes/006-agent-orchestrator/
+> build ┬À glm-5.3
+[0mÔ£▒ [0mGrep "aria-current" [90min src ┬À 1 match[0m
+> build ┬À glm-5.3
+[0m$ [0mGet-Content tsconfig.json; Get-Content tsconfig.app.json 2>$null
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["vite/client", "vitest/globals"]
+  },
+  "include": ["src", "vite.config.ts"]
+}
+> build ┬À glm-5.3
+D1 | Import de profile de `src/content` em vez de `src/data` | bakeoff/fixture.tsx:6
+D2 | `alt` gen├®rico "Foto" em vez de "Fotografia de `<nome>`" | bakeoff/fixture.tsx:19
+D3 | Resumo renderizado sem guarda `hasSummary` (vis├¡vel com summary vazio) | bakeoff/fixture.tsx:25
+D4 | Bloco `.actions` renderizado sem verificar exist├¬ncia de projetos/contactos | bakeoff/fixture.tsx:27
+D6 | `<img>` sem `width`/`height`, provoca layout shift | bakeoff/fixture.tsx:17
+

@@ -1,0 +1,19 @@
+﻿At C:\Users\Carlos Henrique\AppData\Roaming\npm\opencode.ps1:14 char:3
+ 
+> build ┬À mimo-v2.6-pro
+[0mÔåÆ [0mRead bakeoff/fixture.tsx 
+> build ┬À mimo-v2.6-pro
+[0mÔ£▒ [0mGlob "src/**/*.{ts,tsx}" [90m22 matches[0m
+[0mÔ£▒ [0mGlob "bakeoff/**" [90m9 matches[0m
+> build ┬À mimo-v2.6-pro
+[0mÔåÆ [0mRead src/data/profile.ts 
+[0mÔåÆ [0mRead src/sections/Home/Home.tsx 
+> build ┬À mimo-v2.6-pro
+D1 | Import directo de `src/content/profile` em vez de `src/data/profile` (contorna a camada de dados e a normaliza├º├úo do perfil) | bakeoff/fixture.tsx:6
+D2 | Import de `projects` sem utiliza├º├úo (erro de lint/TS, resto da remo├º├úo das guardas) | bakeoff/fixture.tsx:7
+D3 | `<img>` sem `width`/`height`, provoca layout shift | bakeoff/fixture.tsx:17
+D4 | `alt="Foto"` em vez de `Fotografia de <nome>` | bakeoff/fixture.tsx:19
+D5 | Resumo renderizado sem guarda de conte├║do (n├úo oculta com summary vazio) | bakeoff/fixture.tsx:25
+D6 | Bloco de a├º├Áes sempre renderizado, mesmo sem projetos nem contactos | bakeoff/fixture.tsx:27
+D7 | "Ver projetos" mostrado mesmo sem existirem projetos | bakeoff/fixture.tsx:29
+

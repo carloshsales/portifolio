@@ -1,4 +1,4 @@
-﻿# Histórico do projeto
+# Histórico do projeto
 
 Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca são reescritas; novas ocorrências são adicionadas ao final.
 
@@ -73,60 +73,6 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: iniciar a implementação do formato v2.
 - Impacto: `proposal.md` e `design.md` marcados como APPROVED.
 - Evidência: resposta do usuário em 2026-11-15.
-
-## 2026-11-15 — Evento — TASK-001 concluída
-
-- Autor: Carlos Henrique
-- Origem: execução da change 003-rawspec-v2
-- Decisão: a TASK-001 (registrar histórico e decisões da sessão) foi concluída e verificada.
-- Motivo: concluir a primeira tarefa do formato v2.
-- Impacto: `docs/history.md`, ADR-002, ADR-003 e ADR-004 criados.
-- Evidência: `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (42 testes) e `pnpm build` aprovados em 2026-11-15.
-
-## 2026-11-15 — Evento — TASK-001 arquivada
-
-- Autor: Carlos Henrique
-- Origem: execução da change 003-rawspec-v2
-- Decisão: a TASK-001 foi aprovada e movida para `tasks/archive/TASK-001.md`.
-- Motivo: aplicar o ciclo de vida do formato v2.
-- Impacto: primeira tarefa arquivada da change 003.
-- Evidência: aprovação do usuário em 2026-11-15.
-
-## 2026-11-15 — Evento — TASK-002 concluída
-
-- Autor: Carlos Henrique
-- Origem: execução da change 003-rawspec-v2
-- Decisão: a TASK-002 (definir formato v2 e templates) foi concluída e verificada.
-- Motivo: versionar os templates e a referência do formato v2.
-- Impacto: `specs/templates/*.md` e `docs/rawspec-v2.md` criados.
-- Evidência: `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (42 testes) e `pnpm build` aprovados em 2026-11-15.
-
-## 2026-11-15 — Evento — TASK-002 arquivada
-
-- Autor: Carlos Henrique
-- Origem: execução da change 003-rawspec-v2
-- Decisão: a TASK-002 foi aprovada e movida para `tasks/archive/TASK-002.md`.
-- Motivo: aplicar o ciclo de vida do formato v2.
-- Impacto: segunda tarefa arquivada da change 003.
-- Evidência: aprovação do usuário em 2026-11-15.
-
-## 2026-11-15 — Evento — TASK-003 concluída
-
-- Autor: Carlos Henrique
-- Origem: execução da change 003-rawspec-v2
-- Decisão: a TASK-003 (implementar parser v2) foi concluída e verificada.
-- Motivo: habilitar a leitura de uma tarefa por arquivo.
-- Impacto: `scripts/rawspec-v2.mjs` e `scripts/rawspec-v2.test.mjs` criados com 24 testes.
-- Evidência: `prettier --check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (66 testes) e `pnpm build` aprovados em 2026-11-15.
-
-## 2026-11-15 — Evento — TASK-003 arquivada
-
-- Autor: Carlos Henrique
-- Origem: execução da change 003-rawspec-v2
-- Decisão: a TASK-003 foi aprovada e movida para `tasks/archive/TASK-003.md`.
-- Motivo: aplicar o ciclo de vida do formato v2.
-- Impacto: terceira tarefa arquivada da change 003.
-- Evidência: aprovação do usuário em 2026-11-15.
 
 ## 2026-11-15 — Evento — TASK-004 concluída
 
@@ -416,7 +362,7 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Impacto: main foi repontado para 3a1f9eb (chore/engineering-foundation) e recebeu o merge da change 005; todas as branches remotas passaram a ter ancestral comum com main; o histórico antigo ficou preservado na tag archive/main-antigo-site-estatico.
 - Evidência: merge-base vazio antes e 3a1f9eb depois; git push --force-with-lease origin main:main aceite; verificacao de todas as branches remotas com merge-base contra origin/main; pnpm lint, typecheck, test (134 passando, 1 pulado) e build aprovados em 2026-11-15.
 
-## 2026-11-15 ÔÇö Evento ÔÇö Branch 005-005 publicada sem o workflow de CI
+## 2026-11-15 — Evento — Branch 005-005 publicada sem o workflow de CI
 
 - Autor: Carlos Henrique
 - Origem: sess├úo
@@ -425,7 +371,7 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Impacto: As 15 branches remotas estao publicadas e todas tem ancestral comum com o main; os pull requests sao possiveis; o ci.yml esta registado localmente em .github/workflows/ci.yml e no commit 3ea5f18, a ser enviado assim que o ambito for autorizado.
 - Evid├¬ncia: git push de push/005-005-sem-ci para task/005-005 aceite com exit 0; merge-base origin/main com todas as 15 branches confirmado; tentativa de push do ci.yml falhou com 'refusing to allow an OAuth App to create or update workflow'; tentativa equivalente pela API do GitHub devolveu HTTP 404 pelo mesmo motivo; pnpm lint, typecheck, test (134 passando, 1 pulado) e build aprovados em 2026-11-15.
 
-## 2026-11-15 ÔÇö Evento ÔÇö TASK-005 da change 005 conclu├¡da e arquivada
+## 2026-11-15 — Evento — TASK-005 da change 005 conclu├¡da e arquivada
 
 - Autor: Carlos Henrique
 - Origem: sess├úo
@@ -433,24 +379,6 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: O ├ómbito 'workflow' do token OAuth foi autorizado, permitindo publicar o workflow de CI.
 - Impacto: .github/workflows/ci.yml publicado no main e na branch 005-005; GitHub Actions executado com 10 steps verdes; defeito do pnpm/action-setup corrigido; actions actualizadas para v5; plano de acao marcado como RESOLVED.
 - Evid├¬ncia: gh auth status confirma o ambito workflow; runs 43769021078 e 43769178321 concluidos com success; pnpm lint, format:check, typecheck, test (134 passando, 1 pulado), build e test:e2e aprovados em 2026-11-15; commit 5fad617 pushado.
-
-## 2026-11-16 — Evento — TASK-006 da change 005 concluída
-
-- Autor: Carlos Henrique
-- Origem: sessão
-- Decisão: A TASK-006 (documentar a publicação sem fixar o destino) foi concluída e verificada.
-- Motivo: Preparar a publicação de forma agnóstica ao destino, para que a escolha do deploy possa ser feita depois com base em requisitos concretos.
-- Impacto: docs/deployment.md criado com 8 secções e 5 candidatos comparados; README.md com nova secção Publicação; nenhum ficheiro de configuração de fornecedor criado; sinalizado o ficheiro foto-perfil.png de 1,8 MB.
-- Evidência: Todos os factos documentados verificados contra o repositorio; ausencia de vercel.json, netlify.toml, .nojekyll, _headers, _redirects, wrangler.toml e firebase.json confirmada; pnpm lint, format:check, typecheck, test (134 passando, 1 pulado) e build aprovados em 2026-11-15; commit 3a9c5dd pushado.
-
-## 2026-11-16 — Evento — TASK-007 da change 005 concluída
-
-- Autor: Carlos Henrique
-- Origem: sessão
-- Decisão: A TASK-007 (preparar a task de dados reais) foi concluída e verificada.
-- Motivo: Deixar preparado, com formato e campos definidos, o trabalho de preencher o conteúdo real do portfólio.
-- Impacto: docs/conteudo-real.md criado com o inventário completo do que é preciso fornecer; tarefas TASK-005 a TASK-010 da change 001 reescritas em formato v2 com escopos disjuntos; TASK-009 criada como tarefa exclusiva de escrita em src/content/; TASK-010 libertada da dependência dos dados.
-- Evidência: Grafo de dependências validado pelo parser sem ciclos, com 13 tarefas e dependencySource explicit; escopos disjuntos verificados por inspecao das tarefas; pnpm lint, pnpm format:check, pnpm typecheck e pnpm test (134 passando, 1 pulado) aprovados em 2026-11-15; commit c1b259e pushado.
 
 ## 2026-11-16 — Evento — TASK-006 da change 005 concluída
 
@@ -505,3 +433,21 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: O código real estava mais avançado do que o registado nas tarefas, o que bloqueava toda a cadeia de dependências e tornava a execução das tarefas um exercício de falsificação de trabalho.
 - Impacto: TASK-001, TASK-002, TASK-003 e TASK-004 reescritas em formato v2; conteúdo de src/content/ permanece intocado e pertence a TASK-009; nenhuma dependência ou script alterado.
 - Evidência: node scripts/rawspec-v2-cli.mjs next --change 001-portfolio-mvp aponta para TASK-002 com E_DEPENDENCY_PENDING para TASK-001 após a conclusão; resolve de TASK-001 e TASK-004 confirma o grafo intacto; pnpm exec prettier --check nos ficheiros das tarefas aprovado; pnpm typecheck, pnpm lint, pnpm test (134 passando, 1 pulado) e pnpm build aprovados em 2026-11-16.
+
+## 2026-11-16 — Decisão — Documentação geral do projeto registada em docs/projeto.md
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: A documentação geral do projeto foi registada em docs/projeto.md, num ficheiro separado das especificações. O documento cobre visão, âmbito, identidade visual, stack, prioridades e princípios de trabalho, e é a referência a consultar para melhorar o teor das perguntas e decisões. O conteúdo foi reconciliado com o estado real do repositório: as 4 secções implementadas em vez das 6 descritas inicialmente, Nunito Sans em vez de Inter, o estado verificado das 12 tarefas da change 001, a change 002 já arquivada, o ciclo de vida de 8 estados do RawSpec v2 e o repositório carloshsales/portifolio. As secções Jogos, Artigos e Experimentos ficam registadas como planeadas.
+- Motivo: O repositório tinha a documentação do processo, o histórico e as decisões, mas não tinha um documento de referência do produto. A documentação enviada pelo utilizador divergia do código implementado em pontos de âmbito, design e estado.
+- Impacto: docs/projeto.md criado com 737 linhas; README.md com referência ao novo documento; AGENTS.md com ponteiro para docs/projeto.md e convenção de idioma; src/sections/Home/Home.tsx e src/sections/Contact/Contact.tsx com o texto visível uniformizado em português brasileiro. specs/ e o formato RawSpec v2 não foram alterados.
+- Evidência: Estado verificado no repositório antes da escrita: src/sections/ contém Home, Projects, Skills e Contact; src/components/Sidebar.tsx define 4 itens de navegação; src/styles/tokens.css usa Nunito Sans; specs/changes/archive/ contém as changes 002 a 005; em main as 12 tarefas da change 001 estão PENDING, com a TASK-001 concluída e arquivada apenas na branch task/001-001-inicializar-aplicacao; pnpm typecheck, pnpm lint, pnpm test (134 passando, 1 pulado), pnpm test:e2e (15 passando em 3 viewports), pnpm build e pnpm exec prettier --check . aprovados em 2026-11-16.
+
+## 2026-11-16 — Decisão — AGENTS.md com regras de execução para agentes
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: Foi criado o ficheiro AGENTS.md na raiz do repositório, com as regras de execução a que os agentes ficam sujeitos ao trabalhar neste projeto. A regra principal exige que, ao ser pedido a execução de uma tarefa, o agente apresente primeiro um resumo do que será realizado e que, havendo discrepâncias entre a tarefa e o estado real do repositório, pergunte ao utilizador antes de agir. O ficheiro documenta ainda o princípio de não falsificação, as regras de workflow do RawSpec v2, os comandos de verificação, os comandos RawSpec e as convenções do repositório.
+- Motivo: Sem um resumo prévio e sem o tratamento explícito de discrepâncias, havia risco de o agente executar trabalho divergente do pretendido, ou de marcar como concluída uma tarefa cujo trabalho não tinha sido feito. O ficheiro é lido automaticamente pelo OpenCode em todas as sessões do projeto, o que torna a regra aplicável sem depender de comandos específicos.
+- Impacto: AGENTS.md criado na raiz do repositório; referência a docs/projeto.md e convenção de idioma da interface em português brasileiro acrescentadas posteriormente. O ficheiro vive na branch chore/agent-rules, com pull request próprio, por não pertencer ao âmbito de nenhuma TASK-NNN da change 001.
+- Evidência: pnpm exec prettier --check AGENTS.md aprovado; CI do pull request #1 aprovado nas duas execuções; hooks pre-commit e pre-push verificados a executar após a correcção do core.hooksPath do Git, que estava corrompido para --version/_ em Windows e deixou os hooks de qualidade desativados.
