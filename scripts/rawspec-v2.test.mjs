@@ -1292,6 +1292,106 @@ describe('branch e commit por tarefa', () => {
     writeFileSync(file, `${readFileSync(file, 'utf8')}\n<!-- alteracao -->\n`, 'utf8')
   }
 
+  describe('âmbito da tarefa', () => {
+    it('extrai os ficheiros de ## Arquivos', () => {
+      const repo = createRepoWithTask()
+      const file = join(repo, 'specs', 'changes', '004-test', 'tasks', 'TASK-001.md')
+      const content = readFileSync(file, 'utf8')
+      writeFileSync(
+        file,
+        `${content}\n## Arquivos\n\n- \`src/um.tsx\` (revisão)\n- \`src/dois.tsx\`\n`,
+        'utf8',
+      )
+
+      const task = parseTaskFile(file)
+
+      expect(task.scope.source).toBe('explicit')
+      expect(task.scope.files).toEqual(['src/um.tsx', 'src/dois.tsx'])
+    })
+
+    it('devolve âmbito vazio quando a secção não existe', () => {
+      const repo = createRepoWithTask()
+
+      const task = parseTaskFile(join(repo, 'specs', 'changes', '004-test', 'tasks', 'TASK-001.md'))
+
+      expect(task.scope.source).toBe('none')
+      expect(task.scope.files).toEqual([])
+    })
+
+    it('ignora o qualificador entre parênteses', () => {
+      const repo = createRepoWithTask()
+      const file = join(repo, 'specs', 'changes', '004-test', 'tasks', 'TASK-001.md')
+      writeFileSync(
+        file,
+        `${readFileSync(file, 'utf8')}\n## Arquivos\n\n- \`src/x.tsx\` (leitura dos dados; sem escrita)\n`,
+        'utf8',
+      )
+
+      const task = parseTaskFile(file)
+
+      expect(task.scope.files).toEqual(['src/x.tsx'])
+    })
+  })
+
+  describe('gate de âmbito no commit-task', () => {
+    function repoWithScope(repo, files) {
+      const file = join(repo, 'specs', 'changes', '004-test', 'tasks', 'TASK-001.md')
+      const list = files.map((f) => `- \`${f}\``).join('\n')
+      writeFileSync(file, `${readFileSync(file, 'utf8')}\n## Arquivos\n\n${list}\n`, 'utf8')
+      return file
+    }
+
+    it('commita apenas os ficheiros do âmbito', () => {
+      const repo = createRepoWithTask()
+      repoWithScope(repo, ['src/permitido.ts'])
+      mkdirSync(join(repo, 'src'), { recursive: true })
+      writeFileSync(join(repo, 'src', 'permitido.ts'), 'export const a = 1\n', 'utf8')
+      writeFileSync(join(repo, 'src', 'outro.ts'), 'export const b = 2\n', 'utf8')
+      touchTask(repo)
+
+      const error = captureError(() =>
+        commitAndPushTask(repo, 'TASK-001', { checks: [], push: false }),
+      )
+
+      expect(error.code).toBe('E_SCOPE_VIOLATION')
+      expect(error.details.outOfScope).toContain('src/outro.ts')
+      expect(error.details.outOfScope).not.toContain('src/permitido.ts')
+    })
+
+    it('não commita quando há um ficheiro fora do âmbito', () => {
+      const repo = createRepoWithTask()
+      repoWithScope(repo, ['src/permitido.ts'])
+      mkdirSync(join(repo, 'src'), { recursive: true })
+      writeFileSync(join(repo, 'src', 'permitido.ts'), 'export const a = 1\n', 'utf8')
+      writeFileSync(join(repo, 'src', 'outro.ts'), 'export const b = 2\n', 'utf8')
+      touchTask(repo)
+      const before = git(repo, ['rev-parse', '--short', 'HEAD']).trim()
+
+      captureError(() => commitAndPushTask(repo, 'TASK-001', { checks: [], push: false }))
+
+      expect(git(repo, ['rev-parse', '--short', 'HEAD']).trim()).toBe(before)
+    })
+
+    it('commita o ficheiro da task e os do âmbito', () => {
+      const repo = createRepoWithTask()
+      repoWithScope(repo, ['src/permitido.ts'])
+      mkdirSync(join(repo, 'src'), { recursive: true })
+      writeFileSync(join(repo, 'src', 'permitido.ts'), 'export const a = 1\n', 'utf8')
+      touchTask(repo)
+
+      commitAndPushTask(repo, 'TASK-001', { checks: [], push: false })
+
+      const files = git(repo, ['show', '--name-only', '--pretty=format:']).trim().split('\n')
+      expect(files).toContain('src/permitido.ts')
+      expect(files).toContain('specs/changes/004-test/tasks/TASK-001.md')
+    })
+
+    it('não usa git add -A', () => {
+      const source = readFileSync(join(import.meta.dirname, 'rawspec-v2.mjs'), 'utf8')
+      expect(source).not.toContain("'add', '-A'")
+    })
+  })
+
   it('cria a branch com a nomenclatura esperada', () => {
     const repo = createRepoWithTask()
 

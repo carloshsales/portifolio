@@ -168,8 +168,9 @@ Regras comuns: resolver antes de agir, perguntar em ambiguidade, validar aprova�
 
 ## 9. Política de Git
 
-- Nenhum commit ou push automático.
-- Staging, quando aplicável, somente em caminhos exatos do manifesto.
+- Nenhum commit ou push automático sem a sequência da branch por tarefa (ADR-005).
+- Staging apenas em caminhos exactos: os declarados na secção `## Arquivos` da task e os ficheiros de especificação que a CLI actualizou.
+- Um ficheiro tocado fora do âmbito bloqueia o commit com `E_SCOPE_VIOLATION`.
 - Nenhuma reescrita de histórico.
 
 ## 10. Verificações
@@ -252,6 +253,7 @@ Action-Plan: <caminho ou none>
 | `E_IO` | Falha de gravação atômica. |
 | `E_HISTORY_INVALID` | Entrada de histórico inválida. |
 | `E_ADR_EXISTS` | ADR duplicado. |
+| `E_SCOPE_VIOLATION` | Há ficheiros tocados fora do âmbito declarado na secção `## Arquivos` da task. |
 
 ## 14. Validação ponta a ponta
 
@@ -284,7 +286,18 @@ Exemplo: `task/001-005-implementar-secao-inicial`.
 2. A tarefa é iniciada com `start`.
 3. Ao atingir `COMPLETED` + `VERIFIED`, `/continuespec` executa `commit-task`.
 4. `commit-task` roda `pnpm typecheck`, `pnpm test` e `pnpm build`.
-5. Se passarem, faz `git add -A`, `git commit` com a mensagem gerada e `git push -u origin <branch>`.
+5. Se passarem, faz o gate de âmbito, faz `git add` com caminhos explícitos, `git commit` com a mensagem gerada e `git push -u origin <branch>`.
+
+### 15.2.1 Gate de âmbito
+
+O `commit-task` compara os ficheiros tocados com o âmbito da task:
+
+- os ficheiros declarados na secção `## Arquivos`;
+- os ficheiros de especificação que a CLI actualizou: o ficheiro da task, o plano de acção e `docs/history.md`.
+
+Um ficheiro fora do âmbito bloqueia o commit com `E_SCOPE_VIOLATION`, que lista os ficheiros culpados. Nada é descartado: a decisão sobre cada ficheiro é do utilizador.
+
+O gate existe porque as permissões de caminho do OpenCode não são uma barreira. Uma escrita feita por shell contorna a negação de edição, e o gate é aplicado depois da acção e antes do commit.
 
 ### 15.3 Hooks do Husky
 
