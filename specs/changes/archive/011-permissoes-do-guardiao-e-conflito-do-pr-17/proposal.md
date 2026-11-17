@@ -1,6 +1,7 @@
 # Change 011 — Corrigir as permissões do guardião e resolver o conflito do PR 17
 
-- Status: APPROVED
+- Status: ARCHIVED
+- Arquivada em: 2026-11-17
 - Tipo: Correção
 - Prioridade: Alta
 - Data: 2026-11-17
