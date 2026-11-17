@@ -5,6 +5,15 @@ model: opencode-go/beam-free#medium
 steps: 30
 permissions:
   - action: shell
+    resource: '*'
+    effect: deny
+  - action: shell
+    resource: 'git status *'
+    effect: allow
+  - action: shell
+    resource: 'git diff *'
+    effect: allow
+  - action: shell
     resource: 'git add *'
     effect: allow
   - action: shell
@@ -16,15 +25,6 @@ permissions:
   - action: shell
     resource: 'node scripts/rawspec-v2-cli.mjs *'
     effect: allow
-  - action: shell
-    resource: 'git status *'
-    effect: allow
-  - action: shell
-    resource: 'git diff *'
-    effect: allow
-  - action: shell
-    resource: '*'
-    effect: deny
 ---
 
 # Guardião
