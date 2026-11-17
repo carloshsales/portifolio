@@ -1,6 +1,213 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+
+interface ObserverEntry {
+  id: string
+  isIntersecting: boolean
+}
+
+interface ObserverOptions {
+  root?: Element | Document | null
+  rootMargin?: string
+  threshold?: number | number[]
+}
+
+interface ObserverStub {
+  emit: (entry: ObserverEntry) => void
+  instances: StubObserver[]
+}
+
+interface StubObserver {
+  options: ObserverOptions
+  observed: Element[]
+  disconnected: boolean
+}
+
+const originalIntersectionObserver = globalThis.IntersectionObserver
+const originalClientHeight = Object.getOwnPropertyDescriptor(Document.prototype, 'clientHeight')
+const originalClientWidth = Object.getOwnPropertyDescriptor(Document.prototype, 'clientWidth')
+
+const VIEWPORT_HEIGHT = 800
+
+/**
+ * Altura da viewport simulada. `document.documentElement.clientHeight` é
+ * a altura da área visível da página, que coincide com a raiz do
+ * `IntersectionObserver` quando não existe `root` explícito.
+ */
+function setViewportHeight(height: number): void {
+  Object.defineProperty(document.documentElement, 'clientHeight', {
+    configurable: true,
+    value: height,
+  })
+}
+
+/**
+ * Substitui o IntersectionObserver por um stub controlável, para
+ * exercitar a seleção da secção ativa de forma determinística. Deve ser
+ * instalado antes da renderização, porque o hook regista o observador
+ * durante o efeito de montagem.
+ */
+function installIntersectionObserverStub(): ObserverStub {
+  const callbacks: Array<(entries: IntersectionObserverEntry[]) => void> = []
+  const instances: StubObserver[] = []
+
+  class StubIntersectionObserver {
+    options: ObserverOptions
+    observed: Element[] = []
+    disconnected = false
+
+    constructor(
+      callback: (entries: IntersectionObserverEntry[]) => void,
+      options: ObserverOptions = {},
+    ) {
+      callbacks.push(callback)
+      this.options = options
+      instances.push(this)
+    }
+
+    observe(target: Element): void {
+      this.observed.push(target)
+    }
+
+    unobserve(): void {}
+
+    disconnect(): void {
+      this.disconnected = true
+    }
+
+    takeRecords(): IntersectionObserverEntry[] {
+      return []
+    }
+  }
+
+  globalThis.IntersectionObserver =
+    StubIntersectionObserver as unknown as typeof IntersectionObserver
+
+  return {
+    emit: (entry) => {
+      const target = document.getElementById(entry.id)
+
+      if (target === null) {
+        return
+      }
+
+      for (const callback of callbacks) {
+        callback([
+          {
+            target,
+            isIntersecting: entry.isIntersecting,
+          } as unknown as IntersectionObserverEntry,
+        ])
+      }
+    },
+    instances,
+  }
+}
+
+/**
+ * Resolve a margem da raiz do observador para a região de observação
+ * efetiva, aplicando a regra da especificação: as percentagens são
+ * resolvidas relativamente à largura da raiz, e não à altura.
+ *
+ * Devolve a faixa vertical observada, em pixels, com origem no topo da
+ * raiz.
+ */
+function resolveObservedBand(options: ObserverOptions): {
+  top: number
+  bottom: number
+  height: number
+  rootHeight: number
+} {
+  const margin = options.rootMargin ?? '0px'
+  const parts = margin.trim().split(/\s+/)
+
+  const rootHeight = document.documentElement.clientHeight
+  const rootWidth = document.documentElement.clientWidth
+
+  // A margem segue a notação abreviada do CSS: 1, 2, 3 ou 4 valores
+  // (topo, direita, fundo, esquerda). Só as componentes verticais
+  // interessam para a faixa observada.
+  const topValue = parts[0]
+  const bottomValue = parts.length === 1 ? parts[0] : parts.length === 2 ? parts[0] : parts[2]
+
+  const toPixels = (value: string, basis: number): number => {
+    if (value.endsWith('%')) {
+      return (parseFloat(value) / 100) * basis
+    }
+
+    return parseFloat(value)
+  }
+
+  const topMargin = toPixels(topValue, rootWidth)
+  const bottomMargin = toPixels(bottomValue, rootWidth)
+
+  return {
+    top: -topMargin,
+    bottom: rootHeight + bottomMargin,
+    height: rootHeight + topMargin + bottomMargin,
+    rootHeight,
+  }
+}
+
+/**
+ * Define a geometria para as secções, para que o desempate seja
+ * exercitado contra posições reais e não contra valores por omissão.
+ *
+ * O valor devolvido é a função que restaura a implementação original.
+ */
+function stubSectionRects(tops: Record<string, number>): () => void {
+  const originals = new Map<Element, Element['getBoundingClientRect']>()
+
+  for (const [id, top] of Object.entries(tops)) {
+    const element = document.getElementById(id)
+
+    if (element === null) {
+      continue
+    }
+
+    originals.set(element, element.getBoundingClientRect.bind(element))
+
+    element.getBoundingClientRect = () =>
+      ({
+        top,
+        bottom: top + 100,
+        left: 0,
+        right: 0,
+        width: 0,
+        height: 100,
+        x: 0,
+        y: top,
+        toJSON: () => ({}),
+      }) as DOMRect
+  }
+
+  return () => {
+    for (const [element, original] of originals) {
+      element.getBoundingClientRect = original
+    }
+  }
+}
+
+beforeEach(() => {
+  setViewportHeight(VIEWPORT_HEIGHT)
+})
+
+afterEach(() => {
+  globalThis.IntersectionObserver = originalIntersectionObserver
+
+  if (originalClientHeight === undefined) {
+    Reflect.deleteProperty(document.documentElement, 'clientHeight')
+  } else {
+    Object.defineProperty(document.documentElement, 'clientHeight', originalClientHeight)
+  }
+
+  if (originalClientWidth === undefined) {
+    Reflect.deleteProperty(document.documentElement, 'clientWidth')
+  } else {
+    Object.defineProperty(document.documentElement, 'clientWidth', originalClientWidth)
+  }
+})
 
 describe('App', () => {
   it('renders the main heading', () => {
@@ -34,9 +241,245 @@ describe('App', () => {
     expect(navigation.querySelector('a[href="#contato"]')).not.toBeNull()
   })
 
+  it('marks exactly one navigation link with aria-current', () => {
+    render(<App />)
+
+    const navigation = screen.getByRole('navigation', { name: /navegação principal/i })
+    const current = navigation.querySelectorAll('a[aria-current="true"]')
+
+    expect(current).toHaveLength(1)
+    expect(current[0]).toHaveAttribute('href', '#inicio')
+  })
+
+  it('marks the active section with aria-current', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    act(() => {
+      observer.emit({ id: 'projetos', isIntersecting: true })
+      observer.emit({ id: 'inicio', isIntersecting: false })
+    })
+
+    const current = document.querySelectorAll('nav a[aria-current="true"]')
+    expect(current).toHaveLength(1)
+    expect(current[0]).toHaveAttribute('href', '#projetos')
+  })
+
+  it('resolves a tie between sections by the one closest to the top', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    // `projetos` está mais perto do topo do viewport do que `inicio`,
+    // pelo que tem de prevalecer apesar de vir depois no DOM.
+    const restore = stubSectionRects({ inicio: 40, projetos: 10 })
+
+    act(() => {
+      observer.emit({ id: 'inicio', isIntersecting: true })
+      observer.emit({ id: 'projetos', isIntersecting: true })
+    })
+
+    restore()
+
+    const current = document.querySelectorAll('nav a[aria-current="true"]')
+    expect(current).toHaveLength(1)
+    expect(current[0]).toHaveAttribute('href', '#projetos')
+  })
+
+  it('clears aria-current when no section intersects the observation band', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    act(() => {
+      observer.emit({ id: 'inicio', isIntersecting: true })
+      observer.emit({ id: 'projetos', isIntersecting: true })
+    })
+
+    expect(document.querySelectorAll('nav a[aria-current="true"]')).toHaveLength(1)
+
+    act(() => {
+      observer.emit({ id: 'inicio', isIntersecting: false })
+      observer.emit({ id: 'projetos', isIntersecting: false })
+    })
+
+    expect(document.querySelectorAll('nav a[aria-current="true"]')).toHaveLength(0)
+  })
+
+  it('resolves a tie by DOM order when the sections share the same top', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    const restore = stubSectionRects({ inicio: 20, projetos: 20 })
+
+    act(() => {
+      observer.emit({ id: 'inicio', isIntersecting: true })
+      observer.emit({ id: 'projetos', isIntersecting: true })
+    })
+
+    restore()
+
+    const current = document.querySelectorAll('nav a[aria-current="true"]')
+    expect(current).toHaveLength(1)
+    expect(current[0]).toHaveAttribute('href', '#inicio')
+  })
+
+  it('keeps the link order of the sections in the navigation', () => {
+    render(<App />)
+
+    const navigation = screen.getByRole('navigation', { name: /navegação principal/i })
+    const hrefs = Array.from(navigation.querySelectorAll('a')).map((link) =>
+      link.getAttribute('href'),
+    )
+
+    expect(hrefs).toEqual(['#inicio', '#projetos', '#habilidades', '#contato'])
+  })
+
+  it('renders the navigation icons as decorative', () => {
+    render(<App />)
+
+    const navigation = screen.getByRole('navigation', { name: /navegação principal/i })
+    const icons = navigation.querySelectorAll('svg')
+
+    expect(icons).toHaveLength(4)
+
+    for (const icon of icons) {
+      expect(icon).toHaveAttribute('aria-hidden', 'true')
+      expect(icon).toHaveAttribute('focusable', 'false')
+    }
+  })
+
+  it('renders a skip link pointing to the main content', () => {
+    render(<App />)
+
+    const skipLink = screen.getByRole('link', { name: /saltar para o conteúdo/i })
+
+    expect(skipLink).toHaveAttribute('href', '#conteudo')
+    expect(document.querySelector('main#conteudo')).toBeInTheDocument()
+  })
+
   it('renders the profile photo with alternative text', () => {
     render(<App />)
 
     expect(screen.getByRole('img', { name: /fotografia/i })).toBeInTheDocument()
+  })
+})
+
+describe('faixa central de observação', () => {
+  it('observa uma faixa com 5% da altura da viewport, centrada', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    expect(observer.instances).toHaveLength(1)
+
+    const band = resolveObservedBand(observer.instances[0].options)
+
+    // A faixa observada tem 5% da ALTURA da viewport. Uma margem
+    // percentual resolveria a vertical pela largura e produziria uma
+    // faixa com a altura errada.
+    expect(band.height).toBeCloseTo(VIEWPORT_HEIGHT * 0.05, 5)
+
+    // A faixa é centrada: a distância ao topo é igual à distância ao
+    // fundo.
+    expect(band.top).toBeCloseTo(band.rootHeight - band.bottom, 5)
+    expect(band.top).toBeCloseTo((VIEWPORT_HEIGHT - VIEWPORT_HEIGHT * 0.05) / 2, 5)
+  })
+
+  it('não usa percentagens na margem, porque seriam resolvidas pela largura', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    const raw = observer.instances[0].options.rootMargin ?? ''
+
+    expect(raw).not.toContain('%')
+  })
+
+  it('observa uma faixa diferente quando a largura e a altura divergem', () => {
+    const observer = installIntersectionObserverStub()
+
+    // Uma viewport estreita e baixa faz com que 5% da largura seja
+    // diferente de 5% da altura. A faixa tem de seguir a altura.
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+      configurable: true,
+      value: 375,
+    })
+
+    render(<App />)
+
+    const band = resolveObservedBand(observer.instances[0].options)
+
+    expect(band.height).toBeCloseTo(VIEWPORT_HEIGHT * 0.05, 5)
+    expect(band.height).not.toBeCloseTo(375 * 0.05, 5)
+  })
+
+  it('mantém a faixa central com 5% da altura depois de um redimensionamento', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    setViewportHeight(500)
+
+    act(() => {
+      window.dispatchEvent(new Event('resize'))
+    })
+
+    expect(observer.instances.length).toBeGreaterThanOrEqual(2)
+
+    const band = resolveObservedBand(observer.instances[observer.instances.length - 1].options)
+
+    expect(band.height).toBeCloseTo(500 * 0.05, 5)
+    expect(band.top).toBeCloseTo(band.rootHeight - band.bottom, 5)
+  })
+
+  it('não recria o observador quando a altura da viewport não muda', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    act(() => {
+      window.dispatchEvent(new Event('resize'))
+      window.dispatchEvent(new Event('orientationchange'))
+    })
+
+    expect(observer.instances).toHaveLength(1)
+  })
+
+  it('observa as quatro secções', () => {
+    const observer = installIntersectionObserverStub()
+
+    render(<App />)
+
+    const observed = observer.instances[0].observed.map((element) => element.id)
+
+    expect(observed).toEqual(['inicio', 'projetos', 'habilidades', 'contato'])
+  })
+})
+
+describe('degradação do hook', () => {
+  it('recorre à primeira secção quando não há IntersectionObserver', () => {
+    // @ts-expect-error -- remoção temporária para simular um ambiente sem suporte.
+    delete globalThis.IntersectionObserver
+
+    render(<App />)
+
+    const current = document.querySelectorAll('nav a[aria-current="true"]')
+    expect(current).toHaveLength(1)
+    expect(current[0]).toHaveAttribute('href', '#inicio')
+  })
+
+  it('descarta o observador quando o componente é desmontado', () => {
+    const observer = installIntersectionObserverStub()
+
+    const { unmount } = render(<App />)
+
+    expect(observer.instances[0].disconnected).toBe(false)
+
+    unmount()
+
+    expect(observer.instances[0].disconnected).toBe(true)
   })
 })
