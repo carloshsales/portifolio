@@ -16,7 +16,7 @@
   "providers": {
     "opencode-go": {
       "settings": {
-        "cache": { "ttl": "1h" }
+        "cache": { "ttl": "30m" }
       }
     }
   },
