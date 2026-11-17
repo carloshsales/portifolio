@@ -1,12 +1,13 @@
 # TASK-001 — Corrigir as permissões do guardião e resolver o conflito do PR 17
 
 - Change: 011-permissoes-do-guardiao-e-conflito-do-pr-17
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-17
 - Verificação: VERIFIED (2026-11-17) — pnpm lint exit 0; pnpm typecheck exit 0; pnpm test exit 0 (146 aprovados, 1 ignorado); pnpm test:e2e exit 0 (15 aprovados em 3 viewports); pnpm build exit 0; prettier --check aprovado; node bakeoff/validate.mjs 15/15. Verificacao funcional das permissoes em tres sessoes reais do OpenCode com o agente guardiao: git status --short --branch executou; git diff --stat executou; node scripts/rawspec-v2-cli.mjs open --change 011-permissoes-do-guardiao-e-conflito-do-pr-17 executou; node -e recusado com Permission denied: shell; git reset --hard HEAD recusado. Resolucao do conflito do PR 17 verificada byte a byte: 0 entradas em falta, 0 reescritas, ordem das 60 entradas de main preservada, entrada da TASK-003 em ultimo; git diff main -- docs/history.md = +9 -0; git merge-tree sem marcadores; gh pr view 17 reporta MERGEABLE com CI verde. Revisoes A e B aprovadas. Clareza 95/100.
 - Evidência: pnpm lint exit 0; pnpm typecheck exit 0; pnpm test exit 0 (146 aprovados, 1 ignorado); pnpm test:e2e exit 0 (15 aprovados em 3 viewports); pnpm build exit 0; prettier --check aprovado; node bakeoff/validate.mjs 15/15. Verificacao funcional das permissoes em tres sessoes reais do OpenCode com o agente guardiao: git status --short --branch executou; git diff --stat executou; node scripts/rawspec-v2-cli.mjs open --change 011-permissoes-do-guardiao-e-conflito-do-pr-17 executou; node -e recusado com Permission denied: shell; git reset --hard HEAD recusado. Resolucao do conflito do PR 17 verificada byte a byte: 0 entradas em falta, 0 reescritas, ordem das 60 entradas de main preservada, entrada da TASK-003 em ultimo; git diff main -- docs/history.md = +9 -0; git merge-tree sem marcadores; gh pr view 17 reporta MERGEABLE com CI verde. Revisoes A e B aprovadas. Clareza 95/100.
 - Plano de ação: none
+- Arquivada em: 2026-11-17
 
 ## Objetivo
 
