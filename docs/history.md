@@ -540,6 +540,15 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Impacto: opencode.json passa a definir providers.opencode-go.settings.cache.ttl como 30m, o único valor aceite pelo provider. As permissões e experimental.todo do ficheiro mantêm-se intactos. O valor é lido ao arranque da sessão, pelo que o efeito só é visível em sessões novas.
 - Evidência: Verificado em 2026-11-17: antes da correcção, uma sessão nova com opencode run invoca um subagente guardiao via opencode-go e falha com Invalid value for 'prompt_cache_options.ttl'; depois da correcção, a mesma invocação devolve OK sem erro. A função que constrói o pedido transforma 24h em prompt_cache_retention e qualquer outro valor em prompt_cache_options.ttl. pnpm test (146 aprovados, 1 ignorado), pnpm test:e2e (15 aprovados em 3 viewports), pnpm lint, typecheck e prettier --check aprovados. O commit 5dd3d5d foi pushado e integrado em main pelo PR 16, com o CI verde.
 
+## 2026-11-16 — Evento — Conclusão verificada da TASK-003
+
+- Autor: orquestrador
+- Origem: /orquestrar TASK-003
+- Decisão: TASK-003 concluída e verificada. A revisão confirmou que a camada de estilos existente já satisfaz os critérios atualizados, sem alterações de código. O registo foi feito pela CLI após verificação e revisão em par; commit/push ainda dependem do guardião.
+- Motivo: Os cinco ficheiros do âmbito já cumpriam os entregáveis; a task foi esclarecida para descrever revisão e consolidação, e os checks automatizados e de browser passaram.
+- Impacto: TASK-003 marcada COMPLETED/VERIFIED; sem impacto em código de produto. Commit/push da branch task/001-003-configurar-estilos-globais continuam pendentes.
+- Evidência: Clareza 95/100; pnpm lint, typecheck, test (141 passed, 1 skipped), build, test:e2e (15 passed), format:check; 106 usos var() em 32 tokens declarados; browser Playwright confirmou paleta, tipografia, foco, reduced motion e sem overflow em 375/768/1280; revisores A e B aprovados.
+
 ## 2026-11-17 — Decisão — Ordem das permissões do guardião corrigida e conflito do PR 17 resolvido
 
 - Autor: Carlos Henrique
