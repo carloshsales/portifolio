@@ -1,12 +1,13 @@
 # TASK-015 — Corrigir o TTL de cache do provider opencode-go
 
 - Change: 010-corrigir-o-ttl-de-cache-do-provider
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-17
 - Verificação: VERIFIED (2026-11-17) — pnpm test: exit 0, 146 aprovados e 1 ignorado; pnpm test:e2e: exit 0, 15 aprovados em 3 viewports; subagente guardiao via opencode-go numa sessao nova devolveu OK sem erro de TTL
 - Evidência: pnpm test: exit 0, 146 aprovados e 1 ignorado; pnpm test:e2e: exit 0, 15 aprovados em 3 viewports; subagente guardiao via opencode-go numa sessao nova devolveu OK sem erro de TTL
 - Plano de ação: none
+- Arquivada em: 2026-11-17
 
 ## Contexto
 
@@ -37,6 +38,9 @@ Definir `cache.ttl` como `"30m"` em `opencode.json`, o único valor aceite pelo 
 
 - `opencode.json` (alteração)
 - `specs/changes/010-corrigir-o-ttl-de-cache-do-provider/proposal.md` (preservado no commit; proposta aprovada, sem alteração de conteúdo)
+- `specs/changes/010-corrigir-o-ttl-de-cache-do-provider/tasks/TASK-015.md` (movido para o arquivo pelo arquivamento da tarefa)
+- `specs/changes/archive/010-corrigir-o-ttl-de-cache-do-provider/proposal.md` (movido pelo arquivamento da mudança)
+- `specs/changes/archive/010-corrigir-o-ttl-de-cache-do-provider/tasks/archive/TASK-015.md` (movido pelo arquivamento da tarefa)
 
 ## Entregáveis
 
