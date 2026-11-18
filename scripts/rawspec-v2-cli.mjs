@@ -8,7 +8,8 @@
  *   node scripts/rawspec-v2-cli.mjs <comando> [argumentos]
  */
 
-import { dirname, join } from 'node:path'
+import { realpathSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -28,13 +29,23 @@ import {
   listOpenTasks,
   migrateLegacyChange,
   normalizeChangeId,
+  openPullRequest,
   resolveTask,
   selectNextTask,
   startTask,
   verifyTask,
 } from './rawspec-v2.mjs'
 
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+/**
+ * Raiz do repositório onde a CLI opera.
+ *
+ * Por omissão, é a raiz do repositório onde o script vive. A variável de
+ * ambiente `RAWSPEC_REPO_ROOT` permite correr a CLI contra outro repositório,
+ * o que é usado pelos testes de nível de CLI, sem acesso à rede.
+ */
+const REPO_ROOT = process.env.RAWSPEC_REPO_ROOT
+  ? resolve(process.env.RAWSPEC_REPO_ROOT)
+  : join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /** Códigos de saída por código de erro. */
 const EXIT_CODES = {
@@ -65,20 +76,52 @@ const EXIT_CODES = {
   E_BRANCH_EXISTS: 7,
   E_GIT_ERROR: 7,
   E_CHECKS_FAILED: 7,
+  E_PR_UNAVAILABLE: 8,
+  E_PR_CREATE_FAILED: 8,
 }
+
+/**
+ * Flags booleanas da CLI.
+ *
+ * Estas flags nunca consomem o argumento seguinte. Sem esta lista, um
+ * `--no-push` colocado antes do identificador da tarefa engolia o próprio
+ * identificador, e a flag ficava com o valor do texto que lhe seguia em vez
+ * de `true`.
+ */
+const BOOLEAN_FLAGS = new Set(['no-push', 'no-pr', 'approved', 'adr'])
 
 /**
  * Interpreta argumentos `--chave valor` e flags booleanas.
  *
+ * As flags booleanas aceitam a forma `--flag` e a forma explícita
+ * `--flag=true` ou `--flag=false`. O sufixo depois do `=` é separado antes de
+ * a flag ser classificada, para que `--no-pr=false` não seja confundida com
+ * uma flag com o valor `false` como argumento, e para que nenhuma flag
+ * booleanamente correcta consuma o token seguinte.
+ *
  * @param {string[]} argv argumentos.
  * @returns {Record<string, string|boolean|Array<string>>} argumentos interpretados.
  */
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const args = { _: [] }
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     if (token.startsWith('--')) {
-      const key = token.slice(2)
+      const body = token.slice(2)
+      const separator = body.indexOf('=')
+      const key = separator === -1 ? body : body.slice(0, separator)
+      const inlineValue = separator === -1 ? undefined : body.slice(separator + 1)
+
+      if (BOOLEAN_FLAGS.has(key)) {
+        args[key] = inlineValue === undefined ? true : parseBooleanFlag(inlineValue)
+        continue
+      }
+
+      if (inlineValue !== undefined) {
+        args[key] = inlineValue
+        continue
+      }
+
       const next = argv[index + 1]
       if (next === undefined || next.startsWith('--')) {
         args[key] = true
@@ -91,6 +134,21 @@ function parseArgs(argv) {
     }
   }
   return args
+}
+
+/**
+ * Interpreta uma flag booleana, aceitando a forma `--flag` e `--flag=true`.
+ *
+ * Só a forma `false` (em qualquer caixa) é falsa. Qualquer outro valor é
+ * verdadeiro, o que torna `--flag` equivalente a `--flag=true`.
+ *
+ * @param {string|boolean|undefined} value valor cru da flag.
+ * @returns {boolean} valor booleano da flag.
+ */
+export function parseBooleanFlag(value) {
+  if (typeof value === 'boolean') return value
+  if (typeof value !== 'string') return false
+  return value.toLowerCase() !== 'false'
 }
 
 /**
@@ -151,7 +209,8 @@ function usage() {
       '  commit-message TASK-ID [--type TYPE] [--summary "..."] [--tests "..."]',
       '  migrate-change CHANGE-ID',
       '  create-branch TASK-ID [--change CHANGE-ID]',
-      '  commit-task TASK-ID [--change CHANGE-ID] [--branch NAME] [--remote NAME] [--no-push]',
+      '  commit-task TASK-ID [--change CHANGE-ID] [--branch NAME] [--remote NAME] [--no-push] [--no-pr]',
+      '  open-pr TASK-ID [--change CHANGE-ID] [--branch NAME] [--base BRANCH]',
       '  log --type <Decisão|Evento|Detalhe> --title <título> --message <texto> [opções]',
       '',
     ].join('\n'),
@@ -197,12 +256,12 @@ function main() {
         emit(
           archiveTask(REPO_ROOT, positional, {
             changeId,
-            approved: args.approved === true,
+            approved: parseBooleanFlag(args.approved),
           }),
         )
         return
       case 'archive-change':
-        emit(archiveChange(REPO_ROOT, positional, { approved: args.approved === true }))
+        emit(archiveChange(REPO_ROOT, positional, { approved: parseBooleanFlag(args.approved) }))
         return
       case 'check-archive-task':
         emit(checkArchiveTask(REPO_ROOT, positional, { changeId }))
@@ -234,7 +293,17 @@ function main() {
             changeId,
             branch: args.branch,
             remote: args.remote,
-            push: args['no-push'] !== true,
+            push: !parseBooleanFlag(args['no-push']),
+            pr: !parseBooleanFlag(args['no-pr']),
+          }),
+        )
+        return
+      case 'open-pr':
+        emit(
+          openPullRequest(REPO_ROOT, positional, {
+            changeId,
+            branch: args.branch,
+            base: args.base,
           }),
         )
         return
@@ -252,7 +321,7 @@ function main() {
             date: args.date,
           }),
         )
-        if (args.adr) {
+        if (parseBooleanFlag(args.adr)) {
           emit(createAdrSkeleton(REPO_ROOT, { title: args['adr-title'] ?? args.title }))
         }
         return
@@ -264,4 +333,37 @@ function main() {
   }
 }
 
-main()
+/**
+ * Compara dois caminhos para saber se apontam para o mesmo ficheiro.
+ *
+ * A comparação normaliza o caminho, resolve oslinks e, no Windows, ignora a
+ * diferença de maiúsculas e minúsculas do sistema de ficheiros.
+ *
+ * @param {string} left primeiro caminho.
+ * @param {string} right segundo caminho.
+ * @returns {boolean} `true` quando os caminhos são equivalentes.
+ */
+function isSamePath(left, right) {
+  const normalize = (value) => {
+    const resolved = resolve(value)
+    return process.platform === 'win32' ? resolved.toLowerCase() : resolved
+  }
+  try {
+    return normalize(realpathSync.native(left)) === normalize(realpathSync.native(right))
+  } catch {
+    return normalize(left) === normalize(right)
+  }
+}
+
+/**
+ * Executa a CLI quando o ficheiro é usado como programa.
+ *
+ * A verificação permite importar este módulo em teste, para cobrir o parsing
+ * das flags, sem disparar a execução do comando.
+ */
+const isDirectRun =
+  process.argv[1] !== undefined && isSamePath(fileURLToPath(import.meta.url), process.argv[1])
+
+if (isDirectRun) {
+  main()
+}

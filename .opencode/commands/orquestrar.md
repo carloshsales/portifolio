@@ -85,11 +85,23 @@ Executa as etapas por ordem, usando os agentes indicados.
    aplica o gate de âmbito e faz commit e push se tudo passar. Os hooks do Husky
    podem repetir parte destas verificações.
 
+   Depois do push, o `commit-task` abre o pull request da branch da tarefa para
+   `main`. A criação é idempotente: se já existir um pull request aberto para a
+   branch, o URL existente é reportado e nenhum duplicado é criado. O pull
+   request nunca é fundido automaticamente.
+
+   Se o `gh` não estiver disponível, a autenticação falhar, ou a criação do pull
+   request falhar, o `commit-task` reporta o erro exacto. O commit e o push
+   permanecem válidos, e a verificação da tarefa não é reprovada por causa do
+   pull request. Reporta o URL e o estado do pull request.
+
 ## Regras
 
 - Não escrevas código tu próprio. Delega.
 - Não executes `pnpm test` nem `pnpm test:e2e`. Apresenta-os ao utilizador e aguarda a evidência.
 - Não faças commit nem push. Essa responsabilidade é do `guardiao`, através do `commit-task`.
+- Não cries pull requests à mão. Essa responsabilidade é do `commit-task`, que o faz depois do push.
+- Não faças merge de pull requests.
 - Não escrevas em `src/content/`. O conteúdo real é do utilizador.
 - Nunca alteres o status de aprovação de uma mudança ou de uma task.
 - Se qualquer gate falhar, pára e apresenta o resultado. Não avances.
@@ -107,5 +119,6 @@ COMANDOS: <na verificação: pnpm test, depois pnpm test:e2e — aguardo a evid�
 VERIFICACOES: <resultado do verificador, ou "pendente">
 BRANCH: <branch da tarefa, ou "nenhuma">
 PUSH: <enviado para origin/<branch>, não enviado, ou falhou com a primeira linha do erro>
+PR: <URL do pull request, "já existia: <url>", ou "falhou: <primeira linha do erro>">
 PEDIDO: <o que precisas do utilizador, ou "nenhum">
 ```
