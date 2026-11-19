@@ -5,6 +5,15 @@ html {
   color-scheme: dark;
 }
 
+/*
+ * Altura da barra de navegação inferior, usada em ecrãs com menos de
+ * 1024px. Partilhada entre `Sidebar.module.css` e `App.module.css` para
+ * que a barra nunca cubra o conteúdo principal.
+ */
+:root {
+  --nav-height-mobile: 4.75rem;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;

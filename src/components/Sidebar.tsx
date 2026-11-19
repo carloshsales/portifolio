@@ -4,7 +4,7 @@ import { useActiveSection } from '../hooks/useActiveSection'
 import { ContactIcon, HomeIcon, ProjectsIcon, SkillsIcon } from './icons'
 import styles from './Sidebar.module.css'
 
-const SECTION_IDS = ['inicio', 'projetos', 'habilidades', 'contato'] as const
+const SECTION_IDS: readonly string[] = ['inicio', 'projetos', 'habilidades', 'contato']
 
 interface NavItem {
   id: string
