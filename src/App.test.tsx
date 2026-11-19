@@ -1,6 +1,5 @@
 import { act, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import App from './App'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 interface ObserverEntry {
   id: string
@@ -189,11 +188,18 @@ function stubSectionRects(tops: Record<string, number>): () => void {
   }
 }
 
+async function renderApp(): Promise<ReturnType<typeof render>> {
+  const { default: AppComponent } = await import('./App')
+  return render(<AppComponent />)
+}
+
 beforeEach(() => {
+  vi.resetModules()
   setViewportHeight(VIEWPORT_HEIGHT)
 })
 
 afterEach(() => {
+  vi.doUnmock('./data/profile')
   globalThis.IntersectionObserver = originalIntersectionObserver
 
   if (originalClientHeight === undefined) {
@@ -210,28 +216,28 @@ afterEach(() => {
 })
 
 describe('App', () => {
-  it('renders the main heading', () => {
-    render(<App />)
+  it('renders the main heading', async () => {
+    await renderApp()
 
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument()
   })
 
-  it('renders the home section heading', () => {
-    render(<App />)
+  it('renders the home section heading', async () => {
+    await renderApp()
 
     expect(screen.getByRole('heading', { level: 2, name: /início|portfólio/i })).toBeInTheDocument()
   })
 
-  it('renders every portfolio section', () => {
-    render(<App />)
+  it('renders every portfolio section', async () => {
+    await renderApp()
 
     expect(screen.getByRole('heading', { name: 'Projetos' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Habilidades' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Contato' })).toBeInTheDocument()
   })
 
-  it('renders navigation links to each section', () => {
-    render(<App />)
+  it('renders navigation links to each section', async () => {
+    await renderApp()
 
     const navigation = screen.getByRole('navigation', { name: /navegação principal/i })
 
@@ -241,8 +247,8 @@ describe('App', () => {
     expect(navigation.querySelector('a[href="#contato"]')).not.toBeNull()
   })
 
-  it('marks exactly one navigation link with aria-current', () => {
-    render(<App />)
+  it('marks exactly one navigation link with aria-current', async () => {
+    await renderApp()
 
     const navigation = screen.getByRole('navigation', { name: /navegação principal/i })
     const current = navigation.querySelectorAll('a[aria-current="true"]')
@@ -251,10 +257,10 @@ describe('App', () => {
     expect(current[0]).toHaveAttribute('href', '#inicio')
   })
 
-  it('marks the active section with aria-current', () => {
+  it('marks the active section with aria-current', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     act(() => {
       observer.emit({ id: 'projetos', isIntersecting: true })
@@ -266,10 +272,10 @@ describe('App', () => {
     expect(current[0]).toHaveAttribute('href', '#projetos')
   })
 
-  it('resolves a tie between sections by the one closest to the top', () => {
+  it('resolves a tie between sections by the one closest to the top', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     // `projetos` está mais perto do topo do viewport do que `inicio`,
     // pelo que tem de prevalecer apesar de vir depois no DOM.
@@ -287,10 +293,10 @@ describe('App', () => {
     expect(current[0]).toHaveAttribute('href', '#projetos')
   })
 
-  it('clears aria-current when no section intersects the observation band', () => {
+  it('clears aria-current when no section intersects the observation band', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     act(() => {
       observer.emit({ id: 'inicio', isIntersecting: true })
@@ -307,10 +313,10 @@ describe('App', () => {
     expect(document.querySelectorAll('nav a[aria-current="true"]')).toHaveLength(0)
   })
 
-  it('resolves a tie by DOM order when the sections share the same top', () => {
+  it('resolves a tie by DOM order when the sections share the same top', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     const restore = stubSectionRects({ inicio: 20, projetos: 20 })
 
@@ -326,8 +332,8 @@ describe('App', () => {
     expect(current[0]).toHaveAttribute('href', '#inicio')
   })
 
-  it('keeps the link order of the sections in the navigation', () => {
-    render(<App />)
+  it('keeps the link order of the sections in the navigation', async () => {
+    await renderApp()
 
     const navigation = screen.getByRole('navigation', { name: /navegação principal/i })
     const hrefs = Array.from(navigation.querySelectorAll('a')).map((link) =>
@@ -337,8 +343,8 @@ describe('App', () => {
     expect(hrefs).toEqual(['#inicio', '#projetos', '#habilidades', '#contato'])
   })
 
-  it('renders the navigation icons as decorative', () => {
-    render(<App />)
+  it('renders the navigation icons as decorative', async () => {
+    await renderApp()
 
     const navigation = screen.getByRole('navigation', { name: /navegação principal/i })
     const icons = navigation.querySelectorAll('svg')
@@ -351,8 +357,8 @@ describe('App', () => {
     }
   })
 
-  it('renders a skip link pointing to the main content', () => {
-    render(<App />)
+  it('renders a skip link pointing to the main content', async () => {
+    await renderApp()
 
     const skipLink = screen.getByRole('link', { name: /saltar para o conteúdo/i })
 
@@ -360,18 +366,29 @@ describe('App', () => {
     expect(document.querySelector('main#conteudo')).toBeInTheDocument()
   })
 
-  it('renders the profile photo with alternative text', () => {
-    render(<App />)
+  it('não renderiza fotografia quando o perfil não tem nome', async () => {
+    vi.doMock('./data/profile', () => ({
+      profile: {
+        name: '',
+        role: '',
+        summary: '',
+        photoUrl: '',
+        location: '',
+        social: [],
+      },
+    }))
 
-    expect(screen.getByRole('img', { name: /fotografia/i })).toBeInTheDocument()
+    await renderApp()
+
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 })
 
 describe('faixa central de observação', () => {
-  it('observa uma faixa com 5% da altura da viewport, centrada', () => {
+  it('observa uma faixa com 5% da altura da viewport, centrada', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     expect(observer.instances).toHaveLength(1)
 
@@ -388,17 +405,17 @@ describe('faixa central de observação', () => {
     expect(band.top).toBeCloseTo((VIEWPORT_HEIGHT - VIEWPORT_HEIGHT * 0.05) / 2, 5)
   })
 
-  it('não usa percentagens na margem, porque seriam resolvidas pela largura', () => {
+  it('não usa percentagens na margem, porque seriam resolvidas pela largura', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     const raw = observer.instances[0].options.rootMargin ?? ''
 
     expect(raw).not.toContain('%')
   })
 
-  it('observa uma faixa diferente quando a largura e a altura divergem', () => {
+  it('observa uma faixa diferente quando a largura e a altura divergem', async () => {
     const observer = installIntersectionObserverStub()
 
     // Uma viewport estreita e baixa faz com que 5% da largura seja
@@ -408,7 +425,7 @@ describe('faixa central de observação', () => {
       value: 375,
     })
 
-    render(<App />)
+    await renderApp()
 
     const band = resolveObservedBand(observer.instances[0].options)
 
@@ -416,10 +433,10 @@ describe('faixa central de observação', () => {
     expect(band.height).not.toBeCloseTo(375 * 0.05, 5)
   })
 
-  it('mantém a faixa central com 5% da altura depois de um redimensionamento', () => {
+  it('mantém a faixa central com 5% da altura depois de um redimensionamento', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     setViewportHeight(500)
 
@@ -435,10 +452,10 @@ describe('faixa central de observação', () => {
     expect(band.top).toBeCloseTo(band.rootHeight - band.bottom, 5)
   })
 
-  it('não recria o observador quando a altura da viewport não muda', () => {
+  it('não recria o observador quando a altura da viewport não muda', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     act(() => {
       window.dispatchEvent(new Event('resize'))
@@ -448,10 +465,10 @@ describe('faixa central de observação', () => {
     expect(observer.instances).toHaveLength(1)
   })
 
-  it('observa as quatro secções', () => {
+  it('observa as quatro secções', async () => {
     const observer = installIntersectionObserverStub()
 
-    render(<App />)
+    await renderApp()
 
     const observed = observer.instances[0].observed.map((element) => element.id)
 
@@ -460,21 +477,21 @@ describe('faixa central de observação', () => {
 })
 
 describe('degradação do hook', () => {
-  it('recorre à primeira secção quando não há IntersectionObserver', () => {
+  it('recorre à primeira secção quando não há IntersectionObserver', async () => {
     // @ts-expect-error -- remoção temporária para simular um ambiente sem suporte.
     delete globalThis.IntersectionObserver
 
-    render(<App />)
+    await renderApp()
 
     const current = document.querySelectorAll('nav a[aria-current="true"]')
     expect(current).toHaveLength(1)
     expect(current[0]).toHaveAttribute('href', '#inicio')
   })
 
-  it('descarta o observador quando o componente é desmontado', () => {
+  it('descarta o observador quando o componente é desmontado', async () => {
     const observer = installIntersectionObserverStub()
 
-    const { unmount } = render(<App />)
+    const { unmount } = await renderApp()
 
     expect(observer.instances[0].disconnected).toBe(false)
 

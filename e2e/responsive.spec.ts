@@ -1,7 +1,23 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
+import type { Profile } from '../src/types'
 
 const SECTION_IDS = ['inicio', 'projetos', 'habilidades', 'contato'] as const
+
+const filledProfile: Profile = {
+  name: 'Maria Silva',
+  role: 'Engenheira de Software',
+  summary: 'Resumo de teste para o perfil preenchido.',
+  photoUrl: '/images/foto-perfil.jpg',
+  location: 'Porto',
+  social: [],
+}
+
+async function setProfileOverride(page: Page, profile: Profile): Promise<void> {
+  await page.addInitScript((value) => {
+    ;(window as unknown as { __PORTFOLIO_PROFILE__?: Profile }).__PORTFOLIO_PROFILE__ = value
+  }, profile)
+}
 
 /**
  * Calcula a faixa central de observação a partir da geometria real.
@@ -387,16 +403,76 @@ test('mostra todos os links de navegação', async ({ page }) => {
   }
 })
 
-test('mostra a fotografia com tamanho visível', async ({ page }) => {
+test('sem nome, não renderiza fotografia', async ({ page }) => {
   await page.goto('/')
 
-  const photo = page.getByRole('img', { name: /fotografia/i })
+  const images = await page.locator('img').count()
+  expect(images).toBe(0)
+})
+
+test('sem nome, não renderiza texto alternativo vazio', async ({ page }) => {
+  await page.goto('/')
+
+  const emptyAltImages = await page.locator('img[alt=""]').count()
+  expect(emptyAltImages).toBe(0)
+})
+
+test('com nome, renderiza fotografia com dimensões e estilo corretos em desktop', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await setProfileOverride(page, filledProfile)
+  await page.goto('/')
+
+  const photo = page.getByRole('img', { name: `Fotografia de ${filledProfile.name}` })
   await expect(photo).toBeVisible()
 
   const box = await photo.boundingBox()
   expect(box).not.toBeNull()
-  expect(box?.width ?? 0).toBeGreaterThan(0)
-  expect(box?.height ?? 0).toBeGreaterThan(0)
+  expect(box?.width).toBe(240)
+  expect(box?.height).toBe(240)
+
+  const naturalWidth = await photo.evaluate((element) => (element as HTMLImageElement).naturalWidth)
+  expect(naturalWidth).toBeGreaterThan(0)
+
+  const styles = await photo.evaluate((element) => {
+    const computed = window.getComputedStyle(element)
+    return {
+      borderRadius: computed.borderRadius,
+      objectFit: computed.objectFit,
+    }
+  })
+
+  expect(styles.borderRadius).toBe('50%')
+  expect(styles.objectFit).toBe('cover')
+})
+
+test('com nome, renderiza fotografia com dimensões corretas em ecrãs até 767px', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await setProfileOverride(page, filledProfile)
+  await page.goto('/')
+
+  const photo = page.getByRole('img', { name: `Fotografia de ${filledProfile.name}` })
+  await expect(photo).toBeVisible()
+
+  const box = await photo.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box?.width).toBe(180)
+  expect(box?.height).toBe(180)
+})
+
+test('com nome, a barra lateral apresenta o nome e a identidade', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await setProfileOverride(page, filledProfile)
+  await page.goto('/')
+
+  const brand = page.locator('aside h1')
+  await expect(brand).toHaveText(filledProfile.name)
+
+  const identity = page.locator('aside').locator(`text=${filledProfile.name}`).first()
+  await expect(identity).toBeVisible()
 })
 
 test('não tem links de contacto inválidos', async ({ page }) => {
@@ -595,7 +671,25 @@ test('desempate: destaca a secção mais próxima do topo entre as que intersect
   // da geometria que o browser apresenta. Não reproduz o algoritmo
   // interno da aplicação: deriva a partir da faixa que o próprio
   // observador usa e da posição real das secções.
-  const scenarios = await collectBandScenarios(page)
+  let scenarios = await collectBandScenarios(page)
+
+  // Quando a página real não produz sobreposição na faixa (p.ex.
+  // tablet sem fotografia na secção inicial), força uma geometria
+  // mínima determinística que garanta cenários de desempate. Os
+  // cenários artificiais mantêm a regra a ser exercitada sem depender
+  // de conteúdo ou de dimensões específicas de produção.
+  if (scenarios.length === 0) {
+    await page.evaluate(() => {
+      const height = Math.max(document.documentElement.clientHeight, 800)
+
+      for (const section of document.querySelectorAll('main section')) {
+        section.style.minHeight = `${height}px`
+      }
+    })
+
+    await forceIntersectionChange(page)
+    scenarios = await collectBandScenarios(page)
+  }
 
   // O cenário tem de existir: sem duas secções na faixa, a regra não
   // seria exercitada e o teste passaria sem verificar nada.
