@@ -5,7 +5,15 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -19,6 +27,7 @@ import {
   beginVerification,
   buildCommitMessage,
   buildDependencyGraph,
+  buildPullRequestContent,
   checkArchiveChange,
   checkArchiveTask,
   commitAndPushTask,
@@ -32,11 +41,14 @@ import {
   listTaskFiles,
   migrateLegacyChange,
   normalizeTaskId,
+  openPullRequest,
   parseChange,
   parseTaskFile,
+  resolveGhExecutable,
   resolveTask,
   resolveWithinRepo,
   runChecks,
+  runExternalCommand,
   selectNextTask,
   startTask,
   updateTaskFile,
@@ -1286,63 +1298,53 @@ describe('verificações do commit-task', () => {
   })
 })
 
+/**
+ * Executa um comando Git dentro de um repositório de teste.
+ *
+ * `GIT_DIR` e `GIT_WORK_TREE` são fixados ao repositório de teste. Sem isto,
+ * o Git descobre o repositório por ascensão de directórios e, num worktree,
+ * onde `.git` é um ficheiro, os comandos escrevem no repositório partilhado
+ * em vez do repositório de teste.
+ *
+ * @param {string} repo directório do repositório de teste.
+ * @param {string[]} args argumentos do Git.
+ * @returns {string} saída do comando.
+ */
+function git(repo, args) {
+  return execFileSync('git', args, {
+    cwd: repo,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      GIT_DIR: join(repo, '.git'),
+      GIT_WORK_TREE: repo,
+    },
+  })
+}
+
+/**
+ * Executa um comando Git isolado do repositório real.
+ *
+ * @param {string} cwd directório de trabalho do comando.
+ * @param {string[]} args argumentos do Git.
+ * @param {{gitDir?: string, workTree?: string}} [env] directórios a fixar.
+ * @returns {string} saída do comando.
+ */
+function gitIsolated(cwd, args, env = {}) {
+  return execFileSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      GIT_DIR: env.gitDir,
+      GIT_WORK_TREE: env.workTree,
+    },
+  })
+}
+
 describe('branch e commit por tarefa', () => {
-  /**
-   * Resolve o directório Git do repositório de teste.
-   *
-   * @param {string} repo directório do repositório de teste.
-   * @returns {string} caminho do directório Git.
-   */
-  function repoGitDir(repo) {
-    return join(repo, '.git')
-  }
-
-  /**
-   * Executa um comando Git dentro do repositório de teste.
-   *
-   * `GIT_DIR` e `GIT_WORK_TREE` são fixados ao repositório de teste. Sem isto,
-   * o Git descobre o repositório por ascensão de directórios e, num worktree,
-   * onde `.git` é um ficheiro, os comandos escrevem no repositório partilhado
-   * em vez do repositório de teste.
-   *
-   * @param {string} repo directório do repositório de teste.
-   * @param {string[]} args argumentos do Git.
-   * @returns {string} saída do comando.
-   */
-  function git(repo, args) {
-    return execFileSync('git', args, {
-      cwd: repo,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        GIT_DIR: repoGitDir(repo),
-        GIT_WORK_TREE: repo,
-      },
-    })
-  }
-
-  /**
-   * Executa um comando Git isolado do repositório real.
-   *
-   * @param {string} cwd directório de trabalho do comando.
-   * @param {string[]} args argumentos do Git.
-   * @param {{gitDir?: string, workTree?: string}} [env] directórios a fixar.
-   * @returns {string} saída do comando.
-   */
-  function gitIsolated(cwd, args, env = {}) {
-    return execFileSync('git', args, {
-      cwd,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        GIT_DIR: env.gitDir,
-        GIT_WORK_TREE: env.workTree,
-      },
-    })
-  }
-
   /**
    * Inicializa um repositório isolado, sem possibilidade de reinitializar o
    * repositório real.
@@ -1607,5 +1609,831 @@ describe('branch e commit por tarefa', () => {
 
     expect(result.pushed).toBe(true)
     expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
+  })
+})
+
+describe('automação do pull request', () => {
+  /**
+   * Cria um executor de comando externo falso, que regista as chamadas.
+   *
+   * @param {Array<{code: number, stdout?: string, stderr?: string, unavailable?: boolean}>} respostas respostas por chamada.
+   * @returns {{run: (command: string, args: string[], cwd: string) => {code: number, stdout: string, stderr: string, unavailable?: boolean}, calls: Array<{command: string, args: string[]}>}} executor e registo.
+   */
+  function fakeRunner(responses) {
+    const calls = []
+    let index = 0
+    const run = (command, args) => {
+      calls.push({ command, args })
+      const response = responses[Math.min(index, responses.length - 1)] ?? { code: 0, stdout: '' }
+      index += 1
+      return {
+        code: response.code ?? 0,
+        stdout: response.stdout ?? '',
+        stderr: response.stderr ?? '',
+        unavailable: response.unavailable ?? false,
+      }
+    }
+    return { run, calls }
+  }
+
+  /**
+   * Cria um repositório isolado com uma tarefa concluída e verificada.
+   *
+   * @returns {string} caminho do repositório.
+   */
+  function createRepo() {
+    const repo = mkdtempSync(join(workDir, 'repo-pr-'))
+    const gitDir = join(repo, '.git')
+    mkdirSync(gitDir, { recursive: true })
+    gitIsolated(repo, ['init', '--initial-branch=main'], { gitDir, workTree: repo })
+    git(repo, ['config', 'user.email', 'test@example.com'])
+    git(repo, ['config', 'user.name', 'Test'])
+    git(repo, ['config', 'commit.gpgsign', 'false'])
+    writeFileSync(join(repo, 'README.md'), '# Test\n', 'utf8')
+    git(repo, ['add', '-A'])
+    git(repo, ['commit', '-m', 'chore: initial'])
+
+    const changeDir = join(repo, 'specs', 'changes', '004-test')
+    mkdirSync(join(changeDir, 'tasks'), { recursive: true })
+    writeFileSync(
+      join(changeDir, 'proposal.md'),
+      '# Change\n\n- Status: APPROVED\n\n## 1. Objetivo\n',
+      'utf8',
+    )
+    writeFileSync(
+      join(changeDir, 'tasks', 'TASK-001.md'),
+      '# TASK-001 — Implementar coisa\n\n- Change: 004-test\n- Status: COMPLETED\n- Depende de: nenhuma\n- Verificação: VERIFIED\n- Evidência: testes\n',
+      'utf8',
+    )
+    git(repo, ['add', '-A'])
+    git(repo, ['commit', '-m', 'chore: change'])
+    return repo
+  }
+
+  /**
+   * Altera o ficheiro da tarefa, para que o commit-task tenha algo a commitar.
+   *
+   * @param {string} repo directório do repositório de teste.
+   */
+  function touchTaskFile(repo) {
+    const file = join(repo, 'specs', 'changes', '004-test', 'tasks', 'TASK-001.md')
+    writeFileSync(file, `${readFileSync(file, 'utf8')}\n<!-- alteracao -->\n`, 'utf8')
+  }
+
+  it('procura um pull request aberto para a branch antes de criar', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 0, stdout: 'https://github.com/acme/site/pull/42\n' },
+    ])
+
+    const result = openPullRequest(repo, 'TASK-001', { branch: 'task/004-001-x', run })
+
+    expect(result.status).toBe('created')
+    expect(result.url).toBe('https://github.com/acme/site/pull/42')
+    expect(result.number).toBe(42)
+    expect(result.branch).toBe('task/004-001-x')
+    expect(result.base).toBe('main')
+    expect(calls[0].command).toBe('gh')
+    expect(calls[0].args.slice(0, 2)).toEqual(['pr', 'list'])
+    expect(calls[0].args).toContain('--head')
+    expect(calls[0].args).toContain('task/004-001-x')
+    expect(calls[0].args[calls[0].args.indexOf('--base') + 1]).toBe('main')
+  })
+
+  it('usa a branch base pedida na procura e na criação', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 0, stdout: 'https://github.com/acme/site/pull/13\n' },
+    ])
+
+    const result = openPullRequest(repo, 'TASK-001', {
+      branch: 'task/004-001-x',
+      base: 'develop',
+      run,
+    })
+
+    expect(result.base).toBe('develop')
+    expect(calls[0].args[calls[0].args.indexOf('--base') + 1]).toBe('develop')
+    expect(calls[1].args[calls[1].args.indexOf('--base') + 1]).toBe('develop')
+  })
+
+  it('não cria duplicado quando já existe pull request para a branch', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      {
+        code: 0,
+        stdout:
+          '[{"number":7,"url":"https://github.com/acme/site/pull/7","state":"OPEN",' +
+          '"title":"004-test — TASK-001 — Implementar coisa"}]',
+      },
+    ])
+
+    const result = openPullRequest(repo, 'TASK-001', { branch: 'task/004-001-x', run })
+
+    expect(result.status).toBe('existing')
+    expect(result.url).toBe('https://github.com/acme/site/pull/7')
+    expect(result.number).toBe(7)
+    expect(result.title).toBe('004-test — TASK-001 — Implementar coisa')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].args[0]).toBe('pr')
+  })
+
+  it('pede o título na procura do pull request, para o reportar no estado existing', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 0, stdout: 'https://github.com/acme/site/pull/9\n' },
+    ])
+
+    openPullRequest(repo, 'TASK-001', { branch: 'task/004-001-x', run })
+
+    const jsonIndex = calls[0].args.indexOf('--json')
+    expect(jsonIndex).toBeGreaterThan(-1)
+    expect(calls[0].args[jsonIndex + 1]).toContain('title')
+  })
+
+  it('cria o pull request com base e head explícitos', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 0, stdout: 'https://github.com/acme/site/pull/9\n' },
+    ])
+
+    openPullRequest(repo, 'TASK-001', { branch: 'task/004-001-x', run })
+
+    const create = calls[1]
+    expect(create.args.slice(0, 2)).toEqual(['pr', 'create'])
+    expect(create.args).toContain('--base')
+    expect(create.args[create.args.indexOf('--base') + 1]).toBe('main')
+    expect(create.args).toContain('--head')
+    expect(create.args[create.args.indexOf('--head') + 1]).toBe('task/004-001-x')
+    expect(create.args).toContain('--title')
+    expect(create.args).toContain('--body')
+    expect(create.args).not.toContain('--auto-merge')
+  })
+
+  it('reporta falha do GitHub CLI ao criar o pull request', () => {
+    const repo = createRepo()
+    const { run } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 1, stderr: 'gh: not authenticated' },
+    ])
+
+    const error = captureError(() => openPullRequest(repo, 'TASK-001', { branch: 'b', run }))
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_CREATE_FAILED')
+    expect(error.message).toContain('not authenticated')
+  })
+
+  it('reporta o GitHub CLI indisponível ao criar o pull request', () => {
+    const repo = createRepo()
+    const { run } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 127, stderr: 'GitHub CLI indisponível', unavailable: true },
+    ])
+
+    const error = captureError(() => openPullRequest(repo, 'TASK-001', { branch: 'b', run }))
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.message).toContain('indisponível')
+  })
+
+  it('reporta falha ao procurar o pull request', () => {
+    const repo = createRepo()
+    const { run } = fakeRunner([{ code: 1, stderr: 'gh: command not found' }])
+
+    const error = captureError(() => openPullRequest(repo, 'TASK-001', { branch: 'b', run }))
+
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.message).toContain('command not found')
+  })
+
+  it('recusa a criação quando a procura devolve JSON inválido', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([{ code: 0, stdout: 'isto não é JSON' }])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.message).toContain('não devolveu JSON')
+    expect(error.details.reason).toBe('invalid_json')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].args[0]).toBe('pr')
+    expect(calls[0].args[1]).toBe('list')
+  })
+
+  it('recusa a criação quando a procura devolve JSON que não é uma lista', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([{ code: 0, stdout: '{"number":7,"url":"https://x/1"}' }])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.message).toContain('não é uma lista')
+    expect(error.details.reason).toBe('not_a_list')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].args[1]).toBe('list')
+  })
+
+  it('recusa a criação quando a procura devolve saída vazia', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([{ code: 0, stdout: '' }])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.message).toContain('saída vazia')
+    expect(error.details.reason).toBe('empty_output')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].args[1]).toBe('list')
+  })
+
+  it('recusa a criação quando a lista traz um pull request malformado', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([{ code: 0, stdout: '[{"number":7}]' }])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.message).toContain('malformado')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].args[1]).toBe('list')
+  })
+
+  it('recusa a criação quando o número do pull request não é um inteiro', () => {
+    const repo = createRepo()
+    const { run } = fakeRunner([
+      { code: 0, stdout: '[{"number":"sete","url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+  })
+
+  it('recusa a criação quando o número do pull request é nulo', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":null,"url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls).toHaveLength(1)
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('recusa a criação quando o número do pull request é booleano', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":true,"url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('recusa a criação quando o número do pull request é falso', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":false,"url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('recusa a criação quando o número do pull request é uma string vazia', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":"","url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('recusa a criação quando o número do pull request é uma string numérica', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":"7","url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('recusa a criação quando o número do pull request é zero', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":0,"url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('recusa a criação quando o número do pull request é negativo', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":-7,"url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('recusa a criação quando o número do pull request é um decimal', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":7.5,"url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('não reporta um pull request com número malformado como existente', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":null,"url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    captureError(() => openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }))
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0].args[1]).toBe('list')
+  })
+
+  it('aceita um número de pull request inteiro positivo', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":7,"url":"https://github.com/acme/site/pull/7"}]' },
+    ])
+
+    const result = openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run })
+
+    expect(result.status).toBe('existing')
+    expect(result.number).toBe(7)
+    expect(calls).toHaveLength(1)
+  })
+
+  it('não desfaz o commit nem o push quando o número do pull request é malformado', () => {
+    const repo = createRepo()
+    const bare = join(workDir, 'remote-pr-malformed-number.git')
+    mkdirSync(bare, { recursive: true })
+    gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
+    git(repo, ['remote', 'add', 'origin', bare])
+    createTaskBranch(repo, 'TASK-001')
+    touchTaskFile(repo)
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[{"number":null,"url":"https://github.com/acme/site/pull/11"}]' },
+    ])
+
+    const result = commitAndPushTask(repo, 'TASK-001', {
+      checks: [],
+      push: true,
+      runExternal: run,
+    })
+
+    expect(result.pushed).toBe(true)
+    expect(result.commit).not.toBe('')
+    expect(result.pullRequest.status).toBe('failed')
+    expect(result.pullRequest.error.code).toBe('E_PR_UNAVAILABLE')
+    expect(result.pullRequest.error.details.reason).toBe('malformed_entry')
+    expect(result.pullRequest.url).toBeNull()
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+    expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
+  })
+
+  it('recusa a criação quando o estado do pull request não é uma string', () => {
+    const repo = createRepo()
+    const { run } = fakeRunner([
+      {
+        code: 0,
+        stdout: '[{"number":7,"url":"https://github.com/acme/site/pull/7","state":42}]',
+      },
+    ])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }),
+    )
+
+    expect(error.code).toBe('E_PR_UNAVAILABLE')
+    expect(error.details.reason).toBe('malformed_entry')
+  })
+
+  it('aceita uma lista vazia válida como ausência de pull request', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 0, stdout: 'https://github.com/acme/site/pull/21\n' },
+    ])
+
+    const result = openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run })
+
+    expect(result.status).toBe('created')
+    expect(calls).toHaveLength(2)
+    expect(calls[1].args[1]).toBe('create')
+  })
+
+  it('aceita um pull request sem estado nem título, com valores por omissão', () => {
+    const repo = createRepo()
+    const { run } = fakeRunner([
+      { code: 0, stdout: '[{"number":3,"url":"https://github.com/acme/site/pull/3"}]' },
+    ])
+
+    const result = openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run })
+
+    expect(result.status).toBe('existing')
+    expect(result.number).toBe(3)
+    expect(result.title).toBe('')
+  })
+
+  it('não cria pull request quando a resposta da procura é inválida', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([{ code: 0, stdout: '{"unexpected":true}' }])
+
+    captureError(() => openPullRequest(repo, 'TASK-001', { branch: 'task/004-01-x', run }))
+
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+  })
+
+  it('recusa um pull request da branch para ela própria, sem chamar o gh', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([{ code: 0, stdout: '[]' }])
+
+    const error = captureError(() =>
+      openPullRequest(repo, 'TASK-001', { branch: 'main', base: 'main', run }),
+    )
+
+    expect(error).toBeInstanceOf(RawspecError)
+    expect(error.code).toBe('E_ARGS')
+    expect(error.message).toContain('main')
+    expect(error.details.branch).toBe('main')
+    expect(error.details.base).toBe('main')
+    expect(calls).toHaveLength(0)
+  })
+
+  it('gera título e corpo com a tarefa, a mudança e a branch', () => {
+    const content = buildPullRequestContent(
+      {
+        change: { id: '004-test' },
+        task: {
+          id: 'TASK-001',
+          title: 'Implementar coisa',
+          verification: 'VERIFIED',
+          evidence: 'testes',
+        },
+      },
+      'task/004-001-x',
+    )
+
+    expect(content.title).toContain('004-test')
+    expect(content.title).toContain('TASK-001')
+    expect(content.title).toContain('Implementar coisa')
+    expect(content.body).toContain('`task/004-001-x`')
+    expect(content.body).toContain('`main`')
+    expect(content.body).toContain('testes')
+  })
+
+  it('usa a branch base pedida no corpo do pull request', () => {
+    const content = buildPullRequestContent(
+      {
+        change: { id: '004-test' },
+        task: {
+          id: 'TASK-001',
+          title: 'Implementar coisa',
+          verification: 'VERIFIED',
+          evidence: null,
+        },
+      },
+      'task/004-001-x',
+      'develop',
+    )
+
+    expect(content.body).toContain('`develop`')
+    expect(content.body).not.toContain('`main`')
+  })
+
+  it('abre o pull request no commit-task depois do push', () => {
+    const repo = createRepo()
+    const bare = join(workDir, 'remote-pr.git')
+    mkdirSync(bare, { recursive: true })
+    gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
+    git(repo, ['remote', 'add', 'origin', bare])
+    createTaskBranch(repo, 'TASK-001')
+    touchTaskFile(repo)
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 0, stdout: 'https://github.com/acme/site/pull/11\n' },
+    ])
+
+    const result = commitAndPushTask(repo, 'TASK-001', {
+      checks: [],
+      push: true,
+      runExternal: run,
+    })
+
+    expect(result.pushed).toBe(true)
+    expect(result.pullRequest.status).toBe('created')
+    expect(result.pullRequest.url).toBe('https://github.com/acme/site/pull/11')
+    expect(calls).toHaveLength(2)
+    expect(calls[1].args.slice(0, 2)).toEqual(['pr', 'create'])
+  })
+
+  it('não desfaz o commit nem o push quando o pull request falha', () => {
+    const repo = createRepo()
+    const bare = join(workDir, 'remote-pr-fail.git')
+    mkdirSync(bare, { recursive: true })
+    gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
+    git(repo, ['remote', 'add', 'origin', bare])
+    createTaskBranch(repo, 'TASK-001')
+    touchTaskFile(repo)
+    const { run } = fakeRunner([{ code: 1, stderr: 'gh: not authenticated' }])
+
+    const result = commitAndPushTask(repo, 'TASK-001', {
+      checks: [],
+      push: true,
+      runExternal: run,
+    })
+
+    expect(result.pushed).toBe(true)
+    expect(result.commit).not.toBe('')
+    expect(result.pullRequest.status).toBe('failed')
+    expect(result.pullRequest.error.code).toBe('E_PR_UNAVAILABLE')
+    expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
+  })
+
+  it('não desfaz o commit nem o push quando a resposta da procura é inválida', () => {
+    const repo = createRepo()
+    const bare = join(workDir, 'remote-pr-invalid.git')
+    mkdirSync(bare, { recursive: true })
+    gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
+    git(repo, ['remote', 'add', 'origin', bare])
+    createTaskBranch(repo, 'TASK-001')
+    touchTaskFile(repo)
+    const { run, calls } = fakeRunner([{ code: 0, stdout: 'resposta inválida' }])
+
+    const result = commitAndPushTask(repo, 'TASK-001', {
+      checks: [],
+      push: true,
+      runExternal: run,
+    })
+
+    expect(result.pushed).toBe(true)
+    expect(result.commit).not.toBe('')
+    expect(result.pullRequest.status).toBe('failed')
+    expect(result.pullRequest.error.code).toBe('E_PR_UNAVAILABLE')
+    expect(result.pullRequest.url).toBeNull()
+    expect(calls.some((call) => call.args[1] === 'create')).toBe(false)
+    expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
+  })
+
+  it('não abre pull request sem push', () => {
+    const repo = createRepo()
+    touchTaskFile(repo)
+    const { run, calls } = fakeRunner([{ code: 0, stdout: '[]' }])
+
+    const result = commitAndPushTask(repo, 'TASK-001', {
+      checks: [],
+      push: false,
+      runExternal: run,
+    })
+
+    expect(result.pushed).toBe(false)
+    expect(result.pullRequest).toBeNull()
+    expect(calls).toHaveLength(0)
+  })
+
+  it('não abre pull request quando desativado', () => {
+    const repo = createRepo()
+    const bare = join(workDir, 'remote-pr-off.git')
+    mkdirSync(bare, { recursive: true })
+    gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
+    git(repo, ['remote', 'add', 'origin', bare])
+    createTaskBranch(repo, 'TASK-001')
+    touchTaskFile(repo)
+    const { run, calls } = fakeRunner([{ code: 0, stdout: '[]' }])
+
+    const result = commitAndPushTask(repo, 'TASK-001', {
+      checks: [],
+      push: true,
+      pr: false,
+      runExternal: run,
+    })
+
+    expect(result.pullRequest).toBeNull()
+    expect(calls).toHaveLength(0)
+  })
+})
+
+describe('resolução do GitHub CLI', () => {
+  /**
+   * Guarda o `PATH` original e restores-o no fim.
+   *
+   * @returns {() => void} função de reposição do `PATH`.
+   */
+  function withPath() {
+    const original = process.env.PATH
+    return () => {
+      if (original === undefined) {
+        delete process.env.PATH
+      } else {
+        process.env.PATH = original
+      }
+    }
+  }
+
+  it('devolve o caminho do executável encontrado no PATH', () => {
+    const restore = withPath()
+    const dir = join(workDir, 'gh-bin')
+    mkdirSync(dir, { recursive: true })
+    const name = process.platform === 'win32' ? 'gh.exe' : 'gh'
+    const executable = join(dir, name)
+    writeFileSync(executable, '', 'utf8')
+    chmodSync(executable, 0o755)
+    process.env.PATH = dir
+
+    try {
+      expect(resolveGhExecutable()).toBe(executable)
+    } finally {
+      restore()
+    }
+  })
+
+  it('ignora em POSIX o ficheiro gh sem bit de execução', () => {
+    if (process.platform === 'win32') return
+
+    const restore = withPath()
+    const dir = join(workDir, 'gh-sem-permissao')
+    mkdirSync(dir, { recursive: true })
+    const executable = join(dir, 'gh')
+    writeFileSync(executable, '', 'utf8')
+    chmodSync(executable, 0o644)
+    process.env.PATH = dir
+
+    try {
+      expect(resolveGhExecutable()).toBeNull()
+    } finally {
+      restore()
+    }
+  })
+
+  it('ignora um directório com o nome do GitHub CLI', () => {
+    const restore = withPath()
+    const dir = join(workDir, 'gh-directorio')
+    mkdirSync(join(dir, process.platform === 'win32' ? 'gh.exe' : 'gh'), { recursive: true })
+    process.env.PATH = dir
+
+    try {
+      expect(resolveGhExecutable()).toBeNull()
+    } finally {
+      restore()
+    }
+  })
+
+  it('devolve null quando o GitHub CLI não está no PATH', () => {
+    const restore = withPath()
+    const dir = join(workDir, 'sem-gh')
+    mkdirSync(dir, { recursive: true })
+    process.env.PATH = dir
+
+    try {
+      expect(resolveGhExecutable()).toBeNull()
+    } finally {
+      restore()
+    }
+  })
+
+  it('ignora ficheiros que não são executáveis do GitHub CLI', () => {
+    const restore = withPath()
+    const dir = join(workDir, 'gh-incorrecto')
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'gh.txt'), '', 'utf8')
+    writeFileSync(join(dir, 'outro'), '', 'utf8')
+    process.env.PATH = dir
+
+    try {
+      expect(resolveGhExecutable()).toBeNull()
+    } finally {
+      restore()
+    }
+  })
+
+  it('reporta falha do comando externo sem lançar', () => {
+    const result = runExternalCommand('comando-que-nao-existe', [], workDir)
+
+    expect(result.code).not.toBe(0)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).not.toBe('')
+  })
+
+  it('reporta o GitHub CLI indisponível sem tentar executá-lo', () => {
+    const restore = withPath()
+    const dir = join(workDir, 'sem-gh-execucao')
+    mkdirSync(dir, { recursive: true })
+    process.env.PATH = dir
+
+    try {
+      const result = runExternalCommand('gh', ['pr', 'list'], workDir)
+
+      expect(result.code).toBe(127)
+      expect(result.unavailable).toBe(true)
+      expect(result.stdout).toBe('')
+      expect(result.stderr).toContain('indisponível')
+    } finally {
+      restore()
+    }
+  })
+
+  it('devolve o resultado de um comando externo que termina com sucesso', () => {
+    const result = runExternalCommand(
+      process.execPath,
+      ['-e', 'process.stdout.write("ok")'],
+      workDir,
+    )
+
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe('ok')
+    expect(result.stderr).toBe('')
+  })
+
+  it('reporta o código de saída de um comando externo que falha', () => {
+    const result = runExternalCommand(
+      process.execPath,
+      ['-e', 'process.stderr.write("erro"); process.exit(3)'],
+      workDir,
+    )
+
+    expect(result.code).toBe(3)
+    expect(result.stderr).toContain('erro')
   })
 })

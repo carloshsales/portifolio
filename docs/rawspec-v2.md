@@ -151,7 +151,7 @@ Tipos: `Decisão`, `Evento`, `Detalhe`.
 | Comando | Responsabilidade |
 |---|---|
 | `/startspec [TASK-ID] [--change CHANGE-ID]` | Inicia tarefa `PENDING`. |
-| `/continuespec [TASK-ID] [--change CHANGE-ID]` | Continua, regista a evidência de verificação e conclui com `commit-task`. |
+| `/continuespec [TASK-ID] [--change CHANGE-ID]` | Continua, regista a evidência de verificação e conclui com `commit-task`, que abre o pull request. |
 | `/arquivespec TASK-ID [--change CHANGE-ID]` | Arquiva tarefa após aprovação. |
 | `/archivespec [CHANGE-ID]` | Arquiva mudança elegível. |
 | `/logspec ...` | Registra histórico. |
@@ -210,6 +210,7 @@ node scripts/rawspec-v2-cli.mjs verify TASK-005 --evidence "testes aprovados"
 node scripts/rawspec-v2-cli.mjs fail TASK-005 --evidence "lint falhou"
 node scripts/rawspec-v2-cli.mjs commit-message TASK-005
 node scripts/rawspec-v2-cli.mjs commit-task TASK-005 --change 001-portfolio-mvp
+node scripts/rawspec-v2-cli.mjs open-pr TASK-005 --change 001-portfolio-mvp
 
 # arquivamento
 node scripts/rawspec-v2-cli.mjs check-archive-task TASK-005
@@ -267,6 +268,11 @@ Action-Plan: <caminho ou none>
 | `E_HISTORY_INVALID` | Entrada de histórico inválida. |
 | `E_ADR_EXISTS` | ADR duplicado. |
 | `E_SCOPE_VIOLATION` | Há ficheiros tocados fora do âmbito declarado na secção `## Arquivos` da task. |
+| `E_PR_UNAVAILABLE` | O GitHub CLI está ausente ou indisponível, a procura de pull request falhou, ou a resposta da procura foi inválida. |
+| `E_PR_CREATE_FAILED` | O GitHub CLI executou a criação, mas a criação do pull request falhou ou não devolveu uma URL legível. |
+
+Os erros de pull request terminam a CLI com o código de saída `8`. Todos os
+outros erros mantêm os códigos da secção anterior.
 
 ## 14. Validação ponta a ponta
 
@@ -301,7 +307,8 @@ Exemplo: `task/001-005-implementar-secao-inicial`.
 4. Depois das revisões, o `guardiao` regista a verificação com `verify` (`COMPLETED` + `VERIFIED`) e executa `commit-task`.
 5. `commit-task` roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem. Se uma falhar, para e não há commit nem push.
 6. Se passarem, faz o gate de âmbito, faz `git add` com caminhos explícitos, `git commit` com a mensagem gerada e `git push -u origin <branch>`.
-7. O relatório indica a branch e o resultado do push.
+7. Depois do push, a automação abre o pull request da branch para `main` (§15.6).
+8. O relatório indica a branch, o resultado do push e o URL do pull request.
 
 Se a evidência falhar ou uma revisão reprovar, o `guardiao` regista `fail` com o motivo, e a tarefa volta a `IN PROGRESS`.
 
@@ -340,3 +347,77 @@ Os hooks são sempre executados, podem repetir verificações já feitas pelo `c
 | `E_CHECKS_FAILED` | `lint`, `typecheck`, `test` ou `build` falhou. |
 | `E_TASK_STATE` | A tarefa não está concluída e verificada. |
 
+### 15.6 Pull request automático
+
+Depois do commit e do push bem-sucedidos, o `commit-task` abre o pull request da
+branch da tarefa para `main`, com o GitHub CLI:
+
+```bash
+gh pr create --base main --head <branch> --title "<título>" --body "<corpo>"
+```
+
+Regras:
+
+- O pull request é sempre aberto para `main`, com `--base` e `--head` explícitos.
+- A criação é idempotente. Antes de criar, o `commit-task` procura um pull request
+  aberto para a branch, com `gh pr list --head <branch> --base main --state open
+  --json number,url,state,title`; se existir, devolve o URL, o número e o título
+  existentes, com `status: existing`, e não cria duplicado.
+- A resposta da procura tem de ser válida. Só um array JSON válido e vazio
+  significa "não há pull request". Uma resposta inválida — saída vazia, JSON
+  inválido, JSON que não é um array, ou um array com elementos malformados — é
+  reportada com `E_PR_UNAVAILABLE`, e a criação não prossegue. Sem esta guarda, uma
+  resposta inválida seria lida como "não há pull request" e criaria um duplicado.
+- A distinção entre `E_PR_UNAVAILABLE` e `E_PR_CREATE_FAILED` segue a fase da
+  operação: procura, execução ou disponibilidade do `gh` são indisponibilidade;
+  uma falha de `gh pr create` depois de o processo ter sido executado é falha de
+  criação. A ausência do `gh` durante a criação também é `E_PR_UNAVAILABLE`.
+- Cada elemento da lista é validado antes de ser aceite: `url` tem de ser uma
+  string não vazia, `number` tem de ser um inteiro positivo, e `state` e `title`
+  têm de ser strings quando presentes. O `number` é validado pelo tipo, sem
+  coerção: `null`, `true`, `false`, a string vazia, uma string numérica, `0`, um
+  número negativo e um decimal são todos recusados com `E_PR_UNAVAILABLE` e
+  `reason: malformed_entry`. Sem esta validação, um pull request inexistente
+  seria reportado como existente.
+- O pull request nunca é fundido automaticamente. A revisão e a integração são
+  decisões do utilizador.
+- O `commit-task` só abre o pull request depois de o push ter sido bem-sucedido.
+  Sem push, não há pull request.
+- A flag `--no-pr` desactiva a abertura automática. O comando `open-pr` abre o
+  pull request de uma tarefa à parte, com o mesmo comportamento idempotente.
+- As flags booleanas da CLI (`--no-push`, `--no-pr`, `--approved`, `--adr`)
+  aceitam a forma explícita `--flag=true` e `--flag=false`. Sem o sufixo, a
+  flag é verdadeira. Nenhuma delas consome o argumento seguinte.
+- Um pull request da branch base para ela própria é recusado com `E_ARGS`, antes
+  de qualquer chamada ao GitHub CLI.
+
+Falha do pull request:
+
+- Se o `gh` estiver ausente ou indisponível, a procura falhar, ou a resposta da
+  procura for inválida, o erro é reportado com `E_PR_UNAVAILABLE`.
+- Se o `gh` tiver executado `pr create` e a criação falhar ou não devolver uma
+  URL legível, o erro é reportado com `E_PR_CREATE_FAILED`.
+- A falha **não** desfaz o commit nem o push, e **não** reprova a verificação da
+  tarefa. O resultado do `commit-task` traz `pullRequest.status` com o valor
+  `failed` e o erro correspondente.
+
+O `commit-task` devolve no seu resultado:
+
+```json
+{
+  "branch": "task/001-004-titulo",
+  "commit": "b21a55c",
+  "pushed": true,
+  "pullRequest": {
+    "status": "created",
+    "url": "https://github.com/carloshsales/portifolio/pull/20",
+    "number": 20,
+    "branch": "task/001-004-titulo",
+    "base": "main",
+    "title": "001-portfolio-mvp — TASK-004 — Título"
+  }
+}
+```
+
+`status` aceita `created`, `existing` e `failed`. Com `existing`, o `title` é o
+título do pull request já aberto.
