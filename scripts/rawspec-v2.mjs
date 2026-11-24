@@ -2023,6 +2023,20 @@ function currentBranch(repoRoot) {
 }
 
 /**
+ * Gera o nome canónico da branch de uma tarefa.
+ *
+ * @param {object} change mudança.
+ * @param {object} task tarefa.
+ * @returns {string} nome da branch.
+ */
+function taskBranchName(change, task) {
+  const numeric = /^\d+/.exec(change.id)?.[0] ?? change.id
+  const taskNumber = /(\d+)$/.exec(task.id)?.[1] ?? ''
+  const slug = slugify(task.title) || 'tarefa'
+  return `task/${numeric}-${taskNumber}-${slug}`
+}
+
+/**
  * Cria a branch da tarefa no formato `task/NNN-NNN-slug`.
  *
  * @param {string} repoRoot caminho raiz do repositório.
@@ -2032,10 +2046,7 @@ function currentBranch(repoRoot) {
  */
 export function createTaskBranch(repoRoot, taskId, { changeId } = {}) {
   const { change, task } = resolveTask(taskId, { repoRoot, changeId })
-  const numeric = /^\d+/.exec(change.id)?.[0] ?? change.id
-  const taskNumber = /(\d+)$/.exec(task.id)?.[1] ?? ''
-  const slug = slugify(task.title) || 'tarefa'
-  const branch = `task/${numeric}-${taskNumber}-${slug}`
+  const branch = taskBranchName(change, task)
 
   const existing = runCommand('git', ['branch', '--list', branch], repoRoot, 'E_GIT_ERROR').trim()
   if (existing !== '') {
@@ -2360,14 +2371,14 @@ export function buildPullRequestContent({ change, task }, branch, base = PR_BASE
  *
  * @param {string} repoRoot caminho raiz do repositório.
  * @param {string} branch branch de origem.
- * @param {{base?: string, run?: (command: string, args: string[], cwd: string) => {code: number, stdout: string, stderr: string, unavailable?: boolean}}} [options] branch base e executor injetado.
+ * @param {{base?: string, repo?: string, run?: (command: string, args: string[], cwd: string) => {code: number, stdout: string, stderr: string, unavailable?: boolean}}} [options] branch base, repositório GitHub e executor injetado.
  * @returns {{number: number, url: string, state: string, title: string}|null} pull request existente ou `null`.
  * @throws {RawspecError} `E_PR_UNAVAILABLE` quando o GitHub CLI está indisponível, a procura falha ou a resposta do GitHub CLI é inválida.
  */
 export function findPullRequest(
   repoRoot,
   branch,
-  { base = PR_BASE_BRANCH, run = runExternalCommand } = {},
+  { base = PR_BASE_BRANCH, repo, run = runExternalCommand } = {},
 ) {
   const args = [
     'pr',
@@ -2381,6 +2392,7 @@ export function findPullRequest(
     '--json',
     'number,url,state,title',
   ]
+  if (repo) args.push('--repo', repo)
   const result = run('gh', args, repoRoot)
   if (result.code !== 0) {
     throw new RawspecError(
@@ -2407,17 +2419,18 @@ export function findPullRequest(
  *
  * @param {string} repoRoot caminho raiz do repositório.
  * @param {string} taskId identificador da tarefa.
- * @param {{changeId?: string, branch?: string, base?: string, run?: (command: string, args: string[], cwd: string) => {code: number, stdout: string, stderr: string, unavailable?: boolean}}} [options] opções.
+ * @param {{changeId?: string, branch?: string, base?: string, repo?: string, run?: (command: string, args: string[], cwd: string) => {code: number, stdout: string, stderr: string, unavailable?: boolean}}} [options] opções.
  * @returns {{status: 'created'|'existing', url: string, number: number|null, branch: string, base: string, title: string}} resultado.
  * @throws {RawspecError} `E_ARGS`, `E_PR_UNAVAILABLE` ou `E_PR_CREATE_FAILED`.
  */
 export function openPullRequest(
   repoRoot,
   taskId,
-  { changeId, branch, base = PR_BASE_BRANCH, run = runExternalCommand } = {},
+  { changeId, branch, base = PR_BASE_BRANCH, repo, run = runExternalCommand } = {},
 ) {
   const { change, task } = loadTask(repoRoot, taskId, changeId)
-  const head = branch ?? currentBranch(repoRoot)
+  const head = validateBranchName(branch ?? currentBranch(repoRoot))
+  validateBranchName(base)
 
   // Um pull request da branch para ela própria não faz sentido, e o GitHub CLI
   // só reportaria uma mensagem genérica. A guarda dá um erro preciso, antes
@@ -2430,7 +2443,7 @@ export function openPullRequest(
     )
   }
 
-  const existing = findPullRequest(repoRoot, head, { base, run })
+  const existing = findPullRequest(repoRoot, head, { base, repo, run })
   if (existing) {
     return {
       status: 'existing',
@@ -2443,7 +2456,9 @@ export function openPullRequest(
   }
 
   const { title, body } = buildPullRequestContent({ change, task }, head, base)
-  const args = ['pr', 'create', '--base', base, '--head', head, '--title', title, '--body', body]
+  const args = ['pr', 'create', '--base', base, '--head', head]
+  if (repo) args.push('--repo', repo)
+  args.push('--title', title, '--body', body)
   const result = run('gh', args, repoRoot)
   if (result.code !== 0) {
     const code = result.unavailable ? 'E_PR_UNAVAILABLE' : 'E_PR_CREATE_FAILED'
@@ -2475,13 +2490,433 @@ export function openPullRequest(
 }
 
 /**
- * Conclui a tarefa com commit e push, respeitando os hooks do Husky.
+ * Valida um nome de branch antes de o passar ao Git ou ao GitHub CLI.
  *
- * As verificações correm antes do commit, por ordem. Uma falha impede o commit e o push.
+ * Um nome de branch nunca começa por `-`, porque o Git e o GitHub CLI
+ * interpretariam esse prefixo como uma opção. A validação recusa ainda
+ * separadores de referência, que permitiriam escrever fora da branch
+ * pretendida.
  *
- * Depois do push, a automação abre o pull request para a branch base. A falha
- * do pull request não desfaz o commit nem o push, e não reprova a verificação
- * da tarefa: é reportada no resultado.
+ * @param {string} branch nome da branch.
+ * @returns {string} branch validada.
+ */
+function validateBranchName(branch) {
+  if (
+    typeof branch !== 'string' ||
+    branch.trim() === '' ||
+    !/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(branch) ||
+    branch.includes('..')
+  ) {
+    throw new RawspecError('E_ARGS', `Nome de branch inválido: ${String(branch)}`, {
+      branch,
+    })
+  }
+  return branch
+}
+
+/**
+ * Executa Git permitindo distinguir uma falha esperada de uma falha operacional.
+ *
+ * @param {string[]} args argumentos do Git.
+ * @param {string} repoRoot raiz do repositório.
+ * @returns {{code: number, stdout: string, stderr: string}} resultado do Git.
+ */
+function runGitResult(repoRoot, args) {
+  try {
+    const stdout = execFileSync('git', args, {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        GIT_DIR: resolveGitDir(repoRoot),
+        GIT_WORK_TREE: repoRoot,
+      },
+    })
+    return { code: 0, stdout, stderr: '' }
+  } catch (error) {
+    return {
+      code: Number.isInteger(error.status) ? error.status : 1,
+      stdout: error.stdout ? String(error.stdout) : '',
+      stderr: error.stderr ? String(error.stderr).trim() : error.message,
+    }
+  }
+}
+
+/**
+ * Devolve os dados de um remote configurado, sem aceitar nomes que possam ser
+ * interpretados como opções do Git.
+ *
+ * Um remote pode ter vários URLs. Quando isso acontece, o Git usa o primeiro
+ * para operações normais, e é esse o URL que interessa para resolver o
+ * repositório GitHub. Os restantes são devolvidos para diagnóstico.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @param {string} remote nome do remote.
+ * @returns {{url: string, urls: string[]}} remote validado.
+ */
+function getConfiguredRemote(repoRoot, remote) {
+  const names = runCommand('git', ['remote'], repoRoot, 'E_GIT_ERROR')
+    .split(/\r?\n/)
+    .filter(Boolean)
+  if (
+    typeof remote !== 'string' ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(remote) ||
+    !names.includes(remote)
+  ) {
+    throw new RawspecError('E_GIT_ERROR', `Remote Git não configurado: ${String(remote)}`, {
+      reason: 'remote_not_found',
+      remote,
+    })
+  }
+
+  const result = runGitResult(repoRoot, ['config', '--get-all', `remote.${remote}.url`])
+  const urls = result.stdout
+    .split(/\r?\n/)
+    .map((url) => url.trim())
+    .filter(Boolean)
+  if (result.code !== 0 || urls.length === 0) {
+    throw new RawspecError('E_GIT_ERROR', `URL do remote Git indisponível: ${remote}`, {
+      reason: 'remote_not_found',
+      remote,
+    })
+  }
+  return { url: urls[0], urls }
+}
+
+/**
+ * Converte uma falha de fetch ou de resolução de refs num erro fail-closed.
+ *
+ * @param {string} remote remote seleccionado.
+ * @param {string} operation operação que falhou.
+ * @param {{stderr?: string, stdout?: string}} result resultado do Git.
+ * @returns {RawspecError} erro contextualizado.
+ */
+function remoteUnavailableError(remote, operation, result) {
+  return new RawspecError('E_GIT_ERROR', `Remote ${remote} indisponível durante ${operation}`, {
+    reason: 'remote_unavailable',
+    remote,
+    operation,
+  })
+}
+
+/**
+ * Atualiza uma ref remota específica e devolve a sua referência local.
+ *
+ * O fetch é dirigido ao ref exacto, para que a base do range exista mesmo que
+ * o refspec configurado não a cubra. É também a prova de que o remote está
+ * disponível: um fetch que falha significa que o remote não pode ser
+ * verificado, e o caminho tem de falhar fechado.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @param {string} remote remote seleccionado.
+ * @param {string} branch branch remota.
+ * @returns {string} ref em `refs/remotes`.
+ */
+function fetchRemoteBranchRef(repoRoot, remote, branch) {
+  const remoteRef = `refs/heads/${branch}`
+  const trackingRef = `refs/remotes/${remote}/${branch}`
+  const fetched = runGitResult(repoRoot, ['fetch', remote, `+${remoteRef}:${trackingRef}`])
+  if (fetched.code !== 0) {
+    throw remoteUnavailableError(remote, `fetch de ${remoteRef}`, fetched)
+  }
+
+  const resolved = runGitResult(repoRoot, ['rev-parse', '--verify', `${trackingRef}^{commit}`])
+  if (resolved.code !== 0) {
+    throw remoteUnavailableError(remote, `validação de ${remoteRef}`, resolved)
+  }
+  return trackingRef
+}
+
+/**
+ * Confirma se uma branch existe no remote sem confiar em refs locais obsoletas.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @param {string} remote remote seleccionado.
+ * @param {string} branch branch remota.
+ * @returns {boolean} `true` quando a branch existe no servidor.
+ */
+function remoteBranchExists(repoRoot, remote, branch) {
+  const remoteRef = `refs/heads/${branch}`
+  const result = runGitResult(repoRoot, ['ls-remote', '--heads', remote, remoteRef])
+  if (result.code !== 0) {
+    throw remoteUnavailableError(remote, `procura de ${remoteRef}`, result)
+  }
+  const lines = result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  if (lines.length === 0) return false
+  if (lines.length !== 1 || lines[0].split(/\s+/)[1] !== remoteRef) {
+    throw remoteUnavailableError(remote, `validação de ${remoteRef}`, result)
+  }
+  return true
+}
+
+/**
+ * Resolve um URL HTTPS ou SSH do GitHub para o argumento `owner/repo` do `gh`.
+ *
+ * O owner e o nome do repositório são validados: só podem conter os caracteres
+ * que o GitHub aceita num identificador de repositório. Sem esta guarda, um URL
+ * remoto manipulado poderia injectar um valor arbitrário no `gh --repo`.
+ *
+ * @param {string} url URL configurado no remote.
+ * @returns {string|null} repositório GitHub ou `null` para URLs não suportados.
+ */
+function parseGitHubRepository(url) {
+  const patterns = [
+    /^https?:\/\/(?:[^/@]+@)?github\.com\/([^/]+)\/([^/?#]+?)(?:\.git)?\/?$/i,
+    /^ssh:\/\/(?:[^/@]+@)?github\.com\/([^/]+)\/([^/?#]+?)(?:\.git)?\/?$/i,
+    /^(?:[^/@:]+@)?github\.com:([^/]+)\/([^/?#]+?)(?:\.git)?$/i,
+  ]
+  for (const pattern of patterns) {
+    const match = pattern.exec(url)
+    if (!match) continue
+    const [, owner, name] = match
+    if (!owner || !name) return null
+    if (!/^[A-Za-z0-9._-]+$/.test(owner) || !/^[A-Za-z0-9._-]+$/.test(name)) return null
+    if (owner === '.' || owner === '..' || name === '.' || name === '..') return null
+    return `${owner}/${name}`
+  }
+  return null
+}
+
+/**
+ * Exige que o remote tenha um URL GitHub suportado para os comandos `gh`.
+ *
+ * @param {{url: string, urls?: string[]}} configuredRemote remote já validado para Git.
+ * @param {string} remote nome do remote seleccionado.
+ * @returns {string} repositório no formato `owner/repo`.
+ */
+function resolveGitHubRemoteRepository(configuredRemote, remote) {
+  const candidates = configuredRemote.urls?.length
+    ? configuredRemote.urls
+    : configuredRemote.url
+      ? [configuredRemote.url]
+      : []
+  for (const candidate of candidates) {
+    const repository = parseGitHubRepository(candidate)
+    if (repository) return repository
+  }
+  throw new RawspecError(
+    'E_PR_UNAVAILABLE',
+    `O URL do remote ${remote} não identifica um repositório GitHub suportado`,
+    { reason: 'remote_url_unsupported', remote },
+  )
+}
+
+/**
+ * Publica o commit existente, classificando uma falha de push pelo estado real
+ * do remote.
+ *
+ * Entre a inspecção do remote e o push, o remote pode mudar. Um push que falha
+ * por isso não é um erro Git genérico: é o estado remoto que divergiu, e a
+ * task exige uma razão precisa. Por isso, quando o push falha, o estado remoto
+ * é reinspeccionado e a razão correspondente é reportada.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @param {{remote: string, branch: string, head: string}} context remote, branch e commit local.
+ * @returns {boolean} `true` quando o push foi efectuado.
+ */
+function pushExistingCommit(repoRoot, { remote, branch, head }) {
+  try {
+    runCommand('git', ['push', '-u', remote, '--', branch], repoRoot, 'E_GIT_ERROR')
+    return true
+  } catch (error) {
+    if (!(error instanceof RawspecError)) throw error
+    // A reinspecção só reclassifica o erro quando o remote está de facto
+    // divergido. Qualquer outra causa mantém o erro original do Git.
+    try {
+      inspectPublishRange(repoRoot, remote, branch, head)
+    } catch (inspectionError) {
+      if (inspectionError instanceof RawspecError) throw inspectionError
+    }
+    throw error
+  }
+}
+
+/**
+ * Confirma a existência de um commit e obtém a sua mensagem.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @param {string} commit hash do commit.
+ * @returns {{hash: string, message: string}} commit validado.
+ */
+function readTaskCommit(repoRoot, commit) {
+  const parents = runCommand(
+    'git',
+    ['rev-list', '--parents', '-n', '1', commit],
+    repoRoot,
+    'E_GIT_ERROR',
+  )
+    .trim()
+    .split(/\s+/)
+  if (parents.length > 2) {
+    throw new RawspecError('E_TASK_STATE', `Commit de merge inelegível: ${commit}`, {
+      reason: 'merge_commit_ineligible',
+      commit,
+    })
+  }
+  const message = runCommand('git', ['show', '-s', '--format=%B', commit], repoRoot, 'E_GIT_ERROR')
+  return { hash: parents[0], message }
+}
+
+/**
+ * Valida metadados e, separadamente, o diff de um commit contra o âmbito da task.
+ *
+ * @param {string} commit hash do commit.
+ * @param {string} message mensagem do commit.
+ * @param {{changeId: string, taskId: string, task: object, located: object}} context tarefa e mudança.
+ */
+function validateTaskCommitMetadata(commit, message, context) {
+  const lines = message.split(/\r?\n/)
+  const changeLines = lines.filter((line) => line.startsWith('Change:'))
+  const taskLines = lines.filter((line) => line.startsWith('Task:'))
+  if (
+    changeLines.length !== 1 ||
+    changeLines[0] !== `Change: ${context.changeId}` ||
+    taskLines.length !== 1 ||
+    taskLines[0] !== `Task: ${context.taskId}`
+  ) {
+    throw new RawspecError('E_TASK_STATE', `Metadados incompatíveis no commit ${commit}`, {
+      reason: 'commit_metadata_mismatch',
+      commit,
+      expectedChange: context.changeId,
+      expectedTask: context.taskId,
+      changeLines,
+      taskLines,
+    })
+  }
+}
+
+/**
+ * Aplica o gate de âmbito ao diff de um commit já criado.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @param {string} commit hash do commit.
+ * @param {object} context tarefa e mudança.
+ * @param {string[]} scopeFiles ficheiros e diretórios declarados no âmbito.
+ */
+function validateTaskCommitScope(repoRoot, commit, context, scopeFiles) {
+  const specFiles = specificationFiles(repoRoot, context.located, context.task)
+  const allowed = [...scopeFiles, ...specFiles]
+  const output = runCommand(
+    'git',
+    ['diff-tree', '--root', '--no-commit-id', '--no-renames', '--name-only', '-r', '-z', commit],
+    repoRoot,
+    'E_GIT_ERROR',
+  )
+  const changed = output.split('\0').filter(Boolean)
+  const outOfScope = changed.filter((file) => !isWithinScope(file, allowed))
+  if (outOfScope.length > 0) {
+    throw new RawspecError('E_SCOPE_VIOLATION', `Commit fora do âmbito da task ${context.taskId}`, {
+      task: context.taskId,
+      commit,
+      outOfScope,
+    })
+  }
+}
+
+/**
+ * Verifica a relação de ancestralidade entre duas refs.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @param {string} ancestor ref candidata a ancestral.
+ * @param {string} descendant ref candidata a descendente.
+ * @returns {boolean} `true` quando `ancestor` é ancestral de `descendant`.
+ */
+function isGitAncestor(repoRoot, ancestor, descendant) {
+  const result = runGitResult(repoRoot, ['merge-base', '--is-ancestor', ancestor, descendant])
+  if (result.code === 0) return true
+  if (result.code === 1) return false
+  throw new RawspecError('E_GIT_ERROR', `Não foi possível comparar refs Git`, {
+    reason: 'remote_unavailable',
+    ancestor,
+    descendant,
+    stderr: result.stderr,
+  })
+}
+
+/**
+ * Determina a base remota e o conjunto de commits a publicar, sempre após fetch.
+ *
+ * @param {string} repoRoot raiz do repositório.
+ * @param {string} remote remote seleccionado.
+ * @param {string} branch branch local.
+ * @param {string} head commit local.
+ * @returns {{baseRef: string, commits: string[], alreadyPublished: boolean}} estado validado.
+ */
+function inspectPublishRange(repoRoot, remote, branch, head) {
+  if (remoteBranchExists(repoRoot, remote, branch)) {
+    const baseRef = fetchRemoteBranchRef(repoRoot, remote, branch)
+    const remoteHead = runCommand(
+      'git',
+      ['rev-parse', '--verify', `${baseRef}^{commit}`],
+      repoRoot,
+      'E_GIT_ERROR',
+    ).trim()
+    if (remoteHead === head) return { baseRef, commits: [], alreadyPublished: true }
+    if (isGitAncestor(repoRoot, remoteHead, head)) {
+      const commits = runCommand(
+        'git',
+        ['rev-list', '--reverse', `${baseRef}..HEAD`],
+        repoRoot,
+        'E_GIT_ERROR',
+      )
+        .split(/\r?\n/)
+        .filter(Boolean)
+      return { baseRef, commits, alreadyPublished: false }
+    }
+    if (isGitAncestor(repoRoot, head, remoteHead)) {
+      throw new RawspecError(
+        'E_GIT_ERROR',
+        `A branch remota ${branch} está à frente da branch local`,
+        {
+          reason: 'remote_ahead',
+          remote,
+          branch,
+          local: head,
+          remoteHead,
+        },
+      )
+    }
+    throw new RawspecError('E_GIT_ERROR', `A branch local e a branch remota ${branch} divergiram`, {
+      reason: 'remote_diverged',
+      remote,
+      branch,
+      local: head,
+      remoteHead,
+    })
+  }
+
+  if (!remoteBranchExists(repoRoot, remote, 'main')) {
+    throw new RawspecError('E_GIT_ERROR', `A branch base ${remote}/main não existe`, {
+      reason: 'remote_unavailable',
+      remote,
+      branch: 'main',
+    })
+  }
+  const baseRef = fetchRemoteBranchRef(repoRoot, remote, 'main')
+  const commits = runCommand(
+    'git',
+    ['rev-list', '--reverse', `${baseRef}..HEAD`],
+    repoRoot,
+    'E_GIT_ERROR',
+  )
+    .split(/\r?\n/)
+    .filter(Boolean)
+  return { baseRef, commits, alreadyPublished: false }
+}
+
+/**
+ * Publica uma tarefa verificada, criando commit para alterações ou reutilizando
+ * um commit elegível quando a árvore está limpa.
+ *
+ * As verificações correm por ordem antes da publicação. Uma falha impede o commit e o push.
+ *
+ * Depois do push, ou quando o HEAD já está publicado, a automação abre ou
+ * reutiliza o pull request. A falha não desfaz o commit nem o push e é reportada
+ * no resultado.
  *
  * @param {string} repoRoot caminho raiz do repositório.
  * @param {string} taskId identificador da tarefa.
@@ -2503,14 +2938,150 @@ export function commitAndPushTask(
     runExternal = runExternalCommand,
   } = {},
 ) {
-  const { task, located } = loadTask(repoRoot, taskId, changeId)
+  const { change, task, located } = loadTask(repoRoot, taskId, changeId)
   const done = task.status === 'COMPLETED' || task.status === 'ARCHIVED'
   if (!done || task.verification !== 'VERIFIED') {
     throw new RawspecError('E_TASK_STATE', `Tarefa ${task.id} não está COMPLETED + VERIFIED`, {
+      reason: 'task_not_verified',
       task: task.id,
       status: task.status,
       verification: task.verification,
     })
+  }
+
+  const mergeHead = runCommand(
+    'git',
+    ['rev-parse', '--git-path', 'MERGE_HEAD'],
+    repoRoot,
+    'E_GIT_ERROR',
+  ).trim()
+  const mergeHeadPath = isAbsolute(mergeHead) ? mergeHead : resolve(repoRoot, mergeHead)
+  if (existsSync(mergeHeadPath)) {
+    throw new RawspecError('E_TASK_STATE', `Existe um merge Git por concluir`, {
+      reason: 'merge_in_progress',
+      task: task.id,
+      mergeHead: mergeHeadPath,
+    })
+  }
+
+  const initiallyChanged = listChangedFiles(repoRoot)
+  const targetBranch = validateBranchName(branch ?? currentBranch(repoRoot))
+
+  if (initiallyChanged.length === 0) {
+    if (task.status !== 'COMPLETED' || task.verification !== 'VERIFIED') {
+      throw new RawspecError(
+        'E_TASK_STATE',
+        `Tarefa ${task.id} não está COMPLETED + VERIFIED para publicar commit existente`,
+        {
+          reason: 'task_not_verified',
+          task: task.id,
+          status: task.status,
+          verification: task.verification,
+        },
+      )
+    }
+
+    const localBranch = currentBranch(repoRoot)
+    const expectedBranch = taskBranchName(change, task)
+    if (localBranch !== expectedBranch || (branch !== undefined && branch !== localBranch)) {
+      throw new RawspecError(
+        'E_TASK_STATE',
+        `Branch ${localBranch} não corresponde à branch elegível ${expectedBranch}`,
+        {
+          reason: 'branch_mismatch',
+          task: task.id,
+          branch: localBranch,
+          requestedBranch: branch ?? null,
+          expectedBranch,
+        },
+      )
+    }
+
+    const headResult = runGitResult(repoRoot, ['rev-parse', '--verify', 'HEAD'])
+    if (headResult.code !== 0) {
+      throw new RawspecError('E_TASK_STATE', `Não existe commit HEAD elegível para ${task.id}`, {
+        reason: 'no_eligible_commit',
+        task: task.id,
+        stderr: headResult.stderr,
+      })
+    }
+    const head = headResult.stdout.trim()
+    const context = { changeId: change.id, taskId: task.id, task, located }
+    const scopeFiles = task.scope?.files ?? []
+
+    // Sem push não há publicação a preparar: não há fetch a fazer nem range a
+    // validar. O commit elegível é apenas o HEAD, e a sua elegibilidade é
+    // verificada localmente.
+    let publishRange = null
+    let configuredRemote = null
+    if (push) {
+      configuredRemote = getConfiguredRemote(repoRoot, remote)
+      publishRange = inspectPublishRange(repoRoot, remote, localBranch, head)
+
+      if (!publishRange.alreadyPublished && publishRange.commits.length === 0) {
+        throw new RawspecError(
+          'E_TASK_STATE',
+          `Não existe commit local elegível para publicar para ${task.id}`,
+          {
+            reason: 'no_eligible_commit',
+            task: task.id,
+            branch: localBranch,
+            base: publishRange.baseRef,
+          },
+        )
+      }
+    }
+
+    const commits = publishRange?.commits.length > 0 ? publishRange.commits : [head]
+    const commitMessages = commits.map((commit) => {
+      const details = readTaskCommit(repoRoot, commit)
+      validateTaskCommitMetadata(details.hash, details.message, context)
+      return details
+    })
+
+    const commands = checks ?? COMMIT_CHECKS
+    runChecks(repoRoot, { checks: commands, runCheck })
+
+    for (const commit of commitMessages) {
+      validateTaskCommitScope(repoRoot, commit.hash, context, scopeFiles)
+    }
+
+    const shortCommit = runCommand(
+      'git',
+      ['rev-parse', '--short', 'HEAD'],
+      repoRoot,
+      'E_GIT_ERROR',
+    ).trim()
+    let pushed = false
+    if (push && !publishRange.alreadyPublished) {
+      pushed = pushExistingCommit(repoRoot, { remote, branch: localBranch, head })
+    }
+    let pullRequest = null
+    if (push && pr) {
+      try {
+        const repository = resolveGitHubRemoteRepository(configuredRemote, remote)
+        pullRequest = openPullRequest(repoRoot, taskId, {
+          changeId,
+          branch: localBranch,
+          base: prBase,
+          repo: repository,
+          run: runExternal,
+        })
+      } catch (error) {
+        if (!(error instanceof RawspecError)) throw error
+        pullRequest = {
+          status: 'failed',
+          url: null,
+          number: null,
+          branch: localBranch,
+          base: prBase,
+          title: '',
+          error: { code: error.code, message: error.message, details: error.details ?? {} },
+        }
+      }
+    }
+
+    return { branch: localBranch, commit: shortCommit, pushed, pullRequest }
   }
 
   const commands = checks ?? COMMIT_CHECKS
@@ -2520,7 +3091,6 @@ export function commitAndPushTask(
     changeId,
     tests: describeChecks(commands),
   })
-  const targetBranch = branch ?? currentBranch(repoRoot)
 
   // Gate de âmbito. As permissões de caminho não são uma barreira: uma
   // escrita feita por shell contorna a negação de edição. Este gate é a
@@ -2528,16 +3098,10 @@ export function commitAndPushTask(
   // quando falha.
   const scopeFiles = task.scope?.files ?? []
   const specFiles = specificationFiles(repoRoot, located, task)
-  const allowed = new Set([...scopeFiles, ...specFiles].map(normalizeScopePath))
-
+  const allowed = [...scopeFiles, ...specFiles]
   const changed = listChangedFiles(repoRoot)
-  const inScope = changed.filter((file) => allowed.has(normalizeScopePath(file)))
-  const outOfScope = changed.filter(
-    (file) =>
-      !allowed.has(normalizeScopePath(file)) &&
-      !isWithinScope(file, scopeFiles) &&
-      !isWithinScope(file, specFiles),
-  )
+  const inScope = changed.filter((file) => isWithinScope(file, allowed))
+  const outOfScope = changed.filter((file) => !isWithinScope(file, allowed))
 
   if (outOfScope.length > 0) {
     throw new RawspecError('E_SCOPE_VIOLATION', `Ficheiros fora do âmbito da task ${task.id}`, {
@@ -2547,6 +3111,14 @@ export function commitAndPushTask(
     })
   }
 
+  if (inScope.length === 0) {
+    throw new RawspecError(
+      'E_TASK_STATE',
+      `Não há alterações dentro do âmbito para commitar na tarefa ${task.id}`,
+      { reason: 'no_changes_to_commit', task: task.id },
+    )
+  }
+
   for (const file of inScope) {
     runCommand('git', ['add', '--', file], repoRoot, 'E_GIT_ERROR')
   }
@@ -2554,7 +3126,7 @@ export function commitAndPushTask(
 
   let pushed = false
   if (push) {
-    runCommand('git', ['push', '-u', remote, targetBranch], repoRoot, 'E_GIT_ERROR')
+    runCommand('git', ['push', '-u', remote, '--', targetBranch], repoRoot, 'E_GIT_ERROR')
     pushed = true
   }
 
@@ -2566,10 +3138,13 @@ export function commitAndPushTask(
   let pullRequest = null
   if (pr && pushed) {
     try {
+      const configuredRemote = getConfiguredRemote(repoRoot, remote)
+      const repository = resolveGitHubRemoteRepository(configuredRemote, remote)
       pullRequest = openPullRequest(repoRoot, taskId, {
         changeId,
         branch: targetBranch,
         base: prBase,
+        repo: repository,
         run: runExternal,
       })
     } catch (error) {
