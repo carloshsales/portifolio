@@ -16,6 +16,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
@@ -1399,6 +1400,71 @@ describe('branch e commit por tarefa', () => {
     return repo
   }
 
+  function addTaskCommit(
+    repo,
+    { files = ['src/allowed.ts'], change = '004-test', task = 'TASK-001' } = {},
+  ) {
+    for (const [index, file] of files.entries()) {
+      const fullPath = join(repo, file)
+      mkdirSync(dirname(fullPath), { recursive: true })
+      writeFileSync(fullPath, `conteúdo ${index + 1}\n`, 'utf8')
+    }
+    git(repo, ['add', '--', ...files])
+    git(repo, [
+      'commit',
+      '-m',
+      [
+        'feat(rawspec): Implementar coisa',
+        '',
+        `Change: ${change}`,
+        `Task: ${task}`,
+        'Tests: pnpm test',
+        'Evidence: testes aprovados',
+        'Action-Plan: none',
+      ].join('\n'),
+    ])
+    return git(repo, ['rev-parse', 'HEAD']).trim()
+  }
+
+  function createPublishFixture({
+    scopeFiles = ['src/allowed.ts'],
+    remote = 'origin',
+    pushMain = true,
+    taskStatus = 'COMPLETED',
+    taskCommit = true,
+    taskCommitOptions,
+    pushTaskBranch = false,
+    githubRemote = false,
+  } = {}) {
+    const repo = createRepoWithTask(taskStatus)
+    const taskPath = 'specs/changes/004-test/tasks/TASK-001.md'
+    const fullTaskPath = join(repo, taskPath)
+    const task = readFileSync(fullTaskPath, 'utf8')
+    const scope = scopeFiles.map((file) => `- \`${file}\``).join('\n')
+    writeFileSync(fullTaskPath, `${task.trimEnd()}\n\n## Arquivos\n\n${scope}\n`, 'utf8')
+    git(repo, ['add', '--', taskPath])
+    git(repo, ['commit', '-m', 'docs(rawspec): declarar âmbito da tarefa'])
+
+    const bare = join(workDir, `remote-${remote}.git`)
+    initBareRepo(bare)
+    const githubUrl =
+      githubRemote === 'ssh' ? 'git@github.com:acme/site.git' : 'https://github.com/acme/site.git'
+    if (githubRemote) {
+      const localUrl = pathToFileURL(bare).href
+      git(repo, ['config', `url.${localUrl}.insteadOf`, 'https://github.com/acme/site.git'])
+      git(repo, ['config', '--add', `url.${localUrl}.insteadOf`, 'git@github.com:acme/site.git'])
+    }
+    git(repo, ['remote', 'add', remote, githubRemote ? githubUrl : bare])
+    if (pushMain) git(repo, ['push', remote, 'main'])
+
+    const { branch } = createTaskBranch(repo, 'TASK-001')
+    if (taskCommit) addTaskCommit(repo, taskCommitOptions)
+    const head = git(repo, ['rev-parse', 'HEAD']).trim()
+    if (pushTaskBranch && taskCommit) git(repo, ['push', '-u', remote, branch])
+
+    return { repo, bare, branch, head, remote, scopeFiles }
+  }
+
   function touchTask(repo) {
     const file = join(repo, 'specs', 'changes', '004-test', 'tasks', 'TASK-001.md')
     writeFileSync(file, `${readFileSync(file, 'utf8')}\n<!-- alteracao -->\n`, 'utf8')
@@ -1498,6 +1564,39 @@ describe('branch e commit por tarefa', () => {
       expect(files).toContain('specs/changes/004-test/tasks/TASK-001.md')
     })
 
+    it('commita alterações já staged no índice, sem as tratar como caminho limpo', () => {
+      const repo = createRepoWithTask()
+      repoWithScope(repo, ['src/permitido.ts'])
+      mkdirSync(join(repo, 'src'), { recursive: true })
+      writeFileSync(join(repo, 'src', 'permitido.ts'), 'export const a = 1\n', 'utf8')
+      git(repo, ['add', '--', 'src/permitido.ts'])
+      const before = git(repo, ['rev-list', '--count', 'HEAD']).trim()
+
+      const result = commitAndPushTask(repo, 'TASK-001', { checks: [], push: false })
+
+      expect(result.pushed).toBe(false)
+      expect(git(repo, ['rev-list', '--count', 'HEAD']).trim()).toBe(String(Number(before) + 1))
+      const files = git(repo, ['show', '--name-only', '--pretty=format:']).trim().split('\n')
+      expect(files).toContain('src/permitido.ts')
+    })
+
+    it('bloqueia alterações já staged fora do âmbito', () => {
+      const repo = createRepoWithTask()
+      repoWithScope(repo, ['src/permitido.ts'])
+      mkdirSync(join(repo, 'src'), { recursive: true })
+      writeFileSync(join(repo, 'src', 'outro.ts'), 'export const b = 2\n', 'utf8')
+      git(repo, ['add', '--', 'src/outro.ts'])
+      const before = git(repo, ['rev-parse', '--short', 'HEAD']).trim()
+
+      const error = captureError(() =>
+        commitAndPushTask(repo, 'TASK-001', { checks: [], push: false }),
+      )
+
+      expect(error.code).toBe('E_SCOPE_VIOLATION')
+      expect(error.details.outOfScope).toContain('src/outro.ts')
+      expect(git(repo, ['rev-parse', '--short', 'HEAD']).trim()).toBe(before)
+    })
+
     it('não usa git add -A', () => {
       const source = readFileSync(join(import.meta.dirname, 'rawspec-v2.mjs'), 'utf8')
       expect(source).not.toContain("'add', '-A'")
@@ -1537,6 +1636,7 @@ describe('branch e commit por tarefa', () => {
 
   it('não commita quando as verificações falham', () => {
     const repo = createRepoWithTask()
+    touchTask(repo)
     const before = git(repo, ['rev-parse', '--short', 'HEAD']).trim()
 
     const error = captureError(() =>
@@ -1610,6 +1710,540 @@ describe('branch e commit por tarefa', () => {
     expect(result.pushed).toBe(true)
     expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
   })
+
+  describe('publicação idempotente de commit existente', () => {
+    it('publica o commit elegível sem criar outro commit e corre os checks por ordem', () => {
+      const fixture = createPublishFixture()
+      const commitCount = git(fixture.repo, ['rev-list', '--count', 'HEAD']).trim()
+      const checks = []
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        runCheck: (_repoRoot, args) => checks.push(args.join(' ')),
+        pr: false,
+      })
+
+      expect(result.branch).toBe(fixture.branch)
+      expect(result.commit).toBe(fixture.head.slice(0, 7))
+      expect(result.pushed).toBe(true)
+      expect(result.pullRequest).toBeNull()
+      expect(checks).toEqual(['lint', 'typecheck', 'test', 'build'])
+      expect(git(fixture.repo, ['rev-parse', 'HEAD']).trim()).toBe(fixture.head)
+      expect(git(fixture.repo, ['rev-list', '--count', 'HEAD']).trim()).toBe(commitCount)
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(
+        fixture.head,
+      )
+      expect(git(fixture.repo, ['status', '--porcelain'])).toBe('')
+    })
+
+    it('não cria commit vazio quando o remote main já está no HEAD e não há branch publicada', () => {
+      const fixture = createPublishFixture({ taskCommit: false })
+      const before = git(fixture.repo, ['rev-parse', 'HEAD']).trim()
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('no_eligible_commit')
+      expect(git(fixture.repo, ['rev-parse', 'HEAD']).trim()).toBe(before)
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('falha com task_not_verified quando a task não está COMPLETED + VERIFIED', () => {
+      const fixture = createPublishFixture({ taskStatus: 'PENDING', taskCommit: false })
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('task_not_verified')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('falha com branch_mismatch quando a branch corrente não corresponde à task', () => {
+      const fixture = createPublishFixture()
+      git(fixture.repo, ['checkout', 'main'])
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('branch_mismatch')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('falha com branch_mismatch quando --branch não corresponde à branch corrente', () => {
+      const fixture = createPublishFixture()
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', {
+          changeId: '004-test',
+          branch: 'task/outro-alvo',
+          checks: [],
+        }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('branch_mismatch')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('falha com merge_in_progress durante um merge activo mesmo com alterações locais', () => {
+      const fixture = createPublishFixture()
+      writeFileSync(join(fixture.repo, '.git', 'MERGE_HEAD'), `${fixture.head}\n`, 'utf8')
+      mkdirSync(join(fixture.repo, 'src'), { recursive: true })
+      writeFileSync(join(fixture.repo, 'src', 'allowed.ts'), 'alteração durante merge\n', 'utf8')
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('merge_in_progress')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('falha com remote_not_found quando o alias solicitado não existe', () => {
+      const fixture = createPublishFixture()
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', {
+          changeId: '004-test',
+          remote: 'missing',
+          checks: [],
+        }),
+      )
+
+      expect(error.code).toBe('E_GIT_ERROR')
+      expect(error.details.reason).toBe('remote_not_found')
+    })
+
+    it('falha fechado com remote_unavailable quando o fetch falha', () => {
+      const fixture = createPublishFixture()
+      git(fixture.repo, ['remote', 'set-url', 'origin', join(workDir, 'missing-remote.git')])
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_GIT_ERROR')
+      expect(error.details.reason).toBe('remote_unavailable')
+      expect(git(fixture.repo, ['rev-parse', 'HEAD']).trim()).toBe(fixture.head)
+    })
+
+    it('falha fechado quando a branch base remota main não existe', () => {
+      const fixture = createPublishFixture({ pushMain: false })
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_GIT_ERROR')
+      expect(error.details.reason).toBe('remote_unavailable')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin']).trim()).toBe('')
+    })
+
+    it('recusa commits com metadata Change ou Task incompatível', () => {
+      const fixture = createPublishFixture({
+        taskCommitOptions: { change: '999-other' },
+      })
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('commit_metadata_mismatch')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('não publica quando os checks falham: o push só acontece depois dos checks', () => {
+      const fixture = createPublishFixture()
+      const calls = []
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', {
+          changeId: '004-test',
+          pr: false,
+          runCheck: (_repoRoot, args) => {
+            calls.push(args.join(' '))
+            if (args[0] === 'lint') {
+              throw new RawspecError('E_CHECKS_FAILED', 'lint falhou')
+            }
+          },
+        }),
+      )
+
+      expect(error.code).toBe('E_CHECKS_FAILED')
+      expect(calls).toEqual(['lint'])
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+      expect(git(fixture.repo, ['rev-parse', 'HEAD']).trim()).toBe(fixture.head)
+    })
+
+    it('aplica o gate de âmbito a todos os commits do range, não apenas ao HEAD', () => {
+      const fixture = createPublishFixture({ scopeFiles: ['src/permitido.ts'], taskCommit: false })
+      addTaskCommit(fixture.repo, { files: ['src/fora-do-ambito.ts'] })
+      addTaskCommit(fixture.repo, { files: ['src/permitido.ts'] })
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_SCOPE_VIOLATION')
+      expect(error.details.outOfScope).toContain('src/fora-do-ambito.ts')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('valida metadata em todos os commits do range, não apenas em HEAD', () => {
+      const fixture = createPublishFixture({ scopeFiles: ['src'], taskCommit: false })
+      addTaskCommit(fixture.repo, {
+        files: ['src/first.ts'],
+        task: 'TASK-002',
+      })
+      addTaskCommit(fixture.repo, { files: ['src/second.ts'] })
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('commit_metadata_mismatch')
+      expect(error.details.expectedTask).toBe('TASK-001')
+      expect(error.details.taskLines).toEqual(['Task: TASK-002'])
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('recusa um commit de merge no range elegível', () => {
+      const fixture = createPublishFixture({ scopeFiles: ['src'], taskCommit: false })
+      git(fixture.repo, ['checkout', '-b', 'side'])
+      addTaskCommit(fixture.repo, { files: ['src/side.ts'] })
+      git(fixture.repo, ['checkout', fixture.branch])
+      addTaskCommit(fixture.repo, { files: ['src/local.ts'] })
+      git(fixture.repo, [
+        'merge',
+        '--no-ff',
+        'side',
+        '-m',
+        'merge task commits\n\nChange: 004-test\nTask: TASK-001\n',
+      ])
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('merge_commit_ineligible')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('recusa commits cujo diff ultrapassa o âmbito declarado', () => {
+      const fixture = createPublishFixture({
+        taskCommitOptions: { files: ['src/outside.ts'] },
+      })
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_SCOPE_VIOLATION')
+      expect(error.details.outOfScope).toContain('src/outside.ts')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('não repete o push quando a branch remota já aponta para HEAD', () => {
+      const fixture = createPublishFixture({ pushTaskBranch: true })
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        checks: [],
+        pr: false,
+      })
+
+      expect(result.pushed).toBe(false)
+      expect(result.pullRequest).toBeNull()
+      expect(result.commit).toBe(fixture.head.slice(0, 7))
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(
+        fixture.head,
+      )
+    })
+
+    it('faz push fast-forward quando a branch remota é ancestral de HEAD', () => {
+      const fixture = createPublishFixture({ scopeFiles: ['src'], taskCommit: false })
+      addTaskCommit(fixture.repo, { files: ['src/first.ts'] })
+      git(fixture.repo, ['push', '-u', 'origin', fixture.branch])
+      addTaskCommit(fixture.repo, { files: ['src/second.ts'] })
+      const head = git(fixture.repo, ['rev-parse', 'HEAD']).trim()
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        checks: [],
+        pr: false,
+      })
+
+      expect(result.pushed).toBe(true)
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(head)
+      expect(git(fixture.repo, ['rev-parse', 'HEAD']).trim()).toBe(head)
+    })
+
+    it('recusa sem force-push quando a branch remota está à frente', () => {
+      const fixture = createPublishFixture({ scopeFiles: ['src'] })
+      git(fixture.repo, ['checkout', '-b', 'remote-advance'])
+      addTaskCommit(fixture.repo, { files: ['src/remote.ts'] })
+      git(fixture.repo, ['push', 'origin', `remote-advance:${fixture.branch}`])
+      git(fixture.repo, ['checkout', fixture.branch])
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_GIT_ERROR')
+      expect(error.details.reason).toBe('remote_ahead')
+    })
+
+    it('recusa sem force-push quando a branch remota divergiu', () => {
+      const fixture = createPublishFixture({ scopeFiles: ['src'] })
+      const base = git(fixture.repo, ['rev-parse', 'main']).trim()
+      git(fixture.repo, ['checkout', '-b', 'remote-diverged', base])
+      addTaskCommit(fixture.repo, { files: ['src/remote.ts'] })
+      git(fixture.repo, ['push', 'origin', `remote-diverged:${fixture.branch}`])
+      git(fixture.repo, ['checkout', fixture.branch])
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', { changeId: '004-test', checks: [] }),
+      )
+
+      expect(error.code).toBe('E_GIT_ERROR')
+      expect(error.details.reason).toBe('remote_diverged')
+    })
+
+    it('mantém o hook pre-push activo no publish-existing', () => {
+      const fixture = createPublishFixture()
+      const hooksDir = join(fixture.repo, '.git', 'test-hooks')
+      mkdirSync(hooksDir, { recursive: true })
+      const hook = join(hooksDir, 'pre-push')
+      writeFileSync(hook, '#!/bin/sh\necho pre-push bloqueou >&2\nexit 1\n', 'utf8')
+      chmodSync(hook, 0o755)
+      git(fixture.repo, ['config', 'core.hooksPath', hooksDir])
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', {
+          changeId: '004-test',
+          checks: [],
+          pr: false,
+        }),
+      )
+
+      expect(error.code).toBe('E_GIT_ERROR')
+      expect(error.details.stderr).toContain('pre-push bloqueou')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('não invoca pre-commit/lint-staged sem ficheiros staged', () => {
+      const fixture = createPublishFixture()
+      const hooksDir = join(fixture.repo, '.git', 'test-hooks')
+      mkdirSync(hooksDir, { recursive: true })
+      const preCommit = join(hooksDir, 'pre-commit')
+      const prePush = join(hooksDir, 'pre-push')
+      writeFileSync(
+        preCommit,
+        '#!/bin/sh\necho "lint-staged could not find any staged files" >&2\nexit 1\n',
+        'utf8',
+      )
+      writeFileSync(prePush, '#!/bin/sh\nexit 0\n', 'utf8')
+      chmodSync(preCommit, 0o755)
+      chmodSync(prePush, 0o755)
+      git(fixture.repo, ['config', 'core.hooksPath', hooksDir])
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        checks: [],
+        pr: false,
+      })
+
+      expect(result.pushed).toBe(true)
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(
+        fixture.head,
+      )
+    })
+
+    it('não toca na rede com --no-push, mesmo com o remote indisponível', () => {
+      const fixture = createPublishFixture()
+      git(fixture.repo, ['remote', 'set-url', 'origin', join(workDir, 'missing-remote.git')])
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        push: false,
+        checks: [],
+      })
+
+      expect(result.pushed).toBe(false)
+      expect(result.pullRequest).toBeNull()
+      expect(result.commit).toBe(fixture.head.slice(0, 7))
+    })
+
+    it('resolve o repositório GitHub quando o remote tem múltiplos URLs', () => {
+      const fixture = createPublishFixture({ githubRemote: true })
+      const localUrl = pathToFileURL(fixture.bare).href
+      git(fixture.repo, [
+        'config',
+        '--add',
+        'remote.origin.url',
+        'https://github.com/outro/repo.git',
+      ])
+      git(fixture.repo, [
+        'config',
+        '--add',
+        `url.${localUrl}.insteadOf`,
+        'https://github.com/outro/repo.git',
+      ])
+      const calls = []
+      const runExternal = (_command, args) => {
+        calls.push(args)
+        return {
+          code: 0,
+          stdout: '[{"number":7,"url":"https://github.com/acme/site/pull/7","state":"OPEN"}]',
+          stderr: '',
+        }
+      }
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        checks: [],
+        runExternal,
+      })
+
+      expect(result.pullRequest.status).toBe('existing')
+      expect(calls[0][calls[0].indexOf('--repo') + 1]).toBe('acme/site')
+    })
+
+    it('recusa uma branch inválida antes de tocar no remote', () => {
+      const fixture = createPublishFixture()
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', {
+          changeId: '004-test',
+          branch: '--force',
+          checks: [],
+        }),
+      )
+
+      expect(error.code).toBe('E_ARGS')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('recusa uma branch que não é elegível para publicar', () => {
+      const fixture = createPublishFixture()
+
+      const error = captureError(() =>
+        commitAndPushTask(fixture.repo, 'TASK-001', {
+          changeId: '004-test',
+          branch: 'task/004-001-outra-branch',
+          checks: [],
+        }),
+      )
+
+      expect(error.code).toBe('E_TASK_STATE')
+      expect(error.details.reason).toBe('branch_mismatch')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+    })
+
+    it('permite um remote personalizado', () => {
+      const fixture = createPublishFixture({ remote: 'backup' })
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        remote: 'backup',
+        checks: [],
+        pr: false,
+      })
+
+      expect(result.pushed).toBe(true)
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'backup', fixture.branch])).toContain(
+        fixture.head,
+      )
+      expect(git(fixture.repo, ['remote'])).toContain('backup')
+      expect(git(fixture.repo, ['remote'])).not.toContain('origin')
+    })
+
+    it('reutiliza PR idempotente no repositório resolvido do remote HTTPS', () => {
+      const fixture = createPublishFixture({
+        remote: 'backup',
+        githubRemote: true,
+        pushTaskBranch: true,
+      })
+      const calls = []
+      const runExternal = (_command, args) => {
+        calls.push(args)
+        return {
+          code: 0,
+          stdout: '[{"number":42,"url":"https://github.com/acme/site/pull/42","state":"OPEN"}]',
+          stderr: '',
+        }
+      }
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        remote: fixture.remote,
+        checks: [],
+        runExternal,
+      })
+
+      expect(result.pushed).toBe(false)
+      expect(result.pullRequest.status).toBe('existing')
+      expect(result.pullRequest.url).toBe('https://github.com/acme/site/pull/42')
+      expect(calls).toHaveLength(1)
+      expect(calls[0]).toContain('--repo')
+      expect(calls[0][calls[0].indexOf('--repo') + 1]).toBe('acme/site')
+    })
+
+    it('publica e abre PR usando o repositório resolvido do remote SSH', () => {
+      const fixture = createPublishFixture({ githubRemote: 'ssh' })
+      const calls = []
+      const runExternal = (_command, args) => {
+        calls.push(args)
+        return args[1] === 'list'
+          ? { code: 0, stdout: '[]', stderr: '' }
+          : { code: 0, stdout: 'https://github.com/acme/site/pull/43\n', stderr: '' }
+      }
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        checks: [],
+        runExternal,
+      })
+
+      expect(result.pushed).toBe(true)
+      expect(result.pullRequest.status).toBe('created')
+      expect(result.pullRequest.url).toBe('https://github.com/acme/site/pull/43')
+      expect(calls).toHaveLength(2)
+      for (const call of calls) {
+        expect(call).toContain('--repo')
+        expect(call[call.indexOf('--repo') + 1]).toBe('acme/site')
+      }
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(
+        fixture.head,
+      )
+    })
+
+    it('não tenta criar PR num remote não-GitHub, mas preserva o push', () => {
+      const fixture = createPublishFixture()
+
+      const result = commitAndPushTask(fixture.repo, 'TASK-001', {
+        changeId: '004-test',
+        checks: [],
+      })
+
+      expect(result.pushed).toBe(true)
+      expect(result.pullRequest.status).toBe('failed')
+      expect(result.pullRequest.error.code).toBe('E_PR_UNAVAILABLE')
+      expect(result.pullRequest.error.details.reason).toBe('remote_url_unsupported')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(
+        fixture.head,
+      )
+    })
+  })
 })
 
 describe('automação do pull request', () => {
@@ -1670,6 +2304,12 @@ describe('automação do pull request', () => {
     return repo
   }
 
+  function addGitHubRemote(repo, bare) {
+    const localUrl = pathToFileURL(bare).href
+    git(repo, ['config', `url.${localUrl}.insteadOf`, 'https://github.com/acme/site.git'])
+    git(repo, ['remote', 'add', 'origin', 'https://github.com/acme/site.git'])
+  }
+
   /**
    * Altera o ficheiro da tarefa, para que o commit-task tenha algo a commitar.
    *
@@ -1699,6 +2339,49 @@ describe('automação do pull request', () => {
     expect(calls[0].args).toContain('--head')
     expect(calls[0].args).toContain('task/004-001-x')
     expect(calls[0].args[calls[0].args.indexOf('--base') + 1]).toBe('main')
+  })
+
+  it('passa --repo explicitamente na procura e criação do pull request', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      { code: 0, stdout: '[]' },
+      { code: 0, stdout: 'https://github.com/acme/site/pull/42\n' },
+    ])
+
+    const result = openPullRequest(repo, 'TASK-001', {
+      branch: 'task/004-001-x',
+      repo: 'acme/site',
+      run,
+    })
+
+    expect(result.status).toBe('created')
+    expect(calls).toHaveLength(2)
+    for (const call of calls) {
+      expect(call.args).toContain('--repo')
+      expect(call.args[call.args.indexOf('--repo') + 1]).toBe('acme/site')
+    }
+  })
+
+  it('reutiliza o PR do repositório explicitamente seleccionado', () => {
+    const repo = createRepo()
+    const { run, calls } = fakeRunner([
+      {
+        code: 0,
+        stdout: '[{"number":7,"url":"https://github.com/acme/site/pull/7","state":"OPEN"}]',
+      },
+    ])
+
+    const result = openPullRequest(repo, 'TASK-001', {
+      branch: 'task/004-001-x',
+      repo: 'acme/site',
+      run,
+    })
+
+    expect(result.status).toBe('existing')
+    expect(result.url).toBe('https://github.com/acme/site/pull/7')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].args).toContain('--repo')
+    expect(calls[0].args[calls[0].args.indexOf('--repo') + 1]).toBe('acme/site')
   })
 
   it('usa a branch base pedida na procura e na criação', () => {
@@ -2050,7 +2733,7 @@ describe('automação do pull request', () => {
     const bare = join(workDir, 'remote-pr-malformed-number.git')
     mkdirSync(bare, { recursive: true })
     gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
-    git(repo, ['remote', 'add', 'origin', bare])
+    addGitHubRemote(repo, bare)
     createTaskBranch(repo, 'TASK-001')
     touchTaskFile(repo)
     const { run, calls } = fakeRunner([
@@ -2188,7 +2871,7 @@ describe('automação do pull request', () => {
     const bare = join(workDir, 'remote-pr.git')
     mkdirSync(bare, { recursive: true })
     gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
-    git(repo, ['remote', 'add', 'origin', bare])
+    addGitHubRemote(repo, bare)
     createTaskBranch(repo, 'TASK-001')
     touchTaskFile(repo)
     const { run, calls } = fakeRunner([
@@ -2214,7 +2897,7 @@ describe('automação do pull request', () => {
     const bare = join(workDir, 'remote-pr-fail.git')
     mkdirSync(bare, { recursive: true })
     gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
-    git(repo, ['remote', 'add', 'origin', bare])
+    addGitHubRemote(repo, bare)
     createTaskBranch(repo, 'TASK-001')
     touchTaskFile(repo)
     const { run } = fakeRunner([{ code: 1, stderr: 'gh: not authenticated' }])
@@ -2237,7 +2920,7 @@ describe('automação do pull request', () => {
     const bare = join(workDir, 'remote-pr-invalid.git')
     mkdirSync(bare, { recursive: true })
     gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
-    git(repo, ['remote', 'add', 'origin', bare])
+    addGitHubRemote(repo, bare)
     createTaskBranch(repo, 'TASK-001')
     touchTaskFile(repo)
     const { run, calls } = fakeRunner([{ code: 0, stdout: 'resposta inválida' }])
@@ -2278,7 +2961,7 @@ describe('automação do pull request', () => {
     const bare = join(workDir, 'remote-pr-off.git')
     mkdirSync(bare, { recursive: true })
     gitIsolated(bare, ['init', '--bare'], { gitDir: bare })
-    git(repo, ['remote', 'add', 'origin', bare])
+    addGitHubRemote(repo, bare)
     createTaskBranch(repo, 'TASK-001')
     touchTaskFile(repo)
     const { run, calls } = fakeRunner([{ code: 0, stdout: '[]' }])
