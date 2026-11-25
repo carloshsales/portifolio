@@ -72,8 +72,11 @@ respectivamente. Encontram tudo e inventam muito. Num pipeline de agentes, onde
 o revisor bloqueia a implementação, isso é pior que não encontrar: cada falso
 positivo consome um ciclo de retrabalho.
 
-**`gpt-6-luna` é o melhor equilíbrio.** Score mais alto, 80% de recall, 1 falso
-positivo, e custa $0,0018 por revisão.
+**`gpt-6-luna` foi o melhor equilíbrio na medição.** Score mais alto, 80% de
+recall, 1 falso positivo, e custa $0,0018 por revisão. Deixou o routing em
+2026-11-24, substituído por `minimax-m3` (ADR-009): o `minimax-m3` tem recall
+de 100%, mas 12 falsos positivos e $0,0134 por revisão. A troca foi uma decisão
+do utilizador, não uma conclusão desta medição.
 
 **`beam-free` é o melhor custo-benefício.** Score 79,5 — a menos de 4 pontos do
 melhor — por $0,0001. Vinte vezes mais barato que `gpt-6-luna`.

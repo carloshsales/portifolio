@@ -52,6 +52,11 @@ Depois de escrever, executa as verificações que a task indica em `## Testes`.
 Se uma falhar, corrige e volta a executar. Não avances com verificações a
 falhar: reporta a falha.
 
+**Não executes `pnpm test` nem `pnpm test:e2e` para o pipeline.** As tuas
+verificações são as que a task declara em `## Testes`, sobre o código que
+acabaste de escrever. A verificação global do pipeline é do `executor`, que
+corre `pnpm test` e `pnpm test:e2e` depois de terminares.
+
 ## Formato de saída
 
 ```text

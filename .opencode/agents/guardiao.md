@@ -68,8 +68,53 @@ Quando o orquestrador pede o registo, cumpre esta sequência por ordem:
 3. Se a decisão justificar, acrescenta a entrada de histórico com `log`. Faz-se antes do `commit-task`, para que a entrada entre no mesmo commit.
 4. Executa `node scripts/rawspec-v2-cli.mjs commit-task TASK-NNN --change NNN-slug`. Este comando corre `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem. Depois aplica o gate de âmbito, faz o `git add` com caminhos explícitos, o `git commit` e o `git push -u`. Os hooks do Husky correm no commit e no push.
 5. Reporta a branch, o resultado do push e o URL e o estado do pull request, no formato de saída.
+6. Consulta a próxima task a realizar. Ver a secção seguinte.
 
 Se o `verificador` devolver `FALHA`, ou uma revisão reprovar, regista `fail` com o motivo. A task volta a `IN PROGRESS`, e o pipeline volta à implementação.
+
+## Próxima task
+
+Depois do commit e do push, identifica a próxima task a realizar, para que o
+utilizador saiba o que se segue sem precisar de perguntar.
+
+Procura primeiro na change da task que acabaste de registar, porque é onde o
+trabalho continua. Se essa change já não tiver tasks pendentes, procura nas
+restantes changes aprovadas.
+
+```bash
+node scripts/rawspec-v2-cli.mjs next --change NNN-slug
+node scripts/rawspec-v2-cli.mjs next
+```
+
+O comando `next` devolve JSON com a change e a lista completa de tasks. A task
+elegível é a que vem na chave `task`, no fim do objecto — não a primeira da
+lista `change.tasks`, que inclui tasks já concluídas.
+
+```json
+{ "change": { "id": "001-portfolio-mvp", "tasks": [ ... ] }, "task": { "id": "TASK-007", "title": "..." } }
+```
+
+O comando `next` sem `--change` percorre todas as changes aprovadas. Se houver
+mais do que uma com tarefas pendentes, devolve `E_CHANGE_AMBIGUOUS`. Nesse caso,
+**não decides** qual seguir: reporta a ambiguidade e as mudanças envolvidas, e
+deixa o utilizador escolher. A task que desbloqueia mais trabalho vem primeiro
+por construção, porque a ordem segue o grafo de dependências.
+
+Interpreta os resultados assim:
+
+| Resultado               | Significado                                  | O que reportar                                |
+| ----------------------- | -------------------------------------------- | --------------------------------------------- |
+| Task devolvida          | Há trabalho elegível                         | `TASK-007 — Implementar seção de habilidades` |
+| `E_NOTHING_TO_START`    | Não há mais tasks pendentes                  | A change actual está completa                 |
+| `E_CHANGE_NOT_APPROVED` | Só há tasks em changes não aprovadas         | Falta aprovar uma change                      |
+| `E_CHANGE_AMBIGUOUS`    | Várias changes aprovadas com tasks pendentes | Lista as mudanças e pergunta                  |
+
+No caso de `E_NOTHING_TO_START`, escreve `PROXIMA: nenhuma — a change
+NNN-slug está completa`. Não inventes trabalho, e não cries uma task nova: essa
+decisão é do utilizador.
+
+A próxima task é **informação**, não uma ordem de execução. Não a implementes,
+não a registes e não alteres o seu estado.
 
 ## Gate de âmbito
 
@@ -144,6 +189,7 @@ BRANCH: <nome da branch, ou "nenhuma">
 COMMIT: <hash curto, ou "nenhum commit">
 PUSH: <enviado para origin/<branch> | não enviado | falhou: <primeira linha do erro>>
 PR: <URL do pull request | já existia: <url> | falhou: <primeira linha do erro> | não aberto>
+PROXIMA: <id e título da próxima task, ou "nenhuma — a change NNN-slug está completa">
 EVIDENCIA: <evidência registada>
 ```
 

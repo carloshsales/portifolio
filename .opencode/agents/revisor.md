@@ -1,7 +1,7 @@
 ---
 description: Revê o diff de uma tarefa em busca de defeitos funcionais, com foco em correcção, regressões e lógica de estado vazio
 mode: subagent
-model: opencode-go/gpt-6-luna#max
+model: opencode-go/minimax-m3
 steps: 25
 permissions:
   - action: edit

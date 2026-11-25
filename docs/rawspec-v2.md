@@ -182,14 +182,14 @@ Automáticas, executadas pelo `commit-task` por esta ordem (§15.2):
 3. `pnpm test`
 4. `pnpm build`
 
-Manuais, executadas pelo utilizador no fluxo padrão, antes da revisão e do registo, por esta ordem:
+Manuais, executadas pelo agente `executor` no fluxo padrão, antes da revisão e do registo, por esta ordem:
 
 1. `pnpm test`
 2. `pnpm test:e2e`
 
 `pnpm test:e2e` executa `pnpm build` antes do Playwright, porque o `vite preview` serve `dist/`, que é ignorado pelo Git e não existe num clone novo.
 
-O verificador avalia a evidência das verificações manuais sem executar shell. Os hooks do Husky podem repetir parte das verificações automáticas (§15.3).
+O `executor` devolve a evidência de cada comando: o comando exacto, o código de saída e a saída relevante. O verificador avalia-a sem executar shell. Os hooks do Husky podem repetir parte das verificações automáticas (§15.3).
 
 A formatação com Prettier é aplicada pelo hook `pre-commit` (lint-staged) aos arquivos preparados; não é uma verificação manual.
 
@@ -304,12 +304,13 @@ Exemplo: `task/001-005-implementar-secao-inicial`.
 
 1. `/startspec` resolve a tarefa e cria a branch com `create-branch`.
 2. A tarefa é iniciada com `start`.
-3. Ao concluir a implementação, a tarefa passa a `VERIFYING` com `begin-verify`. O utilizador executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e envia a evidência. O verificador avalia-a sem executar shell.
+3. Ao concluir a implementação, a tarefa passa a `VERIFYING` com `begin-verify`. O agente `executor` executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e devolve a evidência. O verificador avalia-a sem executar shell.
 4. Depois das revisões, o `guardiao` regista a verificação com `verify` (`COMPLETED` + `VERIFIED`) e executa `commit-task`.
 5. `commit-task` roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem. Se uma falhar, para e não há commit nem push.
 6. Se passarem, faz o gate de âmbito. Com alterações, faz `git add` com caminhos explícitos, `git commit` com a mensagem gerada e `git push -u origin <branch>`. Com a worktree limpa, aplica o publish-existing (§15.7), sem criar commit.
 7. Depois de um push bem-sucedido, ou quando o remote já aponta para `HEAD`, a automação abre ou reutiliza o pull request da branch para `main` (§15.6–15.7).
-8. O relatório indica a branch, o resultado do push e o URL do pull request.
+8. O relatório indica a branch, o resultado do push, o URL do pull request e a próxima task a realizar.
+9. A próxima task é obtida com `node scripts/rawspec-v2-cli.mjs next`, primeiro na change da task e depois nas restantes changes aprovadas. É informação para o utilizador: não altera o estado de nenhuma task.
 
 Se a evidência falhar ou uma revisão reprovar, o `guardiao` regista `fail` com o motivo, e a tarefa volta a `IN PROGRESS`.
 

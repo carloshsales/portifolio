@@ -12,12 +12,13 @@ for (const [m, c] of Object.entries(cost).sort((a, b) => a[1] - b[1])) {
 }
 
 const STEPS = [
-  ['Orquestracao', 'gpt-6-luna'],
+  ['Orquestracao', 'minimax-m3'],
   ['Exploracao', 'beam-free'],
-  ['Clareza', 'gpt-6-luna'],
+  ['Clareza', 'minimax-m3'],
   ['Implementacao', 'claude-haiku-5-5'],
-  ['Verificacao', 'claude-haiku-5-5'],
-  ['Revisao A', 'gpt-6-luna'],
+  ['Verificacao exec', 'claude-haiku-5-5'],
+  ['Verificacao aval', 'claude-haiku-5-5'],
+  ['Revisao A', 'minimax-m3'],
   ['Revisao B', 'kimi-k2.7-code'],
   ['Registo', 'beam-free'],
 ]
@@ -31,8 +32,8 @@ for (const [etapa, modelo] of STEPS) {
 
 // revisao simples (sem revisor-b)
 const simples = total - cost['kimi-k2.7-code']
-// escalonamento do revisor: gpt-6-luna -> kimi-k2.7-code
-const escalonado = total - cost['gpt-6-luna'] + cost['kimi-k2.7-code'] * 2
+// escalonamento do revisor: minimax-m3 -> kimi-k2.7-code
+const escalonado = total - cost['minimax-m3'] + cost['kimi-k2.7-code'] * 2
 // escalonamento duplo: implementador e revisor sobem para T2 (mimo-v2.6-pro)
 const duplo = escalonado - cost['claude-haiku-5-5'] + cost['mimo-v2.6-pro']
 

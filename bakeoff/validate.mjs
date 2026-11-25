@@ -64,13 +64,14 @@ const AGENT_FILES = [
   'explorador',
   'analista-clareza',
   'implementador',
+  'executor',
   'revisor',
   'revisor-b',
   'verificador',
   'guardiao',
 ]
 
-check('os 8 agentes existem com frontmatter completo', () => {
+check('os 9 agentes existem com frontmatter completo', () => {
   for (const a of AGENT_FILES) {
     const path = `.opencode/agents/${a}.md`
     assert(existsSync(path), `${path} ausente`)
@@ -90,7 +91,7 @@ check('todos os modelos do routing pertencem ao provider opencode-go', () => {
     const model = content.match(/^model:\s*(\S+)/m)?.[1] ?? ''
     assert(model.startsWith('opencode-go/'), `${a} usa ${model}, que nao pertence ao opencode-go`)
   }
-  return 'todos os 8 modelos em opencode-go'
+  return 'todos os 9 modelos em opencode-go'
 })
 
 check('os 5 agentes de leitura negam edit, shell e subagent', () => {
@@ -103,6 +104,175 @@ check('os 5 agentes de leitura negam edit, shell e subagent', () => {
     }
   }
   return '5 agentes com as 3 negacoes'
+})
+
+check('o executor executa so comandos de leitura e nao escreve', () => {
+  const content = readFileSync('.opencode/agents/executor.md', 'utf8')
+  assert(/action: edit[\s\S]{0,80}?effect: deny/.test(content), 'executor nao nega edit')
+  const allowed = [
+    'pnpm test',
+    'pnpm test:e2e',
+    'pnpm lint',
+    'pnpm typecheck',
+    'pnpm format:check',
+    'pnpm build',
+  ]
+  for (const cmd of allowed) {
+    const re = new RegExp(
+      `action: shell[\\s\\S]{0,120}?resource: '${cmd} \\*'[\\s\\S]{0,80}?effect: allow`,
+    )
+    assert(re.test(content), `executor nao permite ${cmd}`)
+  }
+  const shellAllows = [...content.matchAll(/action: shell[\s\S]{0,120}?effect: allow/g)].length
+  assert(
+    shellAllows === allowed.length,
+    `executor tem ${shellAllows} permissoes shell allow, esperadas ${allowed.length}`,
+  )
+  for (const cmd of ['pnpm lint:fix', 'pnpm format', 'pnpm dev', 'pnpm preview']) {
+    const re = new RegExp(
+      `action: shell[\\s\\S]{0,120}?resource: '${cmd} \\*'[\\s\\S]{0,80}?effect: allow`,
+    )
+    assert(!re.test(content), `executor nao deve permitir ${cmd}`)
+  }
+  assert(
+    /action: shell[\s\S]{0,120}?resource: '\*'[\s\S]{0,80}?effect: deny/.test(content),
+    'executor nao nega shell em geral',
+  )
+  return `${allowed.length} comandos de leitura, sem escrita`
+})
+
+check('a regra shell deny vem antes dos allow do executor', () => {
+  const content = readFileSync('.opencode/agents/executor.md', 'utf8')
+  // Cada regra de shell ocupa tres linhas: action, resource e effect.
+  const lines = content.split('\n')
+  const shellRules = []
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*- action: shell\s*$/.test(lines[i])) continue
+    const resource = (lines[i + 1] ?? '').trim()
+    const effect = (lines[i + 2] ?? '').trim()
+    shellRules.push({ line: i + 1, resource, effect })
+  }
+  const denyIdx = shellRules.findIndex(
+    (r) => r.resource.includes("'*'") && r.effect.includes('deny'),
+  )
+  const allowIdx = shellRules.findIndex((r) => r.effect.includes('allow'))
+  assert(denyIdx !== -1, 'executor sem regra shell deny geral')
+  assert(allowIdx !== -1, 'executor sem nenhuma regra shell allow')
+  assert(
+    denyIdx < allowIdx,
+    `a regra shell deny tem de vir antes dos allow: a ultima regra que corresponde prevalece (deny na linha ${shellRules[denyIdx].line}, primeiro allow na linha ${shellRules[allowIdx].line})`,
+  )
+  return `deny geral na linha ${shellRules[denyIdx].line}, allow a partir da linha ${shellRules[allowIdx].line}`
+})
+
+check('o guardiao e o orquestrador indicam a proxima task', () => {
+  const guardiao = readFileSync('.opencode/agents/guardiao.md', 'utf8')
+  const orquestrador = readFileSync('.opencode/agents/orquestrador.md', 'utf8')
+  for (const [nome, content] of [
+    ['guardiao', guardiao],
+    ['orquestrador', orquestrador],
+  ]) {
+    assert(content.includes('PROXIMA:'), `${nome} sem o campo PROXIMA na saida`)
+    assert(/próxima task/i.test(content), `${nome} nao menciona a proxima task`)
+  }
+  assert(
+    guardiao.includes('rawspec-v2-cli.mjs next'),
+    'guardiao nao consulta a proxima task com a CLI',
+  )
+  assert(/next --change/.test(guardiao), 'guardiao nao consulta primeiro a change da task')
+  assert(/E_CHANGE_AMBIGUOUS/.test(guardiao), 'guardiao nao trata a ambiguidade entre changes')
+  assert(/E_NOTHING_TO_START/.test(guardiao), 'guardiao nao trata a ausencia de proxima task')
+  // A proxima task e informacao: nao pode ser implementada nem alterada.
+  const plain = guardiao.replace(/\*\*/g, '')
+  assert(
+    /informação,?\s+não uma ordem/i.test(plain),
+    'guardiao nao declara que a proxima task e apenas informacao',
+  )
+  assert(/Não a implementes/i.test(plain), 'guardiao nao proibe implementar a proxima task')
+  return 'guardiao consulta a CLI e o orquestrador apresenta o campo PROXIMA'
+})
+
+check('o cache TTL da configuracao e valido para os modelos do routing', () => {
+  const cfg = JSON.parse(readFileSync('opencode.json', 'utf8'))
+  const provider = cfg.providers?.['opencode-go']
+  assert(provider, 'opencode-go sem configuracao de cache')
+  const providerTtl = provider.settings?.cache?.ttl
+  assert(typeof providerTtl === 'string', 'opencode-go sem cache.ttl definido ao nivel do provider')
+
+  // O upstream aceita TTLs diferentes conforme o modelo: o beam-free exige
+  // exactamente 30m, e o claude-haiku-5-5 aceita apenas 5m ou 1h. Um TTL
+  // unico ao nivel do provider nao serve os dois, por isso o modelo que
+  // discorda precisa de um override ao nivel do modelo.
+  const models = provider.models ?? {}
+  const overrides = Object.entries(models).map(([id, m]) => [id, m?.settings?.cache?.ttl])
+
+  const haiku = overrides.find(([id]) => id === 'claude-haiku-5-5')
+  assert(haiku, 'claude-haiku-5-5 sem override de cache ao nivel do modelo')
+  assert(
+    ['5m', '1h'].includes(haiku[1]),
+    `o TTL do claude-haiku-5-5 e ${haiku[1]}, que o upstream rejeita (aceita 5m ou 1h)`,
+  )
+  assert(
+    providerTtl === '30m',
+    `o TTL do provider e ${providerTtl}; o beam-free exige exactamente 30m`,
+  )
+
+  const restantes = overrides.filter(([id]) => id !== 'claude-haiku-5-5')
+  for (const [id, ttl] of restantes) {
+    assert(
+      ttl === undefined || ttl === providerTtl,
+      `o override de cache de ${id} (${ttl}) difere do TTL do provider (${providerTtl})`,
+    )
+  }
+
+  return `provider ${providerTtl}, claude-haiku-5-5 ${haiku[1]}`
+})
+
+check('todos os modelos e variantes declarados resolvem no catalogo', () => {
+  const declared = new Map()
+  for (const a of AGENT_FILES) {
+    const content = readFileSync(`.opencode/agents/${a}.md`, 'utf8')
+    const model = content.match(/^model:\s*(\S+)/m)?.[1]
+    if (model) declared.set(`agente ${a}`, model)
+  }
+  for (const c of ['orquestrar', 'clarity']) {
+    const content = readFileSync(`.opencode/commands/${c}.md`, 'utf8')
+    const model = content.match(/^model:\s*(\S+)/m)?.[1]
+    if (model) declared.set(`comando /${c}`, model)
+  }
+
+  const catalog = JSON.parse(
+    execSync('curl -s https://models.dev/api.json', {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    }),
+  )
+
+  const problems = []
+  for (const [where, reference] of declared) {
+    const [provider, rest] = reference.split('/')
+    const [model, variant] = rest.split('#')
+    const entry = catalog[provider]?.models?.[model]
+    if (!entry) {
+      problems.push(`${where}: ${provider}/${model} nao existe no catalogo`)
+      continue
+    }
+    if (!variant) continue
+    // As variantes do catalogo derivam de reasoning_options: 'effort' gera
+    // variantes por nivel, 'toggle' gera apenas a variante 'none'.
+    const options = entry.reasoning_options ?? []
+    const efforts = options.filter((o) => o.type === 'effort').flatMap((o) => o.values ?? [])
+    const toggles = options.some((o) => o.type === 'toggle')
+    const known = [...efforts, ...(toggles ? ['none'] : [])]
+    if (!known.includes(variant)) {
+      problems.push(
+        `${where}: a variante '#${variant}' nao existe para ${provider}/${model} (disponiveis: ${known.join(', ') || 'nenhuma'})`,
+      )
+    }
+  }
+
+  assert(problems.length === 0, `modelos que nao resolvem:\n  ${problems.join('\n  ')}`)
+  return `${declared.size} declaracoes resolvem (${new Set(declared.values()).size} modelos distintos)`
 })
 
 // --- 3. comandos -----------------------------------------------------------
@@ -126,7 +296,7 @@ check('docs/orquestrador.md tem a tabela de routing completa', () => {
     assert(doc.includes(`\`${a}\``), `${a} ausente da tabela de routing`)
   }
   assert(doc.includes('Cache read'), 'custos de cache ausentes')
-  return '8 agentes na tabela, com custos'
+  return `${AGENT_FILES.length} agentes na tabela, com custos`
 })
 
 check('a ADR-007 tem as 6 secoes exigidas', () => {
@@ -160,9 +330,9 @@ check('os custos documentados batem com a medicao', () => {
     cost[r.model.replace('opencode-go/', '')] = r.cost
   }
   const total =
-    cost['gpt-6-luna'] * 3 +
+    cost['minimax-m3'] * 3 +
     cost['beam-free'] * 2 +
-    cost['claude-haiku-5-5'] * 2 +
+    cost['claude-haiku-5-5'] * 3 +
     cost['kimi-k2.7-code']
   const doc = readFileSync('docs/orquestrador.md', 'utf8')
   const documented = doc.match(/\$0,(\d{4})/)?.[1]
