@@ -12,7 +12,7 @@ export function Skills() {
           {skillGroups.map((group) => (
             <div key={group.title} className={styles.group}>
               <h3 className={styles.groupTitle}>{group.title}</h3>
-              <ul className={styles.skillList}>
+              <ul className={styles.skillList} role="list">
                 {group.skills.map((skill) => (
                   <li key={skill} className={styles.skill}>
                     {skill}
