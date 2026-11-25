@@ -39,7 +39,12 @@
 
 @media (max-width: 1023px) {
   .main {
-    /* Espaço para a barra de navegação inferior não cobrir o conteúdo. */
-    padding-bottom: 5rem;
+    /*
+     * Espaço para a barra de navegação inferior não cobrir o conteúdo.
+     * A altura da barra é partilhada com `Sidebar.module.css`, acrescida
+     * de uma margem de segurança para a última secção terminar acima da
+     * barra.
+     */
+    padding-bottom: calc(var(--nav-height-mobile) + var(--space-8));
   }
 }

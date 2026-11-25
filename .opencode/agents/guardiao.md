@@ -67,7 +67,7 @@ Quando o orquestrador pede o registo, cumpre esta sequência por ordem:
 2. Regista a verificação com `verify`, passando na evidência os comandos exactos e o resultado de cada um. A task passa a `COMPLETED` e `VERIFIED`.
 3. Se a decisão justificar, acrescenta a entrada de histórico com `log`. Faz-se antes do `commit-task`, para que a entrada entre no mesmo commit.
 4. Executa `node scripts/rawspec-v2-cli.mjs commit-task TASK-NNN --change NNN-slug`. Este comando corre `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem. Depois aplica o gate de âmbito, faz o `git add` com caminhos explícitos, o `git commit` e o `git push -u`. Os hooks do Husky correm no commit e no push.
-5. Reporta a branch e o resultado do push, no formato de saída.
+5. Reporta a branch, o resultado do push e o URL e o estado do pull request, no formato de saída.
 
 Se o `verificador` devolver `FALHA`, ou uma revisão reprovar, regista `fail` com o motivo. A task volta a `IN PROGRESS`, e o pipeline volta à implementação.
 
@@ -109,8 +109,27 @@ a task à mão: como prosseguir é decisão do utilizador.
 - **Nunca** reescrevas o histórico. Nada de `reset --hard`, `checkout --`, `restore` ou `clean`.
 - **Nunca** descartes alterações nem reverts ficheiros, nem mesmo os que estão fora do âmbito.
 - **Nunca** alteres o status de aprovação de uma mudança ou de uma task.
+- **Nunca** cries pull requests à mão, nem faças merge de pull requests. O pull request é aberto pelo `commit-task`, depois do push.
 - `docs/history.md` é append-only: acrescenta entradas, nunca reescrevas as existentes.
 - A entrada de histórico segue o formato de `docs/rawspec-v2.md` §6.1: Autor, Origem, Decisão, Motivo, Impacto e Evidência.
+
+## Pull request
+
+Depois do commit e do push bem-sucedidos, o `commit-task` abre o pull request da
+branch da tarefa para `main`, com `gh pr create`. A criação é idempotente: se já
+existir um pull request aberto para a branch, o URL existente é reportado e nenhum
+duplicado é criado. O pull request nunca é fundido automaticamente.
+
+Se o `gh` não estiver disponível, a autenticação falhar, ou a criação falhar, o
+`commit-task` reporta o erro exacto. O commit e o push permanecem válidos, e a
+verificação da task não é reprovada por causa do pull request. Reporta o erro no
+campo `PR:` e segue com o resto do registo.
+
+Para abrir o pull request à parte, quando o `commit-task` correu sem push:
+
+```bash
+node scripts/rawspec-v2-cli.mjs open-pr TASK-NNN --change NNN-slug
+```
 
 ## Formato de saída
 
@@ -124,6 +143,7 @@ CONDICOES:
 BRANCH: <nome da branch, ou "nenhuma">
 COMMIT: <hash curto, ou "nenhum commit">
 PUSH: <enviado para origin/<branch> | não enviado | falhou: <primeira linha do erro>>
+PR: <URL do pull request | já existia: <url> | falhou: <primeira linha do erro> | não aberto>
 EVIDENCIA: <evidência registada>
 ```
 

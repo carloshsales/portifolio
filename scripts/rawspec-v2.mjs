@@ -2136,20 +2136,372 @@ function isWithinScope(file, scopeFiles) {
   })
 }
 
+/** Base de destino dos pull requests criados pela automação. */
+export const PR_BASE_BRANCH = 'main'
+
+/**
+ * Nomes possíveis do GitHub CLI, por plataforma.
+ *
+ * No Windows, o GitHub CLI é instalado como `gh.exe`. O Node só consegue
+ * executar `gh.cmd` e `gh.bat` através de um shell, o que abriria espaço para
+ * injecção de comandos no corpo do pull request. Por isso, a procura é feita
+ * por um ficheiro executável real, resolvido antes da chamada.
+ */
+const GH_EXECUTABLE_NAMES = process.platform === 'win32' ? ['gh.exe'] : ['gh']
+
+/**
+ * Verifica se um ficheiro existe e é executável.
+ *
+ * No Windows, a permissão de execução não é usada pelo sistema de ficheiros,
+ * pelo que a existência basta. Em POSIX, um ficheiro sem bit de execução não
+ * pode ser executado, e devolvê-lo causaria um erro de permissão em vez de
+ * um "não instalado" claro.
+ *
+ * @param {string} candidate caminho do ficheiro.
+ * @returns {boolean} `true` quando o ficheiro existe e é executável.
+ */
+function isExecutableFile(candidate) {
+  try {
+    const stats = statSync(candidate)
+    if (!stats.isFile()) return false
+    if (process.platform === 'win32') return true
+    return (stats.mode & 0o111) !== 0
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Localiza o executável do GitHub CLI.
+ *
+ * A procura usa o `PATH`, sem executar nada. Devolve `null` quando o GitHub
+ * CLI não está instalado.
+ *
+ * @returns {string|null} caminho do executável ou `null`.
+ */
+export function resolveGhExecutable() {
+  const pathValue = process.env.PATH ?? ''
+  const separator = process.platform === 'win32' ? ';' : ':'
+  const directories = pathValue.split(separator).filter((entry) => entry !== '')
+  for (const directory of directories) {
+    for (const name of GH_EXECUTABLE_NAMES) {
+      const candidate = join(directory, name)
+      if (isExecutableFile(candidate)) return candidate
+    }
+  }
+  return null
+}
+
+/**
+ * Executa um comando externo, devolvendo o resultado em vez de lançar.
+ *
+ * A automação do pull request usa este executor para que as chamadas ao GitHub
+ * CLI possam ser substituídas em teste, sem acesso à rede.
+ *
+ * @param {string} command comando a executar.
+ * @param {string[]} args argumentos do comando.
+ * @param {string} cwd directório de trabalho.
+ * @returns {{code: number, stdout: string, stderr: string, unavailable?: boolean}} resultado da execução.
+ */
+export function runExternalCommand(command, args, cwd) {
+  if (command === 'gh' && !resolveGhExecutable()) {
+    return {
+      code: 127,
+      stdout: '',
+      stderr: 'GitHub CLI indisponível: o executável gh não foi encontrado no PATH',
+      unavailable: true,
+    }
+  }
+  const executable = command === 'gh' ? resolveGhExecutable() : command
+  try {
+    const stdout = execFileSync(executable, args, {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    return { code: 0, stdout: String(stdout), stderr: '' }
+  } catch (error) {
+    return {
+      code: typeof error.status === 'number' ? error.status : 1,
+      stdout: error.stdout ? String(error.stdout) : '',
+      stderr: error.stderr ? String(error.stderr) : String(error.message ?? ''),
+    }
+  }
+}
+
+/**
+ * Extrai a URL de um pull request a partir da saída do GitHub CLI.
+ *
+ * @param {string} output saída do comando.
+ * @returns {string|null} URL do pull request ou `null`.
+ */
+function extractPullRequestUrl(output) {
+  const match = /https:\/\/github\.com\/[^\s/]+\/[^\s/]+\/pull\/\d+/.exec(output ?? '')
+  return match ? match[0] : null
+}
+
+/**
+ * Valida um elemento da lista de pull requests devolvida pelo GitHub CLI.
+ *
+ * A validação é mínima e estrita: `url` tem de ser uma string não vazia, `number`
+ * tem de ser um inteiro positivo, e `state` e `title` têm de ser strings quando
+ * presentes. Um elemento malformado significa que a resposta do GitHub CLI não
+ * é fiável, e aceitá-la permitiria criar um pull request duplicado.
+ *
+ * O `number` é validado pelo tipo, antes de qualquer coerção. Uma coerção
+ * acceptaria valores que o GitHub CLI nunca devolve — `null`, `true`, `false` e
+ * a string vazia convertem-se em `0`, e uma string numérica converte-se no
+ * número correspondente — e reportaria um pull request inexistente como
+ * existente.
+ *
+ * @param {unknown} entry elemento da lista.
+ * @returns {{number: number, url: string, state: string, title: string}|null} elemento validado ou `null`.
+ */
+function parsePullRequestEntry(entry) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null
+  if (typeof entry.url !== 'string' || entry.url.trim() === '') return null
+  if (typeof entry.number !== 'number') return null
+  if (!Number.isInteger(entry.number)) return null
+  if (entry.number <= 0) return null
+  if (entry.state !== undefined && typeof entry.state !== 'string') return null
+  if (entry.title !== undefined && typeof entry.title !== 'string') return null
+  return {
+    number: entry.number,
+    url: entry.url,
+    state: entry.state ?? '',
+    title: entry.title ?? '',
+  }
+}
+
+/**
+ * Interpreta a saída JSON do `gh pr list`.
+ *
+ * Só uma resposta válida pode significar ausência de pull request: um array JSON
+ * válido e vazio. Qualquer outra resposta — saída vazia, JSON inválido, JSON que
+ * não é um array, ou um array com elementos malformados — é uma resposta
+ * inválida do GitHub CLI, e é reportada como erro de procura, para que a
+ * criação não prossiga e não haja pull request duplicado.
+ *
+ * @param {string} output saída do comando.
+ * @param {{branch?: string, base?: string}} [context] contexto da procura, para o erro.
+ * @returns {Array<{number: number, url: string, state: string, title: string}>} pull requests encontrados.
+ * @throws {RawspecError} `E_PR_UNAVAILABLE` quando a resposta não é válida.
+ */
+function parsePullRequestList(output, context = {}) {
+  const text = String(output ?? '').trim()
+  if (text === '') {
+    throw new RawspecError(
+      'E_PR_UNAVAILABLE',
+      `Resposta inválida ao procurar pull request: o GitHub CLI devolveu saída vazia`,
+      { ...context, reason: 'empty_output', output },
+    )
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(text)
+  } catch (error) {
+    throw new RawspecError(
+      'E_PR_UNAVAILABLE',
+      `Resposta inválida ao procurar pull request: o GitHub CLI não devolveu JSON`,
+      { ...context, reason: 'invalid_json', output, cause: error.message },
+    )
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new RawspecError(
+      'E_PR_UNAVAILABLE',
+      `Resposta inválida ao procurar pull request: o GitHub CLI devolveu JSON que não é uma lista`,
+      { ...context, reason: 'not_a_list', output },
+    )
+  }
+
+  return parsed.map((entry) => {
+    const parsedEntry = parsePullRequestEntry(entry)
+    if (!parsedEntry) {
+      throw new RawspecError(
+        'E_PR_UNAVAILABLE',
+        `Resposta inválida ao procurar pull request: a lista traz um pull request malformado`,
+        { ...context, reason: 'malformed_entry', output, entry },
+      )
+    }
+    return parsedEntry
+  })
+}
+
+/**
+ * Monta o título e o corpo do pull request de uma tarefa.
+ *
+ * @param {{change: object, task: object}} context tarefa e mudança.
+ * @param {string} branch branch de origem do pull request.
+ * @param {string} [base] branch base do pull request.
+ * @returns {{title: string, body: string}} título e corpo.
+ */
+export function buildPullRequestContent({ change, task }, branch, base = PR_BASE_BRANCH) {
+  const title = `${change.id} — ${task.id} — ${task.title}`
+  const body = [
+    `## ${task.id} — ${task.title}`,
+    '',
+    `- Mudança: \`${change.id}\``,
+    `- Tarefa: \`${task.id}\``,
+    `- Branch: \`${branch}\``,
+    `- Base: \`${base}\``,
+    `- Verificação: ${task.verification}`,
+    `- Evidência: ${task.evidence ?? '—'}`,
+    task.actionPlan ? `- Plano de ação: \`${task.actionPlan}\`` : '- Plano de ação: none',
+    '',
+    'Pull request aberto automaticamente pela automação do RawSpec v2 após o commit e o push da tarefa.',
+  ].join('\n')
+  return { title, body }
+}
+
+/**
+ * Procura um pull request já aberto para a branch de origem.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {string} branch branch de origem.
+ * @param {{base?: string, run?: (command: string, args: string[], cwd: string) => {code: number, stdout: string, stderr: string, unavailable?: boolean}}} [options] branch base e executor injetado.
+ * @returns {{number: number, url: string, state: string, title: string}|null} pull request existente ou `null`.
+ * @throws {RawspecError} `E_PR_UNAVAILABLE` quando o GitHub CLI está indisponível, a procura falha ou a resposta do GitHub CLI é inválida.
+ */
+export function findPullRequest(
+  repoRoot,
+  branch,
+  { base = PR_BASE_BRANCH, run = runExternalCommand } = {},
+) {
+  const args = [
+    'pr',
+    'list',
+    '--head',
+    branch,
+    '--base',
+    base,
+    '--state',
+    'open',
+    '--json',
+    'number,url,state,title',
+  ]
+  const result = run('gh', args, repoRoot)
+  if (result.code !== 0) {
+    throw new RawspecError(
+      'E_PR_UNAVAILABLE',
+      `Falha ao procurar pull request para ${branch}: ${(result.stderr || result.stdout || '').trim()}`,
+      { branch, base, stderr: result.stderr, stdout: result.stdout },
+    )
+  }
+  const [existing] = parsePullRequestList(result.stdout, { branch, base })
+  return existing ?? null
+}
+
+/**
+ * Abre o pull request da tarefa para a branch base.
+ *
+ * A operação é idempotente: se já existir um pull request aberto para a branch
+ * de origem, o existente é devolvido e nenhum duplicado é criado. A criação
+ * nunca faz merge automático.
+ *
+ * A idempotência assenta na procura, por isso a resposta da procura tem de ser
+ * válida. Uma resposta inválida do GitHub CLI — saída vazia, JSON inválido, JSON
+ * que não é uma lista, ou uma lista com elementos malformados — interrompe a
+ * operação com `E_PR_UNAVAILABLE`, antes de qualquer criação.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {string} taskId identificador da tarefa.
+ * @param {{changeId?: string, branch?: string, base?: string, run?: (command: string, args: string[], cwd: string) => {code: number, stdout: string, stderr: string, unavailable?: boolean}}} [options] opções.
+ * @returns {{status: 'created'|'existing', url: string, number: number|null, branch: string, base: string, title: string}} resultado.
+ * @throws {RawspecError} `E_ARGS`, `E_PR_UNAVAILABLE` ou `E_PR_CREATE_FAILED`.
+ */
+export function openPullRequest(
+  repoRoot,
+  taskId,
+  { changeId, branch, base = PR_BASE_BRANCH, run = runExternalCommand } = {},
+) {
+  const { change, task } = loadTask(repoRoot, taskId, changeId)
+  const head = branch ?? currentBranch(repoRoot)
+
+  // Um pull request da branch para ela própria não faz sentido, e o GitHub CLI
+  // só reportaria uma mensagem genérica. A guarda dá um erro preciso, antes
+  // de qualquer chamada à rede.
+  if (head === base) {
+    throw new RawspecError(
+      'E_ARGS',
+      `A branch de origem e a branch base do pull request não podem ser iguais: ${head}`,
+      { branch: head, base },
+    )
+  }
+
+  const existing = findPullRequest(repoRoot, head, { base, run })
+  if (existing) {
+    return {
+      status: 'existing',
+      url: existing.url,
+      number: existing.number,
+      branch: head,
+      base,
+      title: existing.title,
+    }
+  }
+
+  const { title, body } = buildPullRequestContent({ change, task }, head, base)
+  const args = ['pr', 'create', '--base', base, '--head', head, '--title', title, '--body', body]
+  const result = run('gh', args, repoRoot)
+  if (result.code !== 0) {
+    const code = result.unavailable ? 'E_PR_UNAVAILABLE' : 'E_PR_CREATE_FAILED'
+    throw new RawspecError(
+      code,
+      `Falha ao abrir o pull request para ${head}: ${(result.stderr || result.stdout || '').trim()}`,
+      { branch: head, base, stderr: result.stderr, stdout: result.stdout },
+    )
+  }
+
+  const url = extractPullRequestUrl(result.stdout) ?? extractPullRequestUrl(result.stderr)
+  if (!url) {
+    throw new RawspecError(
+      'E_PR_CREATE_FAILED',
+      `Pull request criado sem URL legível para ${head}`,
+      { branch: head, base, stdout: result.stdout, stderr: result.stderr },
+    )
+  }
+
+  const number = Number(/\/pull\/(\d+)/.exec(url)?.[1] ?? Number.NaN)
+  return {
+    status: 'created',
+    url,
+    number: Number.isNaN(number) ? null : number,
+    branch: head,
+    base,
+    title,
+  }
+}
+
 /**
  * Conclui a tarefa com commit e push, respeitando os hooks do Husky.
  *
  * As verificações correm antes do commit, por ordem. Uma falha impede o commit e o push.
  *
+ * Depois do push, a automação abre o pull request para a branch base. A falha
+ * do pull request não desfaz o commit nem o push, e não reprova a verificação
+ * da tarefa: é reportada no resultado.
+ *
  * @param {string} repoRoot caminho raiz do repositório.
  * @param {string} taskId identificador da tarefa.
- * @param {{changeId?: string, branch?: string, remote?: string, push?: boolean, checks?: string[][], runCheck?: (repoRoot: string, args: string[]) => void}} [options] opções.
- * @returns {{branch: string, commit: string, pushed: boolean}} resultado.
+ * @param {{changeId?: string, branch?: string, remote?: string, push?: boolean, checks?: string[][], runCheck?: (repoRoot: string, args: string[]) => void, pr?: boolean, prBase?: string, runExternal?: (command: string, args: string[], cwd: string) => {code: number, stdout: string, stderr: string}}} [options] opções.
+ * @returns {{branch: string, commit: string, pushed: boolean, pullRequest: object|null}} resultado.
  */
 export function commitAndPushTask(
   repoRoot,
   taskId,
-  { changeId, branch, remote = 'origin', push = true, checks, runCheck } = {},
+  {
+    changeId,
+    branch,
+    remote = 'origin',
+    push = true,
+    checks,
+    runCheck,
+    pr = true,
+    prBase = PR_BASE_BRANCH,
+    runExternal = runExternalCommand,
+  } = {},
 ) {
   const { task, located } = loadTask(repoRoot, taskId, changeId)
   const done = task.status === 'COMPLETED' || task.status === 'ARCHIVED'
@@ -2207,7 +2559,34 @@ export function commitAndPushTask(
   }
 
   const commit = runCommand('git', ['rev-parse', '--short', 'HEAD'], repoRoot, 'E_GIT_ERROR').trim()
-  return { branch: targetBranch, commit, pushed }
+
+  // O pull request só faz sentido depois de a branch estar publicada. Uma
+  // falha aqui não desfaz o commit nem o push, e não reprova a verificação da
+  // tarefa: o erro é reportado com precisão e o registo continua válido.
+  let pullRequest = null
+  if (pr && pushed) {
+    try {
+      pullRequest = openPullRequest(repoRoot, taskId, {
+        changeId,
+        branch: targetBranch,
+        base: prBase,
+        run: runExternal,
+      })
+    } catch (error) {
+      if (!(error instanceof RawspecError)) throw error
+      pullRequest = {
+        status: 'failed',
+        url: null,
+        number: null,
+        branch: targetBranch,
+        base: prBase,
+        title: '',
+        error: { code: error.code, message: error.message, details: error.details ?? {} },
+      }
+    }
+  }
+
+  return { branch: targetBranch, commit, pushed, pullRequest }
 }
 
 /**

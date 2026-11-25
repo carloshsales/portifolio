@@ -4,7 +4,7 @@ import { useActiveSection } from '../hooks/useActiveSection'
 import { ContactIcon, HomeIcon, ProjectsIcon, SkillsIcon } from './icons'
 import styles from './Sidebar.module.css'
 
-const SECTION_IDS = ['inicio', 'projetos', 'habilidades', 'contato'] as const
+const SECTION_IDS: readonly string[] = ['inicio', 'projetos', 'habilidades', 'contato']
 
 interface NavItem {
   id: string
@@ -19,11 +19,10 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'contato', label: 'Contato', icon: ContactIcon },
 ]
 
-const FALLBACK_NAME = 'Portfólio'
-
 export function Sidebar() {
   const activeId = useActiveSection(SECTION_IDS)
-  const name = profile.name.trim() !== '' ? profile.name : FALLBACK_NAME
+  const hasName = profile.name.trim() !== ''
+  const name = hasName ? profile.name : 'Início'
 
   return (
     <aside className={styles.sidebar}>
@@ -33,7 +32,7 @@ export function Sidebar() {
         </a>
       </h1>
 
-      {profile.name.trim() !== '' || profile.role.trim() !== '' ? (
+      {hasName ? (
         <div className={styles.identity}>
           <p className={styles.name}>{profile.name}</p>
           <p className={styles.role}>{profile.role}</p>
