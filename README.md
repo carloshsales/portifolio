@@ -32,9 +32,9 @@ O routing de modelos por etapa e a economia de tokens estão em [`docs/orquestra
 A verificação do orquestrador corre com:
 
 ```bash
-node bakeoff/validate.mjs              # 14 verificações de configuração, agentes e documentação
-node bakeoff/check-agents.mjs          # os 8 agentes são descobertos
-node bakeoff/check-permissions.mjs      # quem escreve e quem não escreve
+node bakeoff/validate.mjs              # 20 verificações de configuração, agentes e documentação
+node bakeoff/check-agents.mjs          # os 9 agentes são descobertos
+node bakeoff/check-permissions.mjs      # quem escreve, quem não escreve e quem executa
 node bakeoff/check-scope-gate.mjs       # o gate de âmbito bloqueia escritas fora do âmbito
 ```
 

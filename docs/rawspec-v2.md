@@ -182,14 +182,14 @@ Automáticas, executadas pelo `commit-task` por esta ordem (§15.2):
 3. `pnpm test`
 4. `pnpm build`
 
-Manuais, executadas pelo utilizador no fluxo padrão, antes da revisão e do registo, por esta ordem:
+Manuais, executadas pelo agente `executor` no fluxo padrão, antes da revisão e do registo, por esta ordem:
 
 1. `pnpm test`
 2. `pnpm test:e2e`
 
 `pnpm test:e2e` executa `pnpm build` antes do Playwright, porque o `vite preview` serve `dist/`, que é ignorado pelo Git e não existe num clone novo.
 
-O verificador avalia a evidência das verificações manuais sem executar shell. Os hooks do Husky podem repetir parte das verificações automáticas (§15.3).
+O `executor` devolve a evidência de cada comando: o comando exacto, o código de saída e a saída relevante. O verificador avalia-a sem executar shell. Os hooks do Husky podem repetir parte das verificações automáticas (§15.3).
 
 A formatação com Prettier é aplicada pelo hook `pre-commit` (lint-staged) aos arquivos preparados; não é uma verificação manual.
 
@@ -255,7 +255,7 @@ Action-Plan: <caminho ou none>
 | `E_DEPENDENCY_UNDECLARED` | Tarefa sem `Depende de`. |
 | `E_DEPENDENCY_UNKNOWN` | Dependência inexistente. |
 | `E_DEPENDENCY_CYCLE` | Autodependência ou ciclo. |
-| `E_TASK_STATE` | Transição de estado inválida. |
+| `E_TASK_STATE` | Estado de task inválido; `details.reason` identifica a causa, incluindo `task_not_verified`, `branch_mismatch`, `commit_metadata_mismatch`, `no_eligible_commit`, `merge_commit_ineligible`, `no_changes_to_commit` e `merge_in_progress`. |
 | `E_EVIDENCE_REQUIRED` | Verificação sem evidência. |
 | `E_APPROVAL_REQUIRED` | Aprovação humana ausente. |
 | `E_ARCHIVE_TASK_BLOCKED` | Tarefa não elegível para arquivamento. |
@@ -268,7 +268,8 @@ Action-Plan: <caminho ou none>
 | `E_HISTORY_INVALID` | Entrada de histórico inválida. |
 | `E_ADR_EXISTS` | ADR duplicado. |
 | `E_SCOPE_VIOLATION` | Há ficheiros tocados fora do âmbito declarado na secção `## Arquivos` da task. |
-| `E_PR_UNAVAILABLE` | O GitHub CLI está ausente ou indisponível, a procura de pull request falhou, ou a resposta da procura foi inválida. |
+| `E_GIT_ERROR` | Comando Git falhou; no publish-existing, `details.reason` distingue `remote_not_found`, `remote_unavailable`, `remote_ahead` e `remote_diverged`. |
+| `E_PR_UNAVAILABLE` | O GitHub CLI está ausente ou indisponível, a procura de pull request falhou, a resposta é inválida ou o URL do remote não identifica um repositório GitHub suportado. |
 | `E_PR_CREATE_FAILED` | O GitHub CLI executou a criação, mas a criação do pull request falhou ou não devolveu uma URL legível. |
 
 Os erros de pull request terminam a CLI com o código de saída `8`. Todos os
@@ -303,12 +304,13 @@ Exemplo: `task/001-005-implementar-secao-inicial`.
 
 1. `/startspec` resolve a tarefa e cria a branch com `create-branch`.
 2. A tarefa é iniciada com `start`.
-3. Ao concluir a implementação, a tarefa passa a `VERIFYING` com `begin-verify`. O utilizador executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e envia a evidência. O verificador avalia-a sem executar shell.
+3. Ao concluir a implementação, a tarefa passa a `VERIFYING` com `begin-verify`. O agente `executor` executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e devolve a evidência. O verificador avalia-a sem executar shell.
 4. Depois das revisões, o `guardiao` regista a verificação com `verify` (`COMPLETED` + `VERIFIED`) e executa `commit-task`.
 5. `commit-task` roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem. Se uma falhar, para e não há commit nem push.
-6. Se passarem, faz o gate de âmbito, faz `git add` com caminhos explícitos, `git commit` com a mensagem gerada e `git push -u origin <branch>`.
-7. Depois do push, a automação abre o pull request da branch para `main` (§15.6).
-8. O relatório indica a branch, o resultado do push e o URL do pull request.
+6. Se passarem, faz o gate de âmbito. Com alterações, faz `git add` com caminhos explícitos, `git commit` com a mensagem gerada e `git push -u origin <branch>`. Com a worktree limpa, aplica o publish-existing (§15.7), sem criar commit.
+7. Depois de um push bem-sucedido, ou quando o remote já aponta para `HEAD`, a automação abre ou reutiliza o pull request da branch para `main` (§15.6–15.7).
+8. O relatório indica a branch, o resultado do push, o URL do pull request e a próxima task a realizar.
+9. A próxima task é obtida com `node scripts/rawspec-v2-cli.mjs next`, primeiro na change da task e depois nas restantes changes aprovadas. É informação para o utilizador: não altera o estado de nenhuma task.
 
 Se a evidência falhar ou uma revisão reprovar, o `guardiao` regista `fail` com o motivo, e a tarefa volta a `IN PROGRESS`.
 
@@ -343,9 +345,9 @@ Os hooks são sempre executados, podem repetir verificações já feitas pelo `c
 | Código | Significado |
 |---|---|
 | `E_BRANCH_EXISTS` | A branch da tarefa já existe. |
-| `E_GIT_ERROR` | Comando Git falhou. |
+| `E_GIT_ERROR` | Comando Git falhou; no publish-existing, `details.reason` distingue `remote_not_found`, `remote_unavailable`, `remote_ahead` e `remote_diverged`. |
 | `E_CHECKS_FAILED` | `lint`, `typecheck`, `test` ou `build` falhou. |
-| `E_TASK_STATE` | A tarefa não está concluída e verificada. |
+| `E_TASK_STATE` | A tarefa não está concluída e verificada ou falhou uma condição de elegibilidade do publish-existing; consulte `details.reason`. |
 
 ### 15.6 Pull request automático
 
@@ -421,3 +423,91 @@ O `commit-task` devolve no seu resultado:
 
 `status` aceita `created`, `existing` e `failed`. Com `existing`, o `title` é o
 título do pull request já aberto.
+
+### 15.7 Publicação idempotente de commit existente
+
+O `commit-task` preserva o fluxo staged normal. Quando `git status
+--porcelain --untracked-files=all` indica uma árvore limpa, pode publicar um
+commit existente da task, sem executar `git add` nem `git commit`. Esta via
+existe para recuperar commits RawSpec locais que ficaram sem push; a falha
+anterior ocorria porque o fluxo tentava `git commit` sem ficheiros staged, e o
+hook `pre-commit` falhava no `lint-staged` antes de chegar ao push.
+
+Pré-condições cumulativas:
+
+- task `COMPLETED` e `VERIFIED`;
+- branch corrente igual à branch canónica da task; se `--branch` for dado,
+  também tem de corresponder à branch corrente;
+- nenhum `MERGE_HEAD`;
+- `HEAD` é um commit da task com exactamente um `Change: <change-id>` e um
+  `Task: <task-id>` nos metadados da mensagem;
+- todos os commits a publicar têm esses metadados, não são commits de merge e
+  alteram apenas caminhos declarados em `## Arquivos` ou ficheiros de
+  especificação permitidos pelo gate;
+- remote configurado e fetch verificável.
+
+Antes de decidir o push, o helper consulta o remote com `git ls-remote` e busca
+apenas o ref de que precisa. Se a branch remota da task existir, busca o ref
+exacto e usa-o como base. Se não existir, usa exclusivamente
+`refs/remotes/<remote>/main`; não recua para `main` local. O fetch dirigido ao
+ref exacto é também a prova de que o remote está disponível: um fetch que falha
+significa que o remote não pode ser verificado. Um remote ou ref indisponível
+falha fechado, sem push nem PR. A validação do range é determinística: todos os
+commits em `<base>..HEAD` são examinados.
+
+Comportamento do estado remoto:
+
+- Branch remota ausente e range vazio: `E_TASK_STATE` com
+  `details.reason: no_eligible_commit`; não cria commit vazio, push ou PR.
+- Branch remota ausente e range elegível: publica o `HEAD` existente com
+  `git push -u <remote> <branch>`.
+- Branch remota ancestral de `HEAD`: valida e publica apenas o avanço
+  fast-forward.
+- Branch remota igual a `HEAD`: já publicado; não repete o push (`pushed:
+  false`), mas procura/cria o PR de forma idempotente. O PR continua a ser
+  aberto porque a branch já está publicada: o que se repete é a publicação, não
+  a abertura do pull request.
+- Branch remota à frente ou divergente: `E_GIT_ERROR` com
+  `remote_ahead` ou `remote_diverged`; nunca faz force-push nem abre PR.
+- Commit de merge no range: `E_TASK_STATE` com
+  `merge_commit_ineligible`; caminho fora do âmbito: `E_SCOPE_VIOLATION`.
+
+O push usa o hook `pre-push` normal. O caminho limpo não chama `git commit`,
+portanto não dispara `lint-staged` sem staged files. `--no-push` suprime push e
+PR e, com isso, todo o contacto com o remote: não há `git fetch`, nem
+inspecção do estado remoto, porque sem publicação não há nada a preparar. Com
+`--no-push`, a elegibilidade é validada apenas localmente, sobre o `HEAD` e o
+seu diff. `--no-pr` suprime apenas o PR, mantendo o push e a inspecção do
+remote.
+
+O caminho com alterações continua a executar checks, gate, staging explícito,
+commit e push; alterações fora do âmbito continuam a bloquear com
+`E_SCOPE_VIOLATION`, e ausência de alterações committable no âmbito devolve
+`E_TASK_STATE` com `details.reason: no_changes_to_commit`. Uma alteração já
+presente no índice conta como alteração: o caminho limpo só é considerado
+quando o índice e a worktree estão ambos sem alterações.
+
+Nos PRs de `commit-task`, `--remote` determina tanto fetch/push como o repositório
+GitHub. URLs HTTPS e SSH suportados são convertidos para `owner/repo` e passados
+explicitamente em `gh pr list/create --repo owner/repo`. O owner e o nome do
+repositório são validados antes de serem passados ao GitHub CLI. Um remote com
+vários URLs usa o primeiro que identifique um repositório GitHub. Remote não
+GitHub, URL não suportado ou `gh` indisponível produzem
+`pullRequest.status: failed` com `E_PR_UNAVAILABLE`, sem desfazer um push
+bem-sucedido. A falha de criação depois de uma chamada válida mantém a
+classificação `E_PR_CREATE_FAILED`.
+
+Se o remote mudar entre a inspecção e o push, o push falha e o estado remoto é
+reinspeccionado. Se o remote tiver ficado à frente ou divergido, o erro
+reportado é `remote_ahead` ou `remote_diverged`, e não um erro Git genérico.
+
+O resultado de sucesso mantém o formato:
+
+```json
+{
+  "branch": "task/014-001-publicar-commit-existente-elegivel-com-commit-task-idempoten",
+  "commit": "abc1234",
+  "pushed": true,
+  "pullRequest": null
+}
+```

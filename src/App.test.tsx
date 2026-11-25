@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 interface ObserverEntry {
@@ -200,6 +200,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.doUnmock('./data/profile')
+  vi.doUnmock('./data/projects')
+  vi.doUnmock('./data/skills')
   globalThis.IntersectionObserver = originalIntersectionObserver
 
   if (originalClientHeight === undefined) {
@@ -234,6 +236,55 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Projetos' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Habilidades' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Contato' })).toBeInTheDocument()
+  })
+
+  it('apresenta cada card de projeto com título h3 dentro da secção Projetos', async () => {
+    vi.doMock('./data/projects', () => ({
+      projects: [
+        {
+          title: 'Primeiro projeto',
+          description: 'Descrição do primeiro projeto.',
+          technologies: ['React'],
+        },
+        {
+          title: 'Segundo projeto',
+          description: 'Descrição do segundo projeto.',
+          technologies: ['TypeScript'],
+        },
+      ],
+    }))
+
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Projetos' })
+    const cardTitles = within(section).getAllByRole('heading', { level: 3 })
+
+    expect(within(section).getByRole('heading', { level: 2, name: 'Projetos' })).toBeInTheDocument()
+    expect(cardTitles.map((title) => title.textContent)).toEqual([
+      'Primeiro projeto',
+      'Segundo projeto',
+    ])
+  })
+
+  it('apresenta cada categoria de habilidades com título h3 na secção Habilidades', async () => {
+    vi.doMock('./data/skills', () => ({
+      skillGroups: [
+        { title: 'Primeira categoria', skills: ['TypeScript'] },
+        { title: 'Segunda categoria', skills: ['CSS'] },
+      ],
+    }))
+
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Habilidades' })
+    const heading = within(section).getByRole('heading', { level: 2, name: 'Habilidades' })
+    const groupTitles = within(section).getAllByRole('heading', { level: 3 })
+
+    expect(heading).toBeInTheDocument()
+    expect(groupTitles.map((title) => title.textContent)).toEqual([
+      'Primeira categoria',
+      'Segunda categoria',
+    ])
   })
 
   it('renders navigation links to each section', async () => {
@@ -381,6 +432,31 @@ describe('App', () => {
     await renderApp()
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+})
+
+describe('secção de contato', () => {
+  it('apresenta a secção Contato com título h2 e um link por canal', async () => {
+    vi.doMock('./data/profile', () => ({
+      profile: {
+        name: '',
+        role: '',
+        summary: '',
+        photoUrl: '',
+        location: '',
+        social: [
+          { label: 'GitHub', url: 'https://github.com/utilizador-teste', icon: 'github' },
+          { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' },
+        ],
+      },
+    }))
+
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Contato' })
+
+    expect(within(section).getByRole('heading', { level: 2, name: 'Contato' })).toBeInTheDocument()
+    expect(within(section).getAllByRole('link')).toHaveLength(2)
   })
 })
 

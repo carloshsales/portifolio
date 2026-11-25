@@ -13,6 +13,14 @@ const filledProfile: Profile = {
   social: [],
 }
 
+const contactProfile: Profile = {
+  ...filledProfile,
+  social: [
+    { label: 'GitHub', url: 'https://github.com/utilizador-teste', icon: 'github' },
+    { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' },
+  ],
+}
+
 async function setProfileOverride(page: Page, profile: Profile): Promise<void> {
   await page.addInitScript((value) => {
     ;(window as unknown as { __PORTFOLIO_PROFILE__?: Profile }).__PORTFOLIO_PROFILE__ = value
@@ -483,6 +491,21 @@ test('não tem links de contacto inválidos', async ({ page }) => {
     .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''))
 
   for (const href of hrefs) {
+    expect(href).not.toBe('')
+    expect(href).not.toMatch(/^javascript:/i)
+  }
+})
+
+test('com canais, cada link de contato tem href válido', async ({ page }) => {
+  await setProfileOverride(page, contactProfile)
+  await page.goto('/')
+
+  const links = page.locator('section#contato a[href]')
+  await expect(links).toHaveCount(contactProfile.social.length)
+
+  for (const link of await links.all()) {
+    const href = (await link.getAttribute('href')) ?? ''
+
     expect(href).not.toBe('')
     expect(href).not.toMatch(/^javascript:/i)
   }

@@ -1,4 +1,4 @@
-// Verifica se os oito agentes do orquestrador sao descobertos pelo OpenCode
+// Verifica se os nove agentes do orquestrador sao descobertos pelo OpenCode
 // e que respondem com o modelo correcto.
 // Uso: node bakeoff/check-agents.mjs
 
@@ -9,9 +9,10 @@ const AGENTS = [
   'explorador',
   'analista-clareza',
   'implementador',
+  'executor',
+  'verificador',
   'revisor',
   'revisor-b',
-  'verificador',
   'guardiao',
 ]
 

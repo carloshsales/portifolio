@@ -34,4 +34,4 @@ node scripts/rawspec-v2-cli.mjs next
 
 ## Fechamento
 
-Ao terminar a implementação, use `/continuespec` para passar a tarefa a `VERIFYING`. O utilizador executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e envia a evidência. Depois das revisões aprovadas, `/continuespec` regista a verificação e executa `commit-task`, que roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`. Se passarem, faz commit e push na branch da tarefa.
+Ao terminar a implementação, use `/continuespec` para passar a tarefa a `VERIFYING`. O agente `executor` executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e o `verificador` avalia a evidência. Depois das revisões aprovadas, `/continuespec` regista a verificação e executa `commit-task`, que roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`. Se passarem, faz commit e push na branch da tarefa. No fim, reporta a próxima task a realizar, para o utilizador saber o que se segue.

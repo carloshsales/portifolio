@@ -1,13 +1,14 @@
 ---
-description: Executa o pipeline de uma tarefa RawSpec, da exploração ao registo, com verificação manual pelo utilizador
+description: Executa o pipeline de uma tarefa RawSpec, da exploração ao registo, com verificação executada por agente
 agent: orquestrador
-model: opencode-go/gpt-6-luna#high
+model: opencode-go/minimax-m3
 ---
 
 # /orquestrar
 
-Executa o pipeline de uma tarefa RawSpec v2. A verificação é feita pelo utilizador,
-que executa `pnpm test` e `pnpm test:e2e` e envia a evidência.
+Executa o pipeline de uma tarefa RawSpec v2. A verificação é executada pelo
+agente `executor`, que corre `pnpm test` e `pnpm test:e2e` e envia a evidência
+ao `verificador`.
 
 `TASK-ID` identifica a task a executar, por exemplo `TASK-005`. A change é
 inferida do ficheiro da task. Sem argumento, apresenta as tasks elegíveis.
@@ -52,20 +53,21 @@ Executa as etapas por ordem, usando os agentes indicados.
    de `## Arquivos`. Ao terminar, pede ao `guardiao` o `begin-verify`, para a task
    passar a `VERIFYING`.
 
-5. **Verificação manual** — apresentas ao utilizador os comandos, por esta ordem:
+5. **Verificação** — invoca o agente `executor`, que executa, por esta ordem:
 
    1. `pnpm test`
    2. `pnpm test:e2e`
 
-   Pedes a evidência de cada um: o comando exato e o resultado final (código de
-   saída 0 ou resumo de sucesso). **Aguardas** a resposta. Não avanças sem ela.
+   Recebes a evidência de cada um: o comando exato, o código de saída e a
+   saída relevante. Não avanças sem a evidência dos dois.
 
    Envias a evidência ao agente `verificador`, que a avalia sem executar shell.
 
    - Se falhar: pára e apresenta a saída relevante ao utilizador. Pede ao
      `guardiao` o `fail` com o motivo e volta a 4. Na segunda falha pelo mesmo
      motivo, o `implementador` sobe de tier de modelo.
-   - Se estiver em falta ou for ambígua: pede o complemento e aguarda.
+   - Se estiver em falta ou for ambígua: invoca de novo o `executor` para
+     repetir o que falta.
 
 6. **Revisor A** — invoca o agente `revisor`, com foco em correcção funcional.
 
@@ -95,10 +97,15 @@ Executa as etapas por ordem, usando os agentes indicados.
    permanecem válidos, e a verificação da tarefa não é reprovada por causa do
    pull request. Reporta o URL e o estado do pull request.
 
+   O `guardiao` devolve também a próxima task a realizar. Apresenta-a no campo
+   `PROXIMA:` da saída final. É informação: não a implementes nem alteres o seu
+   estado.
+
 ## Regras
 
 - Não escrevas código tu próprio. Delega.
-- Não executes `pnpm test` nem `pnpm test:e2e`. Apresenta-os ao utilizador e aguarda a evidência.
+- Não executes `pnpm test` nem `pnpm test:e2e` tu próprio. Quem os executa é o
+  `executor`.
 - Não faças commit nem push. Essa responsabilidade é do `guardiao`, através do `commit-task`.
 - Não cries pull requests à mão. Essa responsabilidade é do `commit-task`, que o faz depois do push.
 - Não faças merge de pull requests.
@@ -115,10 +122,11 @@ TAREFA: <id> — <título>
 ESTADO: <etapa em que ficou>
 PONTUACAO: <clareza>/100
 FICHEIROS: <tocados>
-COMANDOS: <na verificação: pnpm test, depois pnpm test:e2e — aguardo a evidência; senão "nenhum">
+COMANDOS: <na verificação: pnpm test e pnpm test:e2e, executados pelo executor; senão "nenhum">
 VERIFICACOES: <resultado do verificador, ou "pendente">
 BRANCH: <branch da tarefa, ou "nenhuma">
 PUSH: <enviado para origin/<branch>, não enviado, ou falhou com a primeira linha do erro>
 PR: <URL do pull request, "já existia: <url>", ou "falhou: <primeira linha do erro>">
+PROXIMA: <id e título da próxima task, ou "nenhuma — a change NNN-slug está completa">
 PEDIDO: <o que precisas do utilizador, ou "nenhum">
 ```

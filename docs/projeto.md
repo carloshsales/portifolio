@@ -398,20 +398,23 @@ O projecto usa um orquestrador de agentes próprio, definido como configuração
 nativa do OpenCode: agentes, comandos e permissões declarados em ficheiros
 versionados. Não há código próprio, plugins nem serviços adicionais. A
 referência completa está em [`docs/orquestrador.md`](orquestrador.md) e a
-decisão está registada na ADR-007.
+decisão está registada na ADR-007. A verificação executada por agente está
+registada na ADR-010. A indicação da próxima task ao terminar cada tarefa está
+registada na ADR-011.
 
-**Oito agentes:**
+**Nove agentes:**
 
 | Agente | Papel |
 |---|---|
-| `orquestrador` | Coordena o pipeline, apresenta os comandos de verificação ao utilizador e aguarda a evidência. |
+| `orquestrador` | Coordena o pipeline e delega cada etapa ao agente adequado. |
 | `explorador` | Mapeia o repositório e detecta divergências. |
 | `analista-clareza` | Avalia a tarefa contra os dez critérios dos §8.5. |
 | `implementador` | Escreve o código, restrito ao âmbito da tarefa. |
+| `executor` | Executa `pnpm test` e `pnpm test:e2e` e recolhe a evidência. Não escreve. |
 | `revisor` | Revê o diff, com foco em correcção funcional. |
 | `revisor-b` | Segunda opinião, com foco em acessibilidade, tipagem, performance e segurança. |
-| `verificador` | Avalia a evidência de `pnpm test` e `pnpm test:e2e` enviada pelo utilizador. Não executa shell. |
-| `guardiao` | Actualiza o estado RawSpec, o histórico e o Git, com commit e push via `commit-task`. |
+| `verificador` | Avalia a evidência de `pnpm test` e `pnpm test:e2e` enviada pelo `executor`. Não executa shell. |
+| `guardiao` | Actualiza o estado RawSpec, o histórico e o Git, com commit e push via `commit-task`. Indica a próxima task. |
 
 **Pipeline de oito etapas:**
 
@@ -419,7 +422,7 @@ decisão está registada na ADR-007.
 2. clareza, com gate aos 90/100;
 3. aprovação humana;
 4. implementação;
-5. verificação: o utilizador executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e o `verificador` avalia a evidência;
+5. verificação: o `executor` executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e o `verificador` avalia a evidência;
 6. revisão A (`revisor`);
 7. revisão B (`revisor-b`);
 8. registo: o `guardiao` regista a verificação e executa `commit-task`, que roda `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`.
@@ -429,13 +432,14 @@ A revisão em par tem dois agentes com focos distintos. Quando discordam, o
 `verificador` avalia.
 
 **Routing de modelos.** Cada etapa tem um modelo atribuído, medido num
-bake-off sobre a TASK-005 real. O routing medido custa **$0,0229 por tarefa**,
+bake-off sobre a TASK-005 real. O routing medido custa **$0,0593 por tarefa**,
 contra $0,65 das sessões manuais. Todos os modelos são do provider
 `opencode-go`.
 
 **Comandos:**
 
-- `/orquestrar [TASK-ID]` — executa o pipeline, parando para a evidência do utilizador antes da revisão e do registo.
+- `/orquestrar [TASK-ID]` — executa o pipeline, com a verificação executada
+  pelo agente `executor` antes da revisão e do registo.
 - `/clarity [TASK-ID]` — avalia a clareza de uma tarefa, sem tocar em
   ficheiros.
 
@@ -749,7 +753,7 @@ projeto. O grafo effective está no ficheiro de cada tarefa, no campo
 6. A aprovação humana é obrigatória.
 7. O código existente deve ser inspecionado antes de ser alterado.
 8. Os testes precisam de ser executados e as suas evidências registadas. No fluxo
-   padrão, o utilizador executa `pnpm test` e `pnpm test:e2e`, e o verificador
+   padrão, o `executor` executa `pnpm test` e `pnpm test:e2e`, e o verificador
    avalia a evidência.
 9. O âmbito não deve crescer sem necessidade.
 10. O utilizador mantém a decisão final sobre mudanças relevantes.

@@ -22,7 +22,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { parseArgs, parseBooleanFlag } from './rawspec-v2-cli.mjs'
@@ -413,6 +413,28 @@ describe('parsing das flags da CLI', () => {
 })
 
 /**
+ * Timeout dos testes que correm a CLI contra um repositório Git real.
+ *
+ * Estes testes fazem operações de Git — init, commit, push e fetch — em
+ * diretórios temporários. O valor por omissão do Vitest, 5000 ms, deixa-os
+ * à beira do limite: quando a máquina está ocupada, um teste que demora 3 s
+ * normalmente falha por timeout, sem que nada esteja errado. O timeout
+ * explícito dá margem para a variabilidade do sistema de ficheiros, sem
+ * esconder uma falha real.
+ */
+const CLI_INTEGRATION_TIMEOUT = 30_000
+
+/**
+ * Declara um teste de integração, com o timeout adequado.
+ *
+ * @param {string} name nome do teste.
+ * @param {() => void} fn corpo do teste.
+ */
+function itIntegration(name, fn) {
+  it(name, fn, CLI_INTEGRATION_TIMEOUT)
+}
+
+/**
  * Cria um repositório isolado com a branch de tarefa activa.
  *
  * O pull request só faz sentido a partir de uma branch de tarefa: um pull
@@ -428,7 +450,7 @@ function createRepoOnTaskBranch(branch = 'task/004-001-implementar-coisa') {
 }
 
 describe('open-pr na CLI', () => {
-  it('abre o pull request e devolve o URL em JSON', () => {
+  itIntegration('abre o pull request e devolve o URL em JSON', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/42|'])
 
@@ -455,7 +477,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls[1]).toContain('--head')
   })
 
-  it('usa a branch base pedida', () => {
+  itIntegration('usa a branch base pedida', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/42|'])
 
@@ -471,7 +493,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls[1][gh.calls[1].indexOf('--base') + 1]).toBe('develop')
   })
 
-  it('não cria duplicado quando já existe pull request para a branch', () => {
+  itIntegration('não cria duplicado quando já existe pull request para a branch', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh([
       '0|[{"number":7,"url":"https://github.com/acme/site/pull/7","state":"OPEN",' +
@@ -494,7 +516,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls[0][0]).toBe('pr')
   })
 
-  it('reporta E_PR_UNAVAILABLE e sai com 8 quando o gh não está disponível', () => {
+  itIntegration('reporta E_PR_UNAVAILABLE e sai com 8 quando o gh não está disponível', () => {
     const repo = createRepoOnTaskBranch()
     const binDir = join(workDir, 'empty-bin')
     mkdirSync(binDir, { recursive: true })
@@ -515,25 +537,28 @@ describe('open-pr na CLI', () => {
     expect(gh.calls).toHaveLength(0)
   })
 
-  it('reporta E_PR_UNAVAILABLE e sai com 8 quando a procura falha com o gh instalado', () => {
-    const repo = createRepoOnTaskBranch()
-    const gh = createFakeGh(['1||gh: cannot connect'])
+  itIntegration(
+    'reporta E_PR_UNAVAILABLE e sai com 8 quando a procura falha com o gh instalado',
+    () => {
+      const repo = createRepoOnTaskBranch()
+      const gh = createFakeGh(['1||gh: cannot connect'])
 
-    const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
-      repo,
-      binDir: gh.binDir,
-      nodeOptions: gh.nodeOptions,
-    })
+      const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
+        repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
 
-    expect(result.status).toBe(8)
-    const payload = parseJson(result.stderr)
-    expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
-    expect(payload.error.message).toContain('cannot connect')
-    expect(gh.calls).toHaveLength(1)
-    expect(gh.calls[0].slice(0, 2)).toEqual(['pr', 'list'])
-  })
+      expect(result.status).toBe(8)
+      const payload = parseJson(result.stderr)
+      expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
+      expect(payload.error.message).toContain('cannot connect')
+      expect(gh.calls).toHaveLength(1)
+      expect(gh.calls[0].slice(0, 2)).toEqual(['pr', 'list'])
+    },
+  )
 
-  it('reporta E_PR_CREATE_FAILED e sai com 8 quando a criação falha', () => {
+  itIntegration('reporta E_PR_CREATE_FAILED e sai com 8 quando a criação falha', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh(['0|[]|', '1||gh: not authenticated'])
 
@@ -549,7 +574,7 @@ describe('open-pr na CLI', () => {
     expect(payload.error.message).toContain('not authenticated')
   })
 
-  it('reporta E_PR_CREATE_FAILED e sai com 8 quando a criação não devolve URL', () => {
+  itIntegration('reporta E_PR_CREATE_FAILED e sai com 8 quando a criação não devolve URL', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh(['0|[]|', '0|created|'])
 
@@ -563,7 +588,7 @@ describe('open-pr na CLI', () => {
     expect(parseJson(result.stderr).error.code).toBe('E_PR_CREATE_FAILED')
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando a procura devolve JSON inválido', () => {
+  itIntegration('sai com 8 e E_PR_UNAVAILABLE quando a procura devolve JSON inválido', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh(['0|isto não é JSON|'])
 
@@ -583,26 +608,29 @@ describe('open-pr na CLI', () => {
     expect(gh.calls[0][1]).toBe('list')
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando a procura devolve JSON que não é uma lista', () => {
-    const repo = createRepoOnTaskBranch()
-    const gh = createFakeGh(['0|{"number":7,"url":"https://github.com/acme/site/pull/7"}|'])
+  itIntegration(
+    'sai com 8 e E_PR_UNAVAILABLE quando a procura devolve JSON que não é uma lista',
+    () => {
+      const repo = createRepoOnTaskBranch()
+      const gh = createFakeGh(['0|{"number":7,"url":"https://github.com/acme/site/pull/7"}|'])
 
-    const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
-      repo,
-      binDir: gh.binDir,
-      nodeOptions: gh.nodeOptions,
-    })
+      const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
+        repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
 
-    expect(result.status).toBe(8)
-    const payload = parseJson(result.stderr)
-    expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
-    expect(payload.error.message).toContain('não é uma lista')
-    expect(payload.error.details.reason).toBe('not_a_list')
-    expect(gh.calls).toHaveLength(1)
-    expect(gh.calls[0][1]).toBe('list')
-  })
+      expect(result.status).toBe(8)
+      const payload = parseJson(result.stderr)
+      expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
+      expect(payload.error.message).toContain('não é uma lista')
+      expect(payload.error.details.reason).toBe('not_a_list')
+      expect(gh.calls).toHaveLength(1)
+      expect(gh.calls[0][1]).toBe('list')
+    },
+  )
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando a procura devolve saída vazia', () => {
+  itIntegration('sai com 8 e E_PR_UNAVAILABLE quando a procura devolve saída vazia', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh(['0||'])
 
@@ -621,26 +649,29 @@ describe('open-pr na CLI', () => {
     expect(gh.calls[0][1]).toBe('list')
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando a lista traz um pull request malformado', () => {
-    const repo = createRepoOnTaskBranch()
-    const gh = createFakeGh(['0|[{"number":7}]|'])
+  itIntegration(
+    'sai com 8 e E_PR_UNAVAILABLE quando a lista traz um pull request malformado',
+    () => {
+      const repo = createRepoOnTaskBranch()
+      const gh = createFakeGh(['0|[{"number":7}]|'])
 
-    const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
-      repo,
-      binDir: gh.binDir,
-      nodeOptions: gh.nodeOptions,
-    })
+      const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
+        repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
 
-    expect(result.status).toBe(8)
-    const payload = parseJson(result.stderr)
-    expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
-    expect(payload.error.message).toContain('malformado')
-    expect(payload.error.details.reason).toBe('malformed_entry')
-    expect(gh.calls).toHaveLength(1)
-    expect(gh.calls[0][1]).toBe('list')
-  })
+      expect(result.status).toBe(8)
+      const payload = parseJson(result.stderr)
+      expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
+      expect(payload.error.message).toContain('malformado')
+      expect(payload.error.details.reason).toBe('malformed_entry')
+      expect(gh.calls).toHaveLength(1)
+      expect(gh.calls[0][1]).toBe('list')
+    },
+  )
 
-  it('não cria pull request quando a resposta da procura é inválida', () => {
+  itIntegration('não cria pull request quando a resposta da procura é inválida', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh(['0|{"unexpected":true}|', '0|https://github.com/acme/site/pull/42|'])
 
@@ -655,7 +686,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é nulo', () => {
+  itIntegration('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é nulo', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh([
       '0|[{"number":null,"url":"https://github.com/acme/site/pull/7"}]|',
@@ -677,7 +708,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é booleano', () => {
+  itIntegration('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é booleano', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh([
       '0|[{"number":true,"url":"https://github.com/acme/site/pull/7"}]|',
@@ -698,7 +729,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é falso', () => {
+  itIntegration('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é falso', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh([
       '0|[{"number":false,"url":"https://github.com/acme/site/pull/7"}]|',
@@ -719,49 +750,55 @@ describe('open-pr na CLI', () => {
     expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é uma string vazia', () => {
-    const repo = createRepoOnTaskBranch()
-    const gh = createFakeGh([
-      '0|[{"number":"","url":"https://github.com/acme/site/pull/7"}]|',
-      '0|https://github.com/acme/site/pull/42|',
-    ])
+  itIntegration(
+    'sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é uma string vazia',
+    () => {
+      const repo = createRepoOnTaskBranch()
+      const gh = createFakeGh([
+        '0|[{"number":"","url":"https://github.com/acme/site/pull/7"}]|',
+        '0|https://github.com/acme/site/pull/42|',
+      ])
 
-    const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
-      repo,
-      binDir: gh.binDir,
-      nodeOptions: gh.nodeOptions,
-    })
+      const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
+        repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
 
-    expect(result.status).toBe(8)
-    const payload = parseJson(result.stderr)
-    expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
-    expect(payload.error.details.reason).toBe('malformed_entry')
-    expect(gh.calls).toHaveLength(1)
-    expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
-  })
+      expect(result.status).toBe(8)
+      const payload = parseJson(result.stderr)
+      expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
+      expect(payload.error.details.reason).toBe('malformed_entry')
+      expect(gh.calls).toHaveLength(1)
+      expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
+    },
+  )
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é uma string numérica', () => {
-    const repo = createRepoOnTaskBranch()
-    const gh = createFakeGh([
-      '0|[{"number":"7","url":"https://github.com/acme/site/pull/7"}]|',
-      '0|https://github.com/acme/site/pull/42|',
-    ])
+  itIntegration(
+    'sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é uma string numérica',
+    () => {
+      const repo = createRepoOnTaskBranch()
+      const gh = createFakeGh([
+        '0|[{"number":"7","url":"https://github.com/acme/site/pull/7"}]|',
+        '0|https://github.com/acme/site/pull/42|',
+      ])
 
-    const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
-      repo,
-      binDir: gh.binDir,
-      nodeOptions: gh.nodeOptions,
-    })
+      const result = runCli(['open-pr', 'TASK-001', '--change', '004-test'], {
+        repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
 
-    expect(result.status).toBe(8)
-    const payload = parseJson(result.stderr)
-    expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
-    expect(payload.error.details.reason).toBe('malformed_entry')
-    expect(gh.calls).toHaveLength(1)
-    expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
-  })
+      expect(result.status).toBe(8)
+      const payload = parseJson(result.stderr)
+      expect(payload.error.code).toBe('E_PR_UNAVAILABLE')
+      expect(payload.error.details.reason).toBe('malformed_entry')
+      expect(gh.calls).toHaveLength(1)
+      expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
+    },
+  )
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é zero', () => {
+  itIntegration('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é zero', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh([
       '0|[{"number":0,"url":"https://github.com/acme/site/pull/7"}]|',
@@ -782,7 +819,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é negativo', () => {
+  itIntegration('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é negativo', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh([
       '0|[{"number":-7,"url":"https://github.com/acme/site/pull/7"}]|',
@@ -803,7 +840,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
   })
 
-  it('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é um decimal', () => {
+  itIntegration('sai com 8 e E_PR_UNAVAILABLE quando o número do pull request é um decimal', () => {
     const repo = createRepoOnTaskBranch()
     const gh = createFakeGh([
       '0|[{"number":7.5,"url":"https://github.com/acme/site/pull/7"}]|',
@@ -824,7 +861,7 @@ describe('open-pr na CLI', () => {
     expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
   })
 
-  it('recusa um pull request da branch base para ela própria', () => {
+  itIntegration('recusa um pull request da branch base para ela própria', () => {
     const repo = createRepo()
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/42|'])
 
@@ -848,8 +885,80 @@ describe('commit-task na CLI', () => {
    */
   function createRepoWithRemote() {
     const repo = createRepo()
+    const bare = join(workDir, 'remote.git')
+    const localUrl = pathToFileURL(bare).href
+    git(repo, ['config', `url.${localUrl}.insteadOf`, 'https://github.com/acme/site.git'])
+    git(repo, ['remote', 'set-url', 'origin', 'https://github.com/acme/site.git'])
     git(repo, ['checkout', '-b', 'task/004-001-implementar-coisa'])
     return repo
+  }
+
+  /**
+   * Prepara um repositório com um commit elegível já existente e a árvore limpa.
+   *
+   * @param {{remote?: string, publishBranch?: boolean, githubRemote?: boolean|string}} options remote, publicação prévia e remote GitHub.
+   * @returns {{repo: string, branch: string, head: string, remote: string}} estado do repositório.
+   */
+  function createRepoWithExistingCommit({
+    remote = 'origin',
+    publishBranch = false,
+    githubRemote = false,
+  } = {}) {
+    const repo = createRepo()
+    let bare
+    if (remote !== 'origin') {
+      bare = join(workDir, `${remote}.git`)
+      mkdirSync(bare, { recursive: true })
+      const bareEnv = { ...process.env }
+      delete bareEnv.GIT_WORK_TREE
+      execFileSync('git', ['init', '--bare'], {
+        cwd: bare,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...bareEnv, GIT_DIR: bare },
+      })
+      git(repo, ['remote', 'add', remote, bare])
+    } else {
+      bare = join(workDir, 'remote.git')
+    }
+    const githubUrl =
+      githubRemote === 'ssh' ? 'git@github.com:acme/site.git' : 'https://github.com/acme/site.git'
+    if (githubRemote) {
+      const localUrl = pathToFileURL(bare).href
+      git(repo, ['config', `url.${localUrl}.insteadOf`, 'https://github.com/acme/site.git'])
+      git(repo, ['config', '--add', `url.${localUrl}.insteadOf`, 'git@github.com:acme/site.git'])
+      git(repo, ['remote', 'set-url', remote, githubUrl])
+    }
+
+    const taskPath = 'specs/changes/004-test/tasks/TASK-001.md'
+    const taskFile = join(repo, taskPath)
+    const task = readFileSync(taskFile, 'utf8')
+    writeFileSync(taskFile, `${task.trimEnd()}\n\n## Arquivos\n\n- \`src/allowed.ts\`\n`, 'utf8')
+    git(repo, ['add', '--', taskPath])
+    git(repo, ['commit', '-m', 'docs(rawspec): declarar âmbito da tarefa'])
+    git(repo, ['push', remote, 'main'])
+
+    const branch = 'task/004-001-implementar-coisa'
+    git(repo, ['checkout', '-b', branch])
+    mkdirSync(join(repo, 'src'), { recursive: true })
+    writeFileSync(join(repo, 'src', 'allowed.ts'), 'export const allowed = true\n', 'utf8')
+    git(repo, ['add', '--', 'src/allowed.ts'])
+    git(repo, [
+      'commit',
+      '-m',
+      [
+        'feat(rawspec): Implementar coisa',
+        '',
+        'Change: 004-test',
+        'Task: TASK-001',
+        'Tests: pnpm test',
+        'Evidence: testes aprovados',
+        'Action-Plan: none',
+      ].join('\n'),
+    ])
+    const head = git(repo, ['rev-parse', 'HEAD']).trim()
+    if (publishBranch) git(repo, ['push', '-u', remote, branch])
+    return { repo, branch, head, remote }
   }
 
   /**
@@ -862,7 +971,7 @@ describe('commit-task na CLI', () => {
     writeFileSync(file, `${readFileSync(file, 'utf8')}\n<!-- alteração -->\n`, 'utf8')
   }
 
-  it('abre o pull request depois do push', () => {
+  itIntegration('abre o pull request depois do push', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
@@ -884,7 +993,7 @@ describe('commit-task na CLI', () => {
     expect(gh.calls[1].slice(0, 2)).toEqual(['pr', 'create'])
   })
 
-  it('não duplica o pull request quando já existe um aberto', () => {
+  itIntegration('não duplica o pull request quando já existe um aberto', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh([
@@ -906,7 +1015,7 @@ describe('commit-task na CLI', () => {
     expect(gh.calls).toHaveLength(1)
   })
 
-  it('não desfaz o commit nem o push quando o pull request falha', () => {
+  itIntegration('não desfaz o commit nem o push quando o pull request falha', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['1||gh: not authenticated'])
@@ -929,7 +1038,7 @@ describe('commit-task na CLI', () => {
     expect(git(repo, ['status', '--porcelain'])).not.toContain('TASK-001.md')
   })
 
-  it('não desfaz o commit nem o push quando a resposta da procura é inválida', () => {
+  itIntegration('não desfaz o commit nem o push quando a resposta da procura é inválida', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['0|resposta inválida|', '0|https://github.com/acme/site/pull/11|'])
@@ -955,36 +1064,39 @@ describe('commit-task na CLI', () => {
     expect(git(repo, ['status', '--porcelain'])).not.toContain('TASK-001.md')
   })
 
-  it('não desfaz o commit nem o push quando o número do pull request é malformado', () => {
-    const repo = createRepoWithRemote()
-    touchTaskFile(repo)
-    const gh = createFakeGh([
-      '0|[{"number":null,"url":"https://github.com/acme/site/pull/3"}]|',
-      '0|https://github.com/acme/site/pull/11|',
-    ])
-    createFakePnpm()
+  itIntegration(
+    'não desfaz o commit nem o push quando o número do pull request é malformado',
+    () => {
+      const repo = createRepoWithRemote()
+      touchTaskFile(repo)
+      const gh = createFakeGh([
+        '0|[{"number":null,"url":"https://github.com/acme/site/pull/3"}]|',
+        '0|https://github.com/acme/site/pull/11|',
+      ])
+      createFakePnpm()
 
-    const result = runCli(['commit-task', 'TASK-001', '--change', '004-test'], {
-      repo,
-      binDir: gh.binDir,
-      nodeOptions: gh.nodeOptions,
-    })
+      const result = runCli(['commit-task', 'TASK-001', '--change', '004-test'], {
+        repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
 
-    expect(result.status).toBe(0)
-    const payload = parseJson(result.stdout)
-    expect(payload.pushed).toBe(true)
-    expect(payload.commit).not.toBe('')
-    expect(payload.pullRequest.status).toBe('failed')
-    expect(payload.pullRequest.error.code).toBe('E_PR_UNAVAILABLE')
-    expect(payload.pullRequest.error.details.reason).toBe('malformed_entry')
-    expect(payload.pullRequest.url).toBeNull()
-    expect(gh.calls).toHaveLength(1)
-    expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
-    expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
-    expect(git(repo, ['status', '--porcelain'])).not.toContain('TASK-001.md')
-  })
+      expect(result.status).toBe(0)
+      const payload = parseJson(result.stdout)
+      expect(payload.pushed).toBe(true)
+      expect(payload.commit).not.toBe('')
+      expect(payload.pullRequest.status).toBe('failed')
+      expect(payload.pullRequest.error.code).toBe('E_PR_UNAVAILABLE')
+      expect(payload.pullRequest.error.details.reason).toBe('malformed_entry')
+      expect(payload.pullRequest.url).toBeNull()
+      expect(gh.calls).toHaveLength(1)
+      expect(gh.calls.some((call) => call[1] === 'create')).toBe(false)
+      expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
+      expect(git(repo, ['status', '--porcelain'])).not.toContain('TASK-001.md')
+    },
+  )
 
-  it('não abre pull request com a flag --no-pr', () => {
+  itIntegration('não abre pull request com a flag --no-pr', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
@@ -1003,7 +1115,7 @@ describe('commit-task na CLI', () => {
     expect(gh.calls).toHaveLength(0)
   })
 
-  it('com --no-pr=false abre o pull request, ao contrário de --no-pr', () => {
+  itIntegration('com --no-pr=false abre o pull request, ao contrário de --no-pr', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
@@ -1023,7 +1135,7 @@ describe('commit-task na CLI', () => {
     expect(gh.calls).toHaveLength(2)
   })
 
-  it('com --no-push=false faz o push, ao contrário de --no-push', () => {
+  itIntegration('com --no-push=false faz o push, ao contrário de --no-push', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
@@ -1042,34 +1154,37 @@ describe('commit-task na CLI', () => {
     expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
   })
 
-  it('com --no-pr o push continua a ser feito, e com --no-push o push não é feito', () => {
-    const repo = createRepoWithRemote()
-    touchTaskFile(repo)
-    const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
-    createFakePnpm()
+  itIntegration(
+    'com --no-pr o push continua a ser feito, e com --no-push o push não é feito',
+    () => {
+      const repo = createRepoWithRemote()
+      touchTaskFile(repo)
+      const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
+      createFakePnpm()
 
-    const comNoPr = runCli(['commit-task', 'TASK-001', '--change', '004-test', '--no-pr'], {
-      repo,
-      binDir: gh.binDir,
-      nodeOptions: gh.nodeOptions,
-    })
+      const comNoPr = runCli(['commit-task', 'TASK-001', '--change', '004-test', '--no-pr'], {
+        repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
 
-    expect(comNoPr.status).toBe(0)
-    expect(parseJson(comNoPr.stdout).pushed).toBe(true)
-    expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
+      expect(comNoPr.status).toBe(0)
+      expect(parseJson(comNoPr.stdout).pushed).toBe(true)
+      expect(git(repo, ['branch', '-r'])).toContain('origin/task/004-001-implementar-coisa')
 
-    touchTaskFile(repo)
-    const comNoPush = runCli(['commit-task', 'TASK-001', '--change', '004-test', '--no-push'], {
-      repo,
-      binDir: gh.binDir,
-      nodeOptions: gh.nodeOptions,
-    })
+      touchTaskFile(repo)
+      const comNoPush = runCli(['commit-task', 'TASK-001', '--change', '004-test', '--no-push'], {
+        repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
 
-    expect(comNoPush.status).toBe(0)
-    expect(parseJson(comNoPush.stdout).pushed).toBe(false)
-  })
+      expect(comNoPush.status).toBe(0)
+      expect(parseJson(comNoPush.stdout).pushed).toBe(false)
+    },
+  )
 
-  it('não confunde --no-push com --no-pr', () => {
+  itIntegration('não confunde --no-push com --no-pr', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
@@ -1098,7 +1213,7 @@ describe('commit-task na CLI', () => {
     expect(gh.calls).toHaveLength(0)
   })
 
-  it('não faz push nem abre pull request com a flag --no-push', () => {
+  itIntegration('não faz push nem abre pull request com a flag --no-push', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
@@ -1118,7 +1233,7 @@ describe('commit-task na CLI', () => {
     expect(git(repo, ['branch', '-r'])).not.toContain('origin/task/004-001-implementar-coisa')
   })
 
-  it('aceita --no-pr e --no-push antes do identificador', () => {
+  itIntegration('aceita --no-pr e --no-push antes do identificador', () => {
     const repo = createRepoWithRemote()
     touchTaskFile(repo)
     const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/11|'])
@@ -1137,6 +1252,214 @@ describe('commit-task na CLI', () => {
     const payload = parseJson(result.stdout)
     expect(payload.pushed).toBe(false)
     expect(payload.pullRequest).toBeNull()
+    expect(gh.calls).toHaveLength(0)
+  })
+
+  itIntegration(
+    'publica um commit limpo existente sem criar outro commit e repete sem push duplicado',
+    () => {
+      const fixture = createRepoWithExistingCommit()
+      const gh = createFakeGh([])
+      createFakePnpm()
+      const commitCount = git(fixture.repo, ['rev-list', '--count', 'HEAD']).trim()
+
+      const first = runCli(['commit-task', 'TASK-001', '--change', '004-test', '--no-pr'], {
+        repo: fixture.repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
+      expect(first.status, first.stderr).toBe(0)
+      const firstPayload = parseJson(first.stdout)
+      expect(firstPayload.pushed).toBe(true)
+      expect(firstPayload.commit).toBe(fixture.head.slice(0, 7))
+      expect(git(fixture.repo, ['rev-parse', 'HEAD']).trim()).toBe(fixture.head)
+      expect(git(fixture.repo, ['rev-list', '--count', 'HEAD']).trim()).toBe(commitCount)
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(
+        fixture.head,
+      )
+
+      const second = runCli(['commit-task', 'TASK-001', '--change', '004-test', '--no-pr'], {
+        repo: fixture.repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
+      expect(second.status, second.stderr).toBe(0)
+      expect(parseJson(second.stdout).pushed).toBe(false)
+      expect(parseJson(second.stdout).commit).toBe(fixture.head.slice(0, 7))
+      expect(git(fixture.repo, ['rev-list', '--count', 'HEAD']).trim()).toBe(commitCount)
+      expect(gh.calls).toHaveLength(0)
+    },
+  )
+
+  itIntegration('encaminha --remote e publica no alias selecionado', () => {
+    const fixture = createRepoWithExistingCommit({ remote: 'backup' })
+    const gh = createFakeGh([])
+    createFakePnpm()
+
+    const result = runCli(
+      ['commit-task', 'TASK-001', '--change', '004-test', '--remote', 'backup', '--no-pr'],
+      { repo: fixture.repo, binDir: gh.binDir, nodeOptions: gh.nodeOptions },
+    )
+
+    expect(result.status, result.stderr).toBe(0)
+    expect(parseJson(result.stdout).pushed).toBe(true)
+    expect(git(fixture.repo, ['ls-remote', '--heads', 'backup', fixture.branch])).toContain(
+      fixture.head,
+    )
+    expect(git(fixture.repo, ['ls-remote', '--heads', 'origin']).trim()).toBe('')
+  })
+
+  itIntegration(
+    'não desfaz o commit nem o push quando a criação do PR falha depois de válida',
+    () => {
+      const fixture = createRepoWithExistingCommit({ githubRemote: true })
+      const gh = createFakeGh(['0|[]|', '1||gh: could not create pull request'])
+      createFakePnpm()
+
+      const result = runCli(['commit-task', 'TASK-001', '--change', '004-test'], {
+        repo: fixture.repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
+
+      expect(result.status, result.stderr).toBe(0)
+      const payload = parseJson(result.stdout)
+      expect(payload.pushed).toBe(true)
+      expect(payload.commit).not.toBe('')
+      expect(payload.pullRequest.status).toBe('failed')
+      expect(payload.pullRequest.error.code).toBe('E_PR_CREATE_FAILED')
+      expect(payload.pullRequest.url).toBeNull()
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(
+        fixture.head,
+      )
+    },
+  )
+
+  itIntegration('recusa uma branch inválida antes de tocar no remote', () => {
+    const fixture = createRepoWithExistingCommit()
+    const gh = createFakeGh([])
+    createFakePnpm()
+
+    const result = runCli(
+      ['commit-task', 'TASK-001', '--change', '004-test', '--branch', '--force'],
+      {
+        repo: fixture.repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      },
+    )
+
+    expect(result.status).not.toBe(0)
+    expect(parseJson(result.stderr).error.code).toBe('E_ARGS')
+    expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+  })
+
+  itIntegration('usa owner/repo do remote ao criar PR no caminho de commit existente', () => {
+    const fixture = createRepoWithExistingCommit({ remote: 'backup', githubRemote: true })
+    const gh = createFakeGh(['0|[]|', '0|https://github.com/acme/site/pull/44|'])
+    createFakePnpm()
+
+    const result = runCli(
+      ['commit-task', 'TASK-001', '--change', '004-test', '--remote', 'backup'],
+      {
+        repo: fixture.repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      },
+    )
+
+    expect(result.status, result.stderr).toBe(0)
+    const payload = parseJson(result.stdout)
+    expect(payload.pushed).toBe(true)
+    expect(payload.pullRequest.status).toBe('created')
+    expect(payload.pullRequest.url).toBe('https://github.com/acme/site/pull/44')
+    expect(gh.calls).toHaveLength(2)
+    for (const call of gh.calls) {
+      expect(call).toContain('--repo')
+      expect(call[call.indexOf('--repo') + 1]).toBe('acme/site')
+    }
+    expect(git(fixture.repo, ['ls-remote', '--heads', 'backup', fixture.branch])).toContain(
+      fixture.head,
+    )
+  })
+
+  itIntegration('reporta branch_mismatch sem publicar quando --branch não corresponde', () => {
+    const fixture = createRepoWithExistingCommit()
+    const gh = createFakeGh([])
+    createFakePnpm()
+
+    const result = runCli(
+      ['commit-task', 'TASK-001', '--change', '004-test', '--branch', 'task/outro-alvo', '--no-pr'],
+      { repo: fixture.repo, binDir: gh.binDir, nodeOptions: gh.nodeOptions },
+    )
+
+    expect(result.status).not.toBe(0)
+    expect(parseJson(result.stderr).error.details.reason).toBe('branch_mismatch')
+    expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toBe('')
+  })
+
+  itIntegration(
+    'reporta a indisponibilidade do PR sem desfazer o push em remote não-GitHub',
+    () => {
+      const fixture = createRepoWithExistingCommit()
+      const gh = createFakeGh([])
+      createFakePnpm()
+
+      const result = runCli(['commit-task', 'TASK-001', '--change', '004-test'], {
+        repo: fixture.repo,
+        binDir: gh.binDir,
+        nodeOptions: gh.nodeOptions,
+      })
+
+      expect(result.status, result.stderr).toBe(0)
+      const payload = parseJson(result.stdout)
+      expect(payload.pushed).toBe(true)
+      expect(payload.pullRequest.status).toBe('failed')
+      expect(payload.pullRequest.error.code).toBe('E_PR_UNAVAILABLE')
+      expect(payload.pullRequest.error.details.reason).toBe('remote_url_unsupported')
+      expect(git(fixture.repo, ['ls-remote', '--heads', 'origin', fixture.branch])).toContain(
+        fixture.head,
+      )
+      expect(gh.calls).toHaveLength(0)
+    },
+  )
+
+  itIntegration('com --no-push não abre PR nem repete push quando remote já está em HEAD', () => {
+    const fixture = createRepoWithExistingCommit({ publishBranch: true })
+    const gh = createFakeGh([])
+    createFakePnpm()
+
+    const result = runCli(['commit-task', 'TASK-001', '--change', '004-test', '--no-push'], {
+      repo: fixture.repo,
+      binDir: gh.binDir,
+      nodeOptions: gh.nodeOptions,
+    })
+
+    expect(result.status, result.stderr).toBe(0)
+    const payload = parseJson(result.stdout)
+    expect(payload.pushed).toBe(false)
+    expect(payload.pullRequest).toBeNull()
+    expect(payload.commit).toBe(fixture.head.slice(0, 7))
+    expect(gh.calls).toHaveLength(0)
+  })
+
+  itIntegration('com --no-push não contacta o remote, mesmo que esteja indisponível', () => {
+    const fixture = createRepoWithExistingCommit()
+    const gh = createFakeGh([])
+    createFakePnpm()
+    git(fixture.repo, ['remote', 'set-url', 'origin', join(workDir, 'missing-remote.git')])
+
+    const result = runCli(['commit-task', 'TASK-001', '--change', '004-test', '--no-push'], {
+      repo: fixture.repo,
+      binDir: gh.binDir,
+      nodeOptions: gh.nodeOptions,
+    })
+
+    expect(result.status, result.stderr).toBe(0)
+    const payload = parseJson(result.stdout)
+    expect(payload.pushed).toBe(false)
+    expect(payload.pullRequest).toBeNull()
+    expect(payload.commit).toBe(fixture.head.slice(0, 7))
     expect(gh.calls).toHaveLength(0)
   })
 })

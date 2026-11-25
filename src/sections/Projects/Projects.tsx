@@ -9,13 +9,13 @@ export function Projects() {
       {projects.length === 0 ? (
         <p className={styles.empty}>Ainda não há projetos para apresentar.</p>
       ) : (
-        <ul className={styles.list}>
+        <ul className={styles.list} role="list">
           {projects.map((project) => (
             <li key={project.title} className={styles.card}>
               <h3 className={styles.cardTitle}>{project.title}</h3>
               <p className={styles.cardDescription}>{project.description}</p>
 
-              <ul className={styles.techList} aria-label="Tecnologias utilizadas">
+              <ul className={styles.techList} role="list" aria-label="Tecnologias utilizadas">
                 {project.technologies.map((technology) => (
                   <li key={technology} className={styles.tech}>
                     {technology}
@@ -29,7 +29,7 @@ export function Projects() {
                     href={project.repositoryUrl}
                     className={styles.link}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noreferrer noopener"
                   >
                     <GithubIcon className={styles.linkIcon} />
                     Código
@@ -40,7 +40,7 @@ export function Projects() {
                     href={project.liveUrl}
                     className={styles.link}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noreferrer noopener"
                   >
                     <ExternalLinkIcon className={styles.linkIcon} />
                     Demonstração

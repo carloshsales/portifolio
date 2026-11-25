@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { axe } from 'vitest-axe'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 
 describe('acessibilidade', () => {
@@ -66,6 +66,129 @@ describe('acessibilidade', () => {
     expect(active).not.toBeNull()
 
     const results = await axe(navigation as HTMLElement)
+
+    expect(results.violations).toEqual([])
+  })
+})
+
+describe('acessibilidade com projetos preenchidos', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.doMock('../data/projects', () => ({
+      projects: [
+        {
+          title: 'Projeto de teste',
+          description: 'Descrição de teste para um projeto com links.',
+          technologies: ['React', 'TypeScript'],
+          repositoryUrl: 'https://repositorio.test/projeto-teste',
+          liveUrl: 'https://demo.test/projeto-teste',
+        },
+      ],
+    }))
+  })
+
+  afterEach(() => {
+    vi.doUnmock('../data/projects')
+  })
+
+  it('não apresenta violações automáticas com projetos preenchidos', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+
+    const results = await axe(container)
+
+    expect(results.violations).toEqual([])
+  })
+
+  it('não apresenta violações automáticas na secção de projetos preenchida', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+    const section = container.querySelector('section#projetos')
+
+    expect(section).not.toBeNull()
+
+    const results = await axe(section as HTMLElement)
+
+    expect(results.violations).toEqual([])
+  })
+})
+
+describe('acessibilidade com habilidades preenchidas', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.doMock('../data/skills', () => ({
+      skillGroups: [
+        { title: 'Categoria de teste', skills: ['TypeScript', 'React'] },
+        { title: 'Outra categoria de teste', skills: ['CSS'] },
+      ],
+    }))
+  })
+
+  afterEach(() => {
+    vi.doUnmock('../data/skills')
+  })
+
+  it('não apresenta violações automáticas com habilidades preenchidas', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+
+    const results = await axe(container)
+
+    expect(results.violations).toEqual([])
+  })
+
+  it('não apresenta violações automáticas na secção de habilidades preenchida', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+    const section = container.querySelector('section#habilidades')
+
+    expect(section).not.toBeNull()
+
+    const results = await axe(section as HTMLElement)
+
+    expect(results.violations).toEqual([])
+  })
+})
+
+describe('acessibilidade com canais de contato preenchidos', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.doMock('../data/profile', () => ({
+      profile: {
+        name: '',
+        role: '',
+        summary: '',
+        photoUrl: '',
+        location: '',
+        social: [
+          { label: 'GitHub', url: 'https://github.com/utilizador-teste', icon: 'github' },
+          { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' },
+        ],
+      },
+    }))
+  })
+
+  afterEach(() => {
+    vi.doUnmock('../data/profile')
+  })
+
+  it('não apresenta violações automáticas com canais de contato preenchidos', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+
+    const results = await axe(container)
+
+    expect(results.violations).toEqual([])
+  })
+
+  it('não apresenta violações automáticas na secção de contato preenchida', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+    const section = container.querySelector('section#contato')
+
+    expect(section).not.toBeNull()
+
+    const results = await axe(section as HTMLElement)
 
     expect(results.violations).toEqual([])
   })
