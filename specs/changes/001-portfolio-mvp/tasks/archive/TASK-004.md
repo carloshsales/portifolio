@@ -1,12 +1,13 @@
 # TASK-004 — Rever e corrigir a estrutura de navegação
 
 - Change: 001-portfolio-mvp
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-003
 - Início: 2026-11-17
 - Verificação: VERIFIED (2026-11-17) — pnpm test exit 0 166 passed 1 skipped 5 ficheiros; pnpm test:e2e exit 0 build aprovado 61 passed 2 skipped 63 testes. Avisos jsdom canvas nao bloqueantes.
 - Evidência: pnpm test exit 0 166 passed 1 skipped 5 ficheiros; pnpm test:e2e exit 0 build aprovado 61 passed 2 skipped 63 testes. Avisos jsdom canvas nao bloqueantes.
 - Plano de ação: none
+- Arquivada em: 2026-11-25
 
 ## Objetivo
 

@@ -1,12 +1,13 @@
 # TASK-007 — Rever e completar a seção de habilidades
 
 - Change: 001-portfolio-mvp
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-006
 - Início: 2026-11-25
 - Verificação: VERIFIED (2026-11-25) — pnpm test: 6 files, 328 passed 1 skipped (329), 131s. pnpm test:e2e: build 37 modules; 75 tests, 73 passed, 2 skipped, 20.9s. Verificador OK.
 - Evidência: pnpm test: 6 files, 328 passed 1 skipped (329), 131s. pnpm test:e2e: build 37 modules; 75 tests, 73 passed, 2 skipped, 20.9s. Verificador OK.
 - Plano de ação: none
+- Arquivada em: 2026-11-25
 
 ## Objetivo
 

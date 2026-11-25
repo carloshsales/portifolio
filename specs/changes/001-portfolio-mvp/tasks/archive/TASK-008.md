@@ -1,12 +1,13 @@
 # TASK-008 — Rever e completar a seção de contato
 
 - Change: 001-portfolio-mvp
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-007
 - Início: 2026-11-25
 - Verificação: VERIFIED (2026-11-25) — Ronda 1: pnpm test -> 6 ficheiros passed, 339 passed | 1 skipped (340), 116.69s. pnpm test:e2e -> build de producao OK (37 modulos, built in 216ms), Playwright 78 testes, 76 passed, 2 skipped, 15.3s. Ronda 2 (apos correccao dos achados): pnpm test -> 6 ficheiros passed, 343 passed | 1 skipped (344), 106.23s. pnpm test:e2e -> build OK (built in 220ms), 78 testes, 76 passed, 2 skipped, 17.7s. Excecao registada (decisao explicita do utilizador, via 2): o tool de shell do agente executor recusa qualquer comando composto, pelo que o codigo de saida nao pude ser capturado. Foram testadas 3 formulacoes de permissao na configuracao do agente, cada uma numa sessao nova, e todas devolveram permission.rejected: Permission denied: shell. A configuracao foi revertida ao estado original. O verificador aceitou os resumos de sucesso como evidencia, com esta excecao registada. O risco residual e coberto pelo commit-task, que volta a correr pnpm test e pnpm build com codigo de saida real.
 - Evidência: Ronda 1: pnpm test -> 6 ficheiros passed, 339 passed | 1 skipped (340), 116.69s. pnpm test:e2e -> build de producao OK (37 modulos, built in 216ms), Playwright 78 testes, 76 passed, 2 skipped, 15.3s. Ronda 2 (apos correccao dos achados): pnpm test -> 6 ficheiros passed, 343 passed | 1 skipped (344), 106.23s. pnpm test:e2e -> build OK (built in 220ms), 78 testes, 76 passed, 2 skipped, 17.7s. Excecao registada (decisao explicita do utilizador, via 2): o tool de shell do agente executor recusa qualquer comando composto, pelo que o codigo de saida nao pude ser capturado. Foram testadas 3 formulacoes de permissao na configuracao do agente, cada uma numa sessao nova, e todas devolveram permission.rejected: Permission denied: shell. A configuracao foi revertida ao estado original. O verificador aceitou os resumos de sucesso como evidencia, com esta excecao registada. O risco residual e coberto pelo commit-task, que volta a correr pnpm test e pnpm build com codigo de saida real.
 - Plano de ação: none
+- Arquivada em: 2026-11-25
 
 ## Objetivo
 

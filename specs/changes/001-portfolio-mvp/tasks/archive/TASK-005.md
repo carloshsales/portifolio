@@ -1,12 +1,13 @@
 # TASK-005 — Implementar seção inicial
 
 - Change: 001-portfolio-mvp
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-004
 - Início: 2026-11-18
 - Verificação: VERIFIED (2026-11-18) — pnpm test: exit 0, 6 ficheiros de teste passados, 265 testes passados / 1 skipped, duracao 70.26s (avisos jsdom de HTMLCanvasElement.getContext() nao bloqueantes). pnpm test:e2e: exit 0, build de producao concluido, 75 testes com 6 workers, 73 passados / 2 skipped. Passaram os testes novos da task em mobile, tablet e desktop, incluindo o desempate em tablet. Nas rondas anteriores a verificacao passou mas as revisoes A e B reprovaram; os achados corrigidos foram o desacoplamento dos testes face ao conteudo real (mock de src/data/profile com perfil sem nome em src/test/content.test.tsx e src/App.test.tsx) e a limpeza/import dos mocks em src/App.test.tsx (helper renderApp com import dinamico, vi.resetModules em beforeEach, vi.doUnmock em afterEach). Revisoes A e B finais aprovadas sem achados bloqueantes; os achados remanescentes (foco do CTA primario, override window.__PORTFOLIO_PROFILE__ em producao, validacao de protocolo das URLs de contacto, trim dos campos, fallback do teste de desempate, regex permissiva, teste E2E da barra lateral, iteracao pixel-a-pixel, casts frageis) foram adiados pelo utilizador para a TASK-009 ou tasks posteriores.
 - Evidência: pnpm test: exit 0, 6 ficheiros de teste passados, 265 testes passados / 1 skipped, duracao 70.26s (avisos jsdom de HTMLCanvasElement.getContext() nao bloqueantes). pnpm test:e2e: exit 0, build de producao concluido, 75 testes com 6 workers, 73 passados / 2 skipped. Passaram os testes novos da task em mobile, tablet e desktop, incluindo o desempate em tablet. Nas rondas anteriores a verificacao passou mas as revisoes A e B reprovaram; os achados corrigidos foram o desacoplamento dos testes face ao conteudo real (mock de src/data/profile com perfil sem nome em src/test/content.test.tsx e src/App.test.tsx) e a limpeza/import dos mocks em src/App.test.tsx (helper renderApp com import dinamico, vi.resetModules em beforeEach, vi.doUnmock em afterEach). Revisoes A e B finais aprovadas sem achados bloqueantes; os achados remanescentes (foco do CTA primario, override window.__PORTFOLIO_PROFILE__ em producao, validacao de protocolo das URLs de contacto, trim dos campos, fallback do teste de desempate, regex permissiva, teste E2E da barra lateral, iteracao pixel-a-pixel, casts frageis) foram adiados pelo utilizador para a TASK-009 ou tasks posteriores.
 - Plano de ação: none
+- Arquivada em: 2026-11-25
 
 ## Objetivo
 

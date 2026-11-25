@@ -1,12 +1,13 @@
 # TASK-003 — Configurar estilos globais
 
 - Change: 001-portfolio-mvp
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-002
 - Início: 2026-11-16
 - Verificação: VERIFIED (2026-11-16) — pnpm lint, typecheck, test (141 passed, 1 skipped), build, test:e2e (15 passed), format:check; auditoria estática: 106 usos de var() em CSS, 32 tokens distintos, todos declarados; Playwright: sem overflow em 375/768/1280, prefers-reduced-motion reduce aplica scroll auto e transições 0.01ms, cores e fontes computadas corretas, foco Tab visível com outline âmbar 2px; revisores A e B aprovados sem achados; clareza 95/100; revisão/consolidação sem alterações de código.
 - Evidência: pnpm lint, typecheck, test (141 passed, 1 skipped), build, test:e2e (15 passed), format:check; auditoria estática: 106 usos de var() em CSS, 32 tokens distintos, todos declarados; Playwright: sem overflow em 375/768/1280, prefers-reduced-motion reduce aplica scroll auto e transições 0.01ms, cores e fontes computadas corretas, foco Tab visível com outline âmbar 2px; revisores A e B aprovados sem achados; clareza 95/100; revisão/consolidação sem alterações de código.
 - Plano de ação: none
+- Arquivada em: 2026-11-25
 
 ## Objetivo
 
