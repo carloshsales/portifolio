@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 interface ObserverEntry {
@@ -200,6 +200,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.doUnmock('./data/profile')
+  vi.doUnmock('./data/projects')
   globalThis.IntersectionObserver = originalIntersectionObserver
 
   if (originalClientHeight === undefined) {
@@ -234,6 +235,34 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Projetos' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Habilidades' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Contato' })).toBeInTheDocument()
+  })
+
+  it('apresenta cada card de projeto com título h3 dentro da secção Projetos', async () => {
+    vi.doMock('./data/projects', () => ({
+      projects: [
+        {
+          title: 'Primeiro projeto',
+          description: 'Descrição do primeiro projeto.',
+          technologies: ['React'],
+        },
+        {
+          title: 'Segundo projeto',
+          description: 'Descrição do segundo projeto.',
+          technologies: ['TypeScript'],
+        },
+      ],
+    }))
+
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Projetos' })
+    const cardTitles = within(section).getAllByRole('heading', { level: 3 })
+
+    expect(within(section).getByRole('heading', { level: 2, name: 'Projetos' })).toBeInTheDocument()
+    expect(cardTitles.map((title) => title.textContent)).toEqual([
+      'Primeiro projeto',
+      'Segundo projeto',
+    ])
   })
 
   it('renders navigation links to each section', async () => {
