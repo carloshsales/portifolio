@@ -1,12 +1,13 @@
 # TASK-001 — Publicar commit existente elegível com commit-task idempotente
 
 - Change: 014-publicar-commit-existente
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: nenhuma
 - Início: 2026-11-24
 - Verificação: VERIFIED (2026-11-24) — pnpm test: 307 passed | 1 skipped (308) em 6 ficheiros, exit 0 (2026-11-24); pnpm test:e2e: 73 passed | 2 skipped (75), exit 0 (2026-11-24). Publicação idempotente de commit existente no caminho limpo: sem commit vazio, sem force-push, pre-push activo, PR idempotente com owner/repo resolvido de URLs HTTPS e SSH, e --no-push sem contacto com o remote. Cobertura: 29 testes do caminho limpo e 21 de commit-task na CLI. Revisões A e B aplicadas e verificadas: alterações já staged seguem o fluxo normal; checks terminam antes do push; gate de âmbito e metadados Change:/Task: validados em todos os commits do range (commit inválido anterior com HEAD válido); remote ausente/igual/ancestor/ahead/divergente/indisponível; branch inválida e branch_mismatch recusados; E_PR_CREATE_FAILED preserva o push; reinspecção do remote em caso de corrida TOCTOU.
 - Evidência: pnpm test: 307 passed | 1 skipped (308) em 6 ficheiros, exit 0 (2026-11-24); pnpm test:e2e: 73 passed | 2 skipped (75), exit 0 (2026-11-24). Publicação idempotente de commit existente no caminho limpo: sem commit vazio, sem force-push, pre-push activo, PR idempotente com owner/repo resolvido de URLs HTTPS e SSH, e --no-push sem contacto com o remote. Cobertura: 29 testes do caminho limpo e 21 de commit-task na CLI. Revisões A e B aplicadas e verificadas: alterações já staged seguem o fluxo normal; checks terminam antes do push; gate de âmbito e metadados Change:/Task: validados em todos os commits do range (commit inválido anterior com HEAD válido); remote ausente/igual/ancestor/ahead/divergente/indisponível; branch inválida e branch_mismatch recusados; E_PR_CREATE_FAILED preserva o push; reinspecção do remote em caso de corrida TOCTOU.
 - Plano de ação: none
+- Arquivada em: 2026-11-24
 
 ## Objetivo
 
