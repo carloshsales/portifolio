@@ -92,9 +92,10 @@ pnpm format:check # verificação de formatação com Prettier
 
 ### Divisão de responsabilidades
 
-- **Utilizador (fluxo padrão):** executa manualmente apenas `pnpm test` e `pnpm test:e2e`, por esta ordem, e envia a evidência de cada comando: o comando exato e o resultado final (código de saída 0 ou resumo de sucesso). O `pnpm test:e2e` corre `pnpm build` antes do Playwright, porque o `vite preview` serve `dist/`, que é ignorado pelo Git.
-- **Orquestrador:** apresenta esses comandos ao utilizador e aguarda os resultados antes da revisão e do registo.
-- **Verificador:** avalia essa evidência sem executar shell. Se um comando falhar, o pipeline para para correção. Se a evidência estiver em falta ou for ambígua, pede complemento e não avança.
+- **Executor (agente):** executa `pnpm test` e `pnpm test:e2e`, por esta ordem, e devolve a evidência de cada comando: o comando exato, o código de saída e a saída relevante. Também pode correr `pnpm lint`, `pnpm typecheck`, `pnpm format:check` e `pnpm build`, todos de leitura, para diagnosticar a causa de uma falha. Não escreve código e não avalia o resultado. O `pnpm test:e2e` corre `pnpm build` antes do Playwright, porque o `vite preview` serve `dist/`, que é ignorado pelo Git.
+- **Orquestrador:** invoca o `executor` na etapa de verificação e envia a evidência ao `verificador`, antes da revisão e do registo.
+- **Verificador:** avalia essa evidência sem executar shell. Se um comando falhar, o pipeline para para correção. Se a evidência estiver em falta ou for ambígua, pede complemento ao `executor` e não avança.
+- **Utilizador:** intervém nas decisões de âmbito, discrepâncias e desempates de revisão. Não executa `pnpm test` nem `pnpm test:e2e`.
 - **`commit-task` (guardião):** depois da evidência e das revisões, executa `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build`, por esta ordem. Se uma falhar, não há commit nem push. Os hooks do Husky permanecem ativos e podem repetir verificações.
 - **Pull request (automático):** depois do commit e do push bem-sucedidos, o `commit-task` abre um pull request da branch da tarefa para `main`, com `gh pr create --base main --head <branch>`. A criação é idempotente: se já existir um pull request aberto para a branch, o URL existente é reportado e nenhum duplicado é criado. O pull request nunca é fundido automaticamente. Se o `gh` não estiver disponível, a autenticação falhar, ou a criação falhar, o erro é reportado com precisão; o commit e o push permanecem válidos e a verificação da tarefa não é reprovada por causa do pull request.
 - Os sete scripts `bakeoff/*` não fazem parte do fluxo padrão.

@@ -1,7 +1,7 @@
 ---
 description: Avalia uma tarefa RawSpec contra os dez critérios de clareza e atribui uma pontuação sobre 100 com evidências
 mode: subagent
-model: opencode-go/gpt-6-luna#max
+model: opencode-go/minimax-m3
 steps: 20
 permissions:
   - action: edit

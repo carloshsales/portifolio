@@ -1,7 +1,7 @@
 ---
 description: Avalia a clareza de uma tarefa RawSpec contra os dez critérios, sem tocar em ficheiros
 agent: analista-clareza
-model: opencode-go/gpt-6-luna#max
+model: opencode-go/minimax-m3
 subagent: true
 ---
 

@@ -17,6 +17,13 @@
     "opencode-go": {
       "settings": {
         "cache": { "ttl": "30m" }
+      },
+      "models": {
+        "claude-haiku-5-5": {
+          "settings": {
+            "cache": { "ttl": "5m" }
+          }
+        }
       }
     }
   },
