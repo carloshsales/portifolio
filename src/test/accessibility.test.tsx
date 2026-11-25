@@ -149,3 +149,47 @@ describe('acessibilidade com habilidades preenchidas', () => {
     expect(results.violations).toEqual([])
   })
 })
+
+describe('acessibilidade com canais de contato preenchidos', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.doMock('../data/profile', () => ({
+      profile: {
+        name: '',
+        role: '',
+        summary: '',
+        photoUrl: '',
+        location: '',
+        social: [
+          { label: 'GitHub', url: 'https://github.com/utilizador-teste', icon: 'github' },
+          { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' },
+        ],
+      },
+    }))
+  })
+
+  afterEach(() => {
+    vi.doUnmock('../data/profile')
+  })
+
+  it('não apresenta violações automáticas com canais de contato preenchidos', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+
+    const results = await axe(container)
+
+    expect(results.violations).toEqual([])
+  })
+
+  it('não apresenta violações automáticas na secção de contato preenchida', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+    const section = container.querySelector('section#contato')
+
+    expect(section).not.toBeNull()
+
+    const results = await axe(section as HTMLElement)
+
+    expect(results.violations).toEqual([])
+  })
+})

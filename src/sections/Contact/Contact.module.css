@@ -3,6 +3,7 @@
   flex-wrap: wrap;
   gap: var(--space-4);
   list-style: none;
+  padding: 0;
 }
 
 .link {

@@ -1,6 +1,8 @@
+import type { ComponentType } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Profile, Project, SkillGroup } from '../types'
+import { EmailIcon, GithubIcon } from '../components/icons'
+import type { Profile, Project, SkillGroup, SocialLink } from '../types'
 
 const PLACEHOLDER_MARKERS = ['[', 'teu-utilizador', 'exemplo.com', 'teu@email.com']
 
@@ -524,5 +526,193 @@ describe('normalização das habilidades', () => {
     const groups = await loadSkillGroups([padded])
 
     expect(groups).toStrictEqual([{ title: 'Grupo', skills: ['TypeScript', 'CSS'] }])
+  })
+})
+
+describe('secção de contato', () => {
+  const contactChannels: SocialLink[] = [
+    { label: 'GitHub', url: 'https://github.com/utilizador-teste', icon: 'github' },
+    { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' },
+  ]
+
+  afterEach(() => {
+    vi.doUnmock('../content/profile')
+  })
+
+  function iconMarkup(Icon: ComponentType<{ className?: string }>): string {
+    const { container } = render(<Icon />)
+    const svg = container.querySelector('svg')
+
+    if (svg === null) {
+      throw new Error('Ícone sem SVG')
+    }
+
+    return svg.innerHTML
+  }
+
+  async function renderContact(social: SocialLink[]): Promise<HTMLElement> {
+    vi.doMock('../content/profile', () => ({ profile: { ...emptyProfile, social } }))
+
+    const { Contact } = await import('../sections/Contact/Contact')
+    render(<Contact />)
+
+    return screen.getByRole('region', { name: 'Contato' })
+  }
+
+  it('apresenta cada canal com ícone, rótulo e href correspondentes', async () => {
+    const githubIcon = iconMarkup(GithubIcon)
+    const emailIcon = iconMarkup(EmailIcon)
+
+    const section = await renderContact(contactChannels)
+    const list = within(section).getByRole('list')
+    const github = within(list).getByRole('link', { name: 'GitHub' })
+    const email = within(list).getByRole('link', { name: 'Email' })
+
+    expect(list).toHaveAttribute('role', 'list')
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2)
+
+    expect(github).toHaveAttribute('href', 'https://github.com/utilizador-teste')
+    expect(email).toHaveAttribute('href', 'mailto:teste@exemplo.test')
+
+    expect(github.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    expect(github.querySelector('svg')?.innerHTML).toBe(githubIcon)
+    expect(email.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    expect(email.querySelector('svg')?.innerHTML).toBe(emailIcon)
+  })
+
+  it('abre os canais externos em nova janela e deixa o email sem target', async () => {
+    const section = await renderContact(contactChannels)
+    const github = within(section).getByRole('link', { name: 'GitHub' })
+    const email = within(section).getByRole('link', { name: 'Email' })
+
+    expect(github).toHaveAttribute('target', '_blank')
+    expect(github).toHaveAttribute('rel', 'noreferrer noopener')
+    expect(email).not.toHaveAttribute('target')
+    expect(email).not.toHaveAttribute('rel')
+  })
+
+  it('deixa o email sem target quando o esquema mailto: está em maiúsculas', async () => {
+    const section = await renderContact([
+      { label: 'Email', url: 'Mailto:teste@exemplo.test', icon: 'email' },
+    ])
+    const email = within(section).getByRole('link', { name: 'Email' })
+
+    expect(email).toHaveAttribute('href', 'Mailto:teste@exemplo.test')
+    expect(email).not.toHaveAttribute('target')
+    expect(email).not.toHaveAttribute('rel')
+  })
+
+  it('apresenta o estado vazio e nenhum canal quando não há canais', async () => {
+    const section = await renderContact([])
+
+    expect(
+      within(section).getByText('Ainda não há canais de contato para apresentar.'),
+    ).toBeInTheDocument()
+    expect(within(section).queryAllByRole('link')).toHaveLength(0)
+    expect(within(section).queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('o conteúdo real dos canais não tem placeholders nem emails fictícios', async () => {
+    const actual = await vi.importActual<{ profile: Profile }>('../content/profile')
+
+    for (const channel of actual.profile.social) {
+      for (const marker of PLACEHOLDER_MARKERS) {
+        expect(channel.label).not.toContain(marker)
+        expect(channel.url).not.toContain(marker)
+      }
+    }
+  })
+})
+
+describe('normalização dos canais de contato', () => {
+  afterEach(() => {
+    vi.doUnmock('../content/profile')
+  })
+
+  async function loadSocial(content: SocialLink[]): Promise<SocialLink[]> {
+    vi.doMock('../content/profile', () => ({ profile: { ...emptyProfile, social: content } }))
+
+    const { profile } = await import('../data/profile')
+
+    return profile.social
+  }
+
+  it('remove canais sem rótulo ou sem URL', async () => {
+    const valid: SocialLink = {
+      label: 'GitHub',
+      url: 'https://github.com/utilizador-teste',
+      icon: 'github',
+    }
+
+    const social = await loadSocial([
+      { ...valid, url: '' },
+      { ...valid, url: '   ' },
+      { ...valid, label: '   ' },
+      valid,
+    ])
+
+    expect(social).toStrictEqual([valid])
+  })
+
+  it('remove canais cuja URL não tem protocolo válido', async () => {
+    const social = await loadSocial([
+      { label: 'Sem protocolo', url: 'github.com/utilizador-teste', icon: 'github' },
+      { label: 'Script', url: 'javascript:alert(1)', icon: 'github' },
+      { label: 'Email sem mailto', url: 'teste@exemplo.test', icon: 'email' },
+      { label: 'Mailto fora do email', url: 'mailto:teste@exemplo.test', icon: 'github' },
+    ])
+
+    expect(social).toStrictEqual([])
+  })
+
+  it('mantém o canal de email com mailto:', async () => {
+    const email: SocialLink = { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' }
+
+    const social = await loadSocial([email])
+
+    expect(social).toStrictEqual([email])
+  })
+
+  it('remove o canal de email sem endereço válido', async () => {
+    const social = await loadSocial([
+      { label: 'Email', url: 'mailto:', icon: 'email' },
+      { label: 'Email', url: 'mailto:   ', icon: 'email' },
+      { label: 'Email', url: 'mailto:teste', icon: 'email' },
+    ])
+
+    expect(social).toStrictEqual([])
+  })
+
+  it('remove as URLs com protocolo e sem host', async () => {
+    const social = await loadSocial([
+      { label: 'GitHub', url: 'https://', icon: 'github' },
+      { label: 'LinkedIn', url: 'http://   ', icon: 'linkedin' },
+    ])
+
+    expect(social).toStrictEqual([])
+  })
+
+  it('aceita o protocolo em maiúsculas', async () => {
+    const social = await loadSocial([
+      { label: 'GitHub', url: 'HTTPS://github.com/utilizador-teste', icon: 'github' },
+      { label: 'Email', url: 'Mailto:teste@exemplo.test', icon: 'email' },
+    ])
+
+    expect(social).toStrictEqual([
+      { label: 'GitHub', url: 'HTTPS://github.com/utilizador-teste', icon: 'github' },
+      { label: 'Email', url: 'Mailto:teste@exemplo.test', icon: 'email' },
+    ])
+  })
+
+  it('apara o rótulo e a URL', async () => {
+    const social = await loadSocial([
+      { label: '  GitHub  ', url: ' https://github.com/utilizador-teste ', icon: 'github' },
+      { label: ' Email ', url: '  mailto:teste@exemplo.test  ', icon: 'email' },
+    ])
+
+    expect(social).toStrictEqual([
+      { label: 'GitHub', url: 'https://github.com/utilizador-teste', icon: 'github' },
+      { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' },
+    ])
   })
 })
