@@ -435,6 +435,31 @@ describe('App', () => {
   })
 })
 
+describe('secção de contato', () => {
+  it('apresenta a secção Contato com título h2 e um link por canal', async () => {
+    vi.doMock('./data/profile', () => ({
+      profile: {
+        name: '',
+        role: '',
+        summary: '',
+        photoUrl: '',
+        location: '',
+        social: [
+          { label: 'GitHub', url: 'https://github.com/utilizador-teste', icon: 'github' },
+          { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' },
+        ],
+      },
+    }))
+
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Contato' })
+
+    expect(within(section).getByRole('heading', { level: 2, name: 'Contato' })).toBeInTheDocument()
+    expect(within(section).getAllByRole('link')).toHaveLength(2)
+  })
+})
+
 describe('faixa central de observação', () => {
   it('observa uma faixa com 5% da altura da viewport, centrada', async () => {
     const observer = installIntersectionObserverStub()
