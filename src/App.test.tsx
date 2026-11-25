@@ -201,6 +201,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.doUnmock('./data/profile')
   vi.doUnmock('./data/projects')
+  vi.doUnmock('./data/skills')
   globalThis.IntersectionObserver = originalIntersectionObserver
 
   if (originalClientHeight === undefined) {
@@ -262,6 +263,27 @@ describe('App', () => {
     expect(cardTitles.map((title) => title.textContent)).toEqual([
       'Primeiro projeto',
       'Segundo projeto',
+    ])
+  })
+
+  it('apresenta cada categoria de habilidades com título h3 na secção Habilidades', async () => {
+    vi.doMock('./data/skills', () => ({
+      skillGroups: [
+        { title: 'Primeira categoria', skills: ['TypeScript'] },
+        { title: 'Segunda categoria', skills: ['CSS'] },
+      ],
+    }))
+
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Habilidades' })
+    const heading = within(section).getByRole('heading', { level: 2, name: 'Habilidades' })
+    const groupTitles = within(section).getAllByRole('heading', { level: 3 })
+
+    expect(heading).toBeInTheDocument()
+    expect(groupTitles.map((title) => title.textContent)).toEqual([
+      'Primeira categoria',
+      'Segunda categoria',
     ])
   })
 

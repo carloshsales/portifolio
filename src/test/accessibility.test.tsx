@@ -112,3 +112,40 @@ describe('acessibilidade com projetos preenchidos', () => {
     expect(results.violations).toEqual([])
   })
 })
+
+describe('acessibilidade com habilidades preenchidas', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.doMock('../data/skills', () => ({
+      skillGroups: [
+        { title: 'Categoria de teste', skills: ['TypeScript', 'React'] },
+        { title: 'Outra categoria de teste', skills: ['CSS'] },
+      ],
+    }))
+  })
+
+  afterEach(() => {
+    vi.doUnmock('../data/skills')
+  })
+
+  it('não apresenta violações automáticas com habilidades preenchidas', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+
+    const results = await axe(container)
+
+    expect(results.violations).toEqual([])
+  })
+
+  it('não apresenta violações automáticas na secção de habilidades preenchida', async () => {
+    const { default: FilledApp } = await import('../App')
+    const { container } = render(<FilledApp />)
+    const section = container.querySelector('section#habilidades')
+
+    expect(section).not.toBeNull()
+
+    const results = await axe(section as HTMLElement)
+
+    expect(results.violations).toEqual([])
+  })
+})

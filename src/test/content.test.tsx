@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Profile, Project } from '../types'
+import type { Profile, Project, SkillGroup } from '../types'
 
 const PLACEHOLDER_MARKERS = ['[', 'teu-utilizador', 'exemplo.com', 'teu@email.com']
 
@@ -423,5 +423,106 @@ describe('normalização dos projetos', () => {
         technologies: ['React'],
       },
     ])
+  })
+})
+
+describe('secção de habilidades', () => {
+  const skillGroupsFixture: SkillGroup[] = [
+    { title: 'Categoria de teste', skills: ['TypeScript', 'React'] },
+    { title: 'Outra categoria de teste', skills: ['CSS'] },
+  ]
+
+  afterEach(() => {
+    vi.doUnmock('../content/skills')
+  })
+
+  function findGroup(section: HTMLElement, title: string): HTMLElement {
+    const heading = within(section).getByRole('heading', { level: 3, name: title })
+    const group = heading.closest('div')
+
+    if (group === null) {
+      throw new Error(`Grupo não encontrado: ${title}`)
+    }
+
+    return group
+  }
+
+  it('apresenta o estado vazio e nenhum grupo quando não há habilidades', async () => {
+    vi.doMock('../content/skills', () => ({ skillGroups: [] }))
+
+    const { Skills } = await import('../sections/Skills/Skills')
+    render(<Skills />)
+
+    const section = screen.getByRole('region', { name: 'Habilidades' })
+    const emptyState = within(section).getByText('Ainda não há habilidades para apresentar.')
+
+    expect(emptyState).toBeInTheDocument()
+    expect(within(section).queryByRole('heading', { level: 3 })).not.toBeInTheDocument()
+    expect(within(section).queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('apresenta cada grupo com título em h3 e a lista das suas habilidades', async () => {
+    vi.doMock('../content/skills', () => ({ skillGroups: skillGroupsFixture }))
+
+    const { Skills } = await import('../sections/Skills/Skills')
+    render(<Skills />)
+
+    const section = screen.getByRole('region', { name: 'Habilidades' })
+    const titles = within(section).getAllByRole('heading', { level: 3 })
+    const expectedTitles = skillGroupsFixture.map((group) => group.title)
+
+    expect(titles.map((title) => title.textContent)).toEqual(expectedTitles)
+
+    for (const group of skillGroupsFixture) {
+      const block = findGroup(section, group.title)
+      const heading = within(block).getByRole('heading', { level: 3, name: group.title })
+      const list = within(block).getByRole('list')
+      const items = within(list).getAllByRole('listitem')
+
+      expect(heading.nextElementSibling).toBe(list)
+      expect(list).toHaveAttribute('role', 'list')
+      expect(items.map((item) => item.textContent)).toEqual(group.skills)
+    }
+  })
+})
+
+describe('normalização das habilidades', () => {
+  afterEach(() => {
+    vi.doUnmock('../content/skills')
+  })
+
+  async function loadSkillGroups(content: SkillGroup[]): Promise<SkillGroup[]> {
+    vi.doMock('../content/skills', () => ({ skillGroups: content }))
+
+    const { skillGroups } = await import('../data/skills')
+
+    return skillGroups
+  }
+
+  it('remove grupos sem título ou sem habilidades', async () => {
+    const valid: SkillGroup = { title: 'Grupo válido', skills: ['TypeScript'] }
+    const withoutTitle = { ...valid, title: '   ' }
+    const withoutSkills = { ...valid, skills: [] }
+
+    const groups = await loadSkillGroups([withoutTitle, withoutSkills, valid])
+
+    expect(groups).toStrictEqual([valid])
+  })
+
+  it('remove as habilidades vazias e o grupo quando a lista fica sem itens', async () => {
+    const groups = await loadSkillGroups([
+      { title: 'Com habilidades vazias', skills: ['TypeScript', '', '   '] },
+      { title: 'Só com habilidades vazias', skills: ['', '  '] },
+    ])
+
+    expect(groups).toStrictEqual([{ title: 'Com habilidades vazias', skills: ['TypeScript'] }])
+  })
+
+  it('apara o título e as habilidades', async () => {
+    const padded = { title: '  Grupo  ', skills: [' TypeScript ', 'CSS  '] }
+
+    const groups = await loadSkillGroups([padded])
+
+    expect(groups).toStrictEqual([{ title: 'Grupo', skills: ['TypeScript', 'CSS'] }])
   })
 })
