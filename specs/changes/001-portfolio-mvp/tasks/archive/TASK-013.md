@@ -1,12 +1,13 @@
 # TASK-013 — Diagnóstico-first: falha `lint-staged could not find any staged files` no commit-task de TASK-006
 
 - Change: 001-portfolio-mvp
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-002
 - Início: 2026-11-19
 - Verificação: VERIFIED (2026-11-23) — pnpm test: 6 ficheiros, 160 passed, 1 skipped (161), 45.14s; 14/14 scripts/rawspec-v2-cli.test.mjs passed. pnpm test:e2e: build passou, 15 passed, 0 falhas (7.6s). Diagnóstico: falha original não reproduzida; fixture real confirma que o hook Markdown-only funciona; nenhum código de produção corrigido. Correcções de revisão limitaram-se ao teste scripts/rawspec-v2-cli.test.mjs. Revisor A e B finais APROVADOS, sem achados. Incidente de processo: agente alternativo fez mutação temporária em scripts/rawspec-v2.mjs com --no-verify para teste de mutação, depois restaurou; inspecção read-only confirmou HEAD sem commit novo, diff de produção vazio, sem staging/push, apenas ficheiros não rastreados esperados. Utilizadora informada e autorizou retomar sem novas mutações. Não se usou --no-verify neste registo.
 - Evidência: pnpm test: 6 ficheiros, 160 passed, 1 skipped (161), 45.14s; 14/14 scripts/rawspec-v2-cli.test.mjs passed. pnpm test:e2e: build passou, 15 passed, 0 falhas (7.6s). Diagnóstico: falha original não reproduzida; fixture real confirma que o hook Markdown-only funciona; nenhum código de produção corrigido. Correcções de revisão limitaram-se ao teste scripts/rawspec-v2-cli.test.mjs. Revisor A e B finais APROVADOS, sem achados. Incidente de processo: agente alternativo fez mutação temporária em scripts/rawspec-v2.mjs com --no-verify para teste de mutação, depois restaurou; inspecção read-only confirmou HEAD sem commit novo, diff de produção vazio, sem staging/push, apenas ficheiros não rastreados esperados. Utilizadora informada e autorizou retomar sem novas mutações. Não se usou --no-verify neste registo.
 - Plano de ação: none
+- Arquivada em: 2026-11-25
 
 ## Objetivo
 
