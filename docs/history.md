@@ -1,4 +1,4 @@
-﻿# Histórico do projeto
+# Histórico do projeto
 
 Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca são reescritas; novas ocorrências são adicionadas ao final.
 
@@ -633,6 +633,16 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Os tres agentes que usam claude-haiku-5-5, implementador, executor e verificador, falhavam em cada pedido com "Upstream request failed: invalid_request_error, tools.N.custom.cache_control.ephemeral.ttl: Input should be 5m or 1h". A causa era o cache.ttl de 30m herdado da configuracao. A medicao mostrou que a exigencia e oposta por modelo: o beam-free aceita exactamente 30m e rejeita qualquer outro valor, com "Invalid value for prompt_cache_options.ttl", e o claude-haiku-5-5 aceita apenas 5m ou 1h. Um TTL unico ao nivel do provider nao serve os dois, pelo que o modelo que discorda precisa de um override ao nivel do modelo.
 - Impacto: opencode.json ganha o bloco models.claude-haiku-5-5 com settings.cache.ttl de 5m. docs/orquestrador.md ganha a seccao 2.1, Cache TTL por modelo, com a tabela dos valores aceitos por modelo e o exemplo de configuracao. bakeoff/validate.mjs ganha uma verificacao que confirma o TTL do provider, o override do claude-haiku-5-5 e a coerencia dos restantes overrides.
 - Evidencia: A correccao foi verificada por execucao real dos nove agentes com o modelo que cada um declara: 9/9 carregam e respondem. Antes da correccao, tres agents com claude-haiku-5-5 falhavam; com o TTL do provider a 5m, os dois agentes beam-free passavam a falhar, o que confirmou a exigencia oposta e motivou o override por modelo. node bakeoff/validate.mjs 19/20 conformes, incluindo a verificacao nova do TTL. A unica verificacao FALHA (docs/history.md com entradas duplicadas) e pre-existente no HEAD.
+
+
+## 2026-11-24 — Decisão — Publicação idempotente de commit existente no commit-task
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: O commit-task passou a publicar, de forma idempotente, um commit de task já existente localmente quando a worktree e o índice estão limpos, sem criar commit vazio. O caminho limpo valida a elegibilidade (task COMPLETED+VERIFIED, branch canónica, ausência de MERGE_HEAD, metadados Change:/Task: exactos em todos os commits do range e gate de âmbito por commit), consulta o remote com git ls-remote e busca apenas o ref exacto de que precisa, e decide o push pelo estado remoto (ausente, igual a HEAD, ancestral, à frente ou divergido), falhando fechado com E_GIT_ERROR e uma razão explícita. O pre-push hook permanece activo, o PR é idempotente e resolve owner/repo a partir de URLs HTTPS ou SSH, e --no-push não contacta o remote. O fluxo normal com alterações fica preservado, com staging explícito e sem git add -A.
+- Motivo: A falha lint-staged could not find any staged files impedia a publicação de commits RawSpec já existentes; o commit-task não tinha via suportada para os publicar.
+- Impacto: O commit-task recupera commits locais elegíveis sem push, sem commit vazio e sem contornar hooks; o fluxo com alterações staged não muda.
+- Evidência: pnpm test: 307 passed | 1 skipped (308) em 6 ficheiros, exit 0 (2026-11-24); pnpm test:e2e: 73 passed | 2 skipped (75), exit 0 (2026-11-24). Revisões A e B aplicadas: cobertura de alterações staged, checks antes do push, gate de âmbito e metadados em todo o range, --no-push sem rede, URLs múltiplos, validação de owner/repo, validação de branch e separadores --, E_PR_CREATE_FAILED e reinspecção do remote em caso de corrida TOCTOU.
 
 ## 2026-11-25 — Decisão — TASK-006
 
