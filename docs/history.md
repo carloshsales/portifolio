@@ -652,3 +652,21 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Normalizacao projects.ts, role list, padding zero, 13 testes. Branch nova por causa de execucao anterior orfa.
 - Impacto: não informado
 - Evidência: não informada
+
+## 2026-11-25 — Evento — Arquivamento TASK-006
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: TASK-006 concluida e arquivada.
+- Motivo: TASK-006 concluida e arquivada.
+- Impacto: não informado
+- Evidência: não informada
+
+## 2026-11-25 — Evento — Detalhes do arquivamento TASK-006
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: Entregas: normalizacao de src/data/projects.ts remove projetos sem titulo/descricao/tecnologias, remove tecnologias vazias, remove URLs vazias ou sem http(s)://. rel=noreferrer noopener nos links. role=list nas duas listas. padding 0 em .list e .techList. 13 testes novos. Verificacao: pnpm test 6 ficheiros 278 passed 1 skipped de 279. pnpm test:e2e 75 testes 73 passed 2 skipped. Revisoes A e B aprovadas na 2. volta. Decisao: corrigir role=list apenas na secao de projetos; Skills Contact e Sidebar para TASK-007 TASK-008 TASK-004. Dividas: src/data/profile.ts nao valida protocolo das URLs de contacto; teste e2e compara href sem trim().
+- Motivo: Entregas: normalizacao de src/data/projects.ts remove projetos sem titulo/descricao/tecnologias, remove tecnologias vazias, remove URLs vazias ou sem http(s)://. rel=noreferrer noopener nos links. role=list nas duas listas. padding 0 em .list e .techList. 13 testes novos. Verificacao: pnpm test 6 ficheiros 278 passed 1 skipped de 279. pnpm test:e2e 75 testes 73 passed 2 skipped. Revisoes A e B aprovadas na 2. volta. Decisao: corrigir role=list apenas na secao de projetos; Skills Contact e Sidebar para TASK-007 TASK-008 TASK-004. Dividas: src/data/profile.ts nao valida protocolo das URLs de contacto; teste e2e compara href sem trim().
+- Impacto: não informado
+- Evidência: não informada

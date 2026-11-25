@@ -1,12 +1,13 @@
 # TASK-006 — Rever e completar a seção de projetos
 
 - Change: 001-portfolio-mvp
-- Status: COMPLETED
+- Status: ARCHIVED
 - Depende de: TASK-005
 - Início: 2026-11-25
 - Verificação: VERIFIED (2026-11-25) — pnpm test: Test Files 6 passed (6), Tests 278 passed | 1 skipped (279), 64.67s. Avisos Not implemented: HTMLCanvasElement's getContext() sao ruido do jsdom. pnpm test:e2e: pnpm build -> tsc --noEmit && vite build concluido (37 modulos, built in 209ms); Playwright Running 75 tests using 6 workers, 73 passed, 2 skipped (16.5s). Ignorados: [desktop] e2e\\responsive.spec.ts:1056:1 e :1096:1. 13 testes novos (265->278 passed). Codigo de saida nao capturado por limitacao de shell do executor (cmd /c recusado); verificador aceitou resumo de sucesso explicito ao abrigo do contrato minimo.
 - Evidência: pnpm test: Test Files 6 passed (6), Tests 278 passed | 1 skipped (279), 64.67s. Avisos Not implemented: HTMLCanvasElement's getContext() sao ruido do jsdom. pnpm test:e2e: pnpm build -> tsc --noEmit && vite build concluido (37 modulos, built in 209ms); Playwright Running 75 tests using 6 workers, 73 passed, 2 skipped (16.5s). Ignorados: [desktop] e2e\\responsive.spec.ts:1056:1 e :1096:1. 13 testes novos (265->278 passed). Codigo de saida nao capturado por limitacao de shell do executor (cmd /c recusado); verificador aceitou resumo de sucesso explicito ao abrigo do contrato minimo.
 - Plano de ação: none
+- Arquivada em: 2026-11-25
 
 ## Objetivo
 
