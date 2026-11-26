@@ -400,11 +400,12 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
   a `TASK-009` está registada com o título "Preencher o conteúdo real do
   portfólio", que não corresponde ao título actual, "Preparar a
   canalização de conteúdo real do portfólio". A tabela passa a reflectir os
-  títulos reais das treze tasks — TASK-001 a TASK-012, mais a TASK-014, que
-  é a task de conteúdo — e o estado real de cada uma. A nota que
-  segue a tabela, sobre o desvio entre o estado registado e o estado real,
-  é reescrita para deixar de afirmar que as tasks 005 a 008 estão
-  `PENDING`, porque estão `ARCHIVED` em
+  títulos reais das catorze tasks da change 001 — TASK-001 a TASK-014, sem
+  lacunas — e o estado real de cada uma. Todas as catorze constam da tabela,
+  incluindo a `TASK-013`, que está `ARCHIVED` e é uma task real da change.
+  A nota que segue a tabela, sobre o desvio entre o estado registado e o
+  estado real, é reescrita para deixar de afirmar que as tasks 005 a 008
+  estão `PENDING`, porque estão `ARCHIVED` em
   `specs/changes/001-portfolio-mvp/tasks/archive/`.
 - **A lista de prioridades da secção 11 de `docs/projeto.md` é revista.**
   `docs/projeto.md:733` lista "Desenvolver a secção inicial, de projetos,
@@ -442,9 +443,11 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
   `h2` da secção correcta está presente, e confirma que o link activo da
   navegação tem `aria-current="page"` e o `href` correcto.
 - **A navegação por clique não desloca a página por scroll.** Um teste
-  E2E regista a posição de scroll antes e depois de clicar num item de
-  menu, e confirma que a posição é a mesma. O teste percorre pelo menos
-  duas transições de rota.
+  E2E regista a posição de scroll do documento antes e depois de clicar num
+  item de menu, e confirma que a posição é a mesma. A posição medida é
+  `window.scrollY`, com uma tolerância de 1 px, porque a navegação
+  client-side pode ajustar o scroll por frações de pixel. O teste percorre
+  pelo menos duas transições de rota.
 - **O carregamento directo de uma rota devolve a página correcta**, e não
   uma página de erro nem um ecrã em branco. Verificado em `e2e/`, com
   navegação por URL e não por clique. O servidor de teste serve o `dist/`
@@ -563,14 +566,16 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
   alterado.
 - `e2e/playwright.config.ts` serve o `dist/` com fallback para
   `index.html`, ou o teste de carregamento directo navega pelo cliente a
-  partir de `/`, com a via escolhida justificada na evidência.
+  partir de `/`. A via 1 é a implementada. A via 2 só é admissível com a
+  justificação exigida nos Riscos, e, nesse caso, `e2e/playwright.config.ts`
+  é alterado na mesma, com a alteração justificada na evidência.
 - `docs/projeto.md` e `docs/deployment.md` reflectem a aplicação
   multi-página, e `docs/deployment.md` regista que o fallback SPA passa a
   ser necessário, sem escolher o destino de publicação.
 - A tabela de tarefas da secção 9.1 de `docs/projeto.md` reflecte os títulos
-  e os estados reais das treze tasks da change 001, incluindo a TASK-014, e
-  a nota que a segue deixa de afirmar que as tasks 005 a 008 estão
-  `PENDING`.
+  e os estados reais das catorze tasks da change 001, TASK-001 a TASK-014,
+  incluindo a TASK-013 e a TASK-014, e a nota que a segue deixa de
+  afirmar que as tasks 005 a 008 estão `PENDING`.
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:e2e`
   passam nos três viewports.
 
@@ -602,7 +607,7 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
   2. manter o `pnpm preview` e fazer o teste de carregamento directo
      navegar pelo cliente a partir de `/`.
 
-  A **via 1 é a recomendada**, porque é a única que prova o requisito
+  A **via 1 é a implementada**, porque é a única que prova o requisito
   real — que um carregamento directo de uma rota funciona — e porque
   reflecte o que o alojamento em produção vai fazer. A via 2 é aceitável
   se o implementador justificar na evidência que a via 1 não é viável no
