@@ -1,24 +1,28 @@
 import type { ComponentType } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EmailIcon, GithubIcon } from '../components/icons'
+import { EmailIcon, GithubIcon, LinkedinIcon } from '../components/icons'
 import type { Profile, Project, SkillGroup, SocialLink } from '../types'
+import { profile as profileFixture } from './fixtures/profile'
+import { projects as projectsFixture } from './fixtures/projects'
+import { skillGroups as skillGroupsFixture } from './fixtures/skills'
 
-const PLACEHOLDER_MARKERS = ['[', 'teu-utilizador', 'exemplo.com', 'teu@email.com']
+const PLACEHOLDER_MARKERS = ['teu-utilizador', 'exemplo.com', 'teu@email.com']
 
-const filledProfile: Profile = {
-  name: 'Maria Silva',
-  role: 'Engenheira de Software',
-  summary: 'Resumo de teste para o perfil preenchido.',
-  photoUrl: '/images/foto-perfil.jpg',
-  location: 'Porto',
-  social: [{ label: 'LinkedIn', url: 'https://linkedin.com/in/maria', icon: 'linkedin' }],
-}
+// As fixtures são dados de teste escritos à mão, e não conteúdo real: o parêntese
+// recto continua a ser proibido nelas, mesmo tendo saído dos marcadores de
+// placeholder, para que nenhum texto de exemplo se esconda num valor.
+const FIXTURE_FORBIDDEN_MARKERS = [...PLACEHOLDER_MARKERS, '[']
 
-const filledProject: Project = {
-  title: 'Projeto de teste',
-  description: 'Descrição de teste.',
-  technologies: ['React', 'TypeScript'],
+function iconMarkup(Icon: ComponentType<{ className?: string }>): string {
+  const { container } = render(<Icon />)
+  const svg = container.querySelector('svg')
+
+  if (svg === null) {
+    throw new Error('Ícone sem SVG')
+  }
+
+  return svg.innerHTML
 }
 
 const emptyProfile: Profile = {
@@ -38,11 +42,13 @@ describe('estado sem nome', () => {
   beforeEach(() => {
     vi.doMock('../data/profile', () => ({ profile: emptyProfile }))
     vi.doMock('../data/projects', () => ({ projects: [] }))
+    vi.doMock('../data/skills', () => ({ skillGroups: [] }))
   })
 
   afterEach(() => {
     vi.doUnmock('../data/profile')
     vi.doUnmock('../data/projects')
+    vi.doUnmock('../data/skills')
   })
 
   it('não renderiza marcadores de placeholder', async () => {
@@ -86,7 +92,7 @@ describe('estado sem nome', () => {
 
 describe('estado com nome', () => {
   beforeEach(() => {
-    vi.doMock('../data/profile', () => ({ profile: filledProfile }))
+    vi.doMock('../data/profile', () => ({ profile: profileFixture }))
     vi.doMock('../data/projects', () => ({ projects: [] }))
   })
 
@@ -100,7 +106,7 @@ describe('estado com nome', () => {
     render(<App />)
 
     expect(
-      screen.getByRole('img', { name: `Fotografia de ${filledProfile.name}` }),
+      screen.getByRole('img', { name: `Fotografia de ${profileFixture.name}` }),
     ).toBeInTheDocument()
   })
 
@@ -108,12 +114,159 @@ describe('estado com nome', () => {
     const { default: App } = await import('../App')
     render(<App />)
 
-    const home = screen.getByRole('region', { name: filledProfile.name })
+    const home = screen.getByRole('region', { name: profileFixture.name })
 
     expect(
-      within(home).getByRole('heading', { name: filledProfile.name, level: 2 }),
+      within(home).getByRole('heading', { name: profileFixture.name, level: 2 }),
     ).toBeInTheDocument()
-    expect(within(home).getByText(filledProfile.role)).toBeInTheDocument()
+    expect(within(home).getByText(profileFixture.role)).toBeInTheDocument()
+  })
+})
+
+describe('canalização de conteúdo com dados de teste completos', () => {
+  beforeEach(() => {
+    vi.doMock('../content/profile', () => ({ profile: profileFixture }))
+    vi.doMock('../content/projects', () => ({ projects: projectsFixture }))
+    vi.doMock('../content/skills', () => ({ skillGroups: skillGroupsFixture }))
+  })
+
+  afterEach(() => {
+    vi.doUnmock('../content/profile')
+    vi.doUnmock('../content/projects')
+    vi.doUnmock('../content/skills')
+  })
+
+  async function renderApp(): Promise<HTMLElement> {
+    const { default: App } = await import('../App')
+    const { container } = render(<App />)
+
+    return container
+  }
+
+  function projectCard(section: HTMLElement, title: string): HTMLElement {
+    const card = within(section).getByRole('heading', { level: 3, name: title }).closest('li')
+
+    if (card === null) {
+      throw new Error(`Card não encontrado: ${title}`)
+    }
+
+    return card
+  }
+
+  it('apresenta a fotografia com o caminho e o texto alternativo do perfil', async () => {
+    await renderApp()
+
+    const photo = screen.getByRole('img', { name: `Fotografia de ${profileFixture.name}` })
+
+    expect(photo).toHaveAttribute('src', profileFixture.photoUrl)
+  })
+
+  it('apresenta o nome, a função e o resumo na secção inicial', async () => {
+    await renderApp()
+
+    const home = screen.getByRole('region', { name: profileFixture.name })
+    const projectsLink = within(home).getByRole('link', { name: 'Ver projetos' })
+    const contactLink = within(home).getByRole('link', { name: 'Contato' })
+
+    expect(
+      within(home).getByRole('heading', { level: 2, name: profileFixture.name }),
+    ).toBeInTheDocument()
+    expect(within(home).getByText(profileFixture.role)).toBeInTheDocument()
+    expect(within(home).getByText(profileFixture.summary)).toBeInTheDocument()
+    expect(projectsLink).toHaveAttribute('href', '#projetos')
+    expect(contactLink).toHaveAttribute('href', '#contato')
+  })
+
+  it('apresenta cada canal de contato com rótulo, destino e ícone da fixture', async () => {
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Contato' })
+    const icons = {
+      github: iconMarkup(GithubIcon),
+      linkedin: iconMarkup(LinkedinIcon),
+      email: iconMarkup(EmailIcon),
+    }
+
+    for (const channel of profileFixture.social) {
+      const link = within(section).getByRole('link', { name: channel.label })
+
+      expect(link).toHaveAttribute('href', channel.url)
+      expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+      expect(link.querySelector('svg')?.innerHTML).toBe(icons[channel.icon])
+    }
+  })
+
+  it('apresenta cada projeto com título, descrição, tecnologias e links', async () => {
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Projetos' })
+    const titles = within(section).getAllByRole('heading', { level: 3 })
+    const techLists = within(section).getAllByRole('list', { name: 'Tecnologias utilizadas' })
+    const technologies = techLists.map((list) => {
+      const items = within(list).getAllByRole('listitem')
+
+      return items.map((item) => item.textContent)
+    })
+
+    expect(titles.map((title) => title.textContent)).toEqual(
+      projectsFixture.map((project) => project.title),
+    )
+    expect(technologies).toEqual(projectsFixture.map((project) => project.technologies))
+
+    for (const project of projectsFixture) {
+      const card = projectCard(section, project.title)
+      const urls = [project.repositoryUrl, project.liveUrl].filter((url) => url !== undefined)
+
+      expect(within(card).getByText(project.description)).toBeInTheDocument()
+      expect(within(card).queryAllByRole('link')).toHaveLength(urls.length)
+
+      if (project.repositoryUrl !== undefined) {
+        const repository = within(card).getByRole('link', { name: 'Código' })
+
+        expect(repository).toHaveAttribute('href', project.repositoryUrl)
+      }
+
+      if (project.liveUrl !== undefined) {
+        const demo = within(card).getByRole('link', { name: 'Demonstração' })
+
+        expect(demo).toHaveAttribute('href', project.liveUrl)
+      }
+    }
+  })
+
+  it('apresenta cada grupo de habilidades com título e habilidades', async () => {
+    await renderApp()
+
+    const section = screen.getByRole('region', { name: 'Habilidades' })
+    const titles = within(section).getAllByRole('heading', { level: 3 })
+    const lists = within(section).getAllByRole('list')
+    const skills = lists.map((list) => {
+      const items = within(list).getAllByRole('listitem')
+
+      return items.map((item) => item.textContent)
+    })
+
+    expect(titles.map((title) => title.textContent)).toEqual(
+      skillGroupsFixture.map((group) => group.title),
+    )
+    expect(skills).toEqual(skillGroupsFixture.map((group) => group.skills))
+  })
+
+  it('não renderiza marcadores de placeholder nem ligações de exemplo', async () => {
+    const container = await renderApp()
+    const text = container.textContent ?? ''
+
+    for (const marker of PLACEHOLDER_MARKERS) {
+      expect(text).not.toContain(marker)
+    }
+
+    for (const link of Array.from(container.querySelectorAll('a[href]'))) {
+      const href = link.getAttribute('href') ?? ''
+
+      for (const marker of PLACEHOLDER_MARKERS) {
+        expect(href).not.toContain(marker)
+      }
+    }
   })
 })
 
@@ -124,24 +277,24 @@ describe('CTA Ver projetos', () => {
   })
 
   it('mostra o CTA quando existem projetos', async () => {
-    vi.doMock('../data/profile', () => ({ profile: filledProfile }))
-    vi.doMock('../data/projects', () => ({ projects: [filledProject] }))
+    vi.doMock('../data/profile', () => ({ profile: profileFixture }))
+    vi.doMock('../data/projects', () => ({ projects: projectsFixture }))
 
     const { default: App } = await import('../App')
     render(<App />)
 
-    const home = screen.getByRole('region', { name: filledProfile.name })
+    const home = screen.getByRole('region', { name: profileFixture.name })
     expect(within(home).getByRole('link', { name: /ver projetos/i })).toBeInTheDocument()
   })
 
   it('não mostra o CTA quando não existem projetos', async () => {
-    vi.doMock('../data/profile', () => ({ profile: filledProfile }))
+    vi.doMock('../data/profile', () => ({ profile: profileFixture }))
     vi.doMock('../data/projects', () => ({ projects: [] }))
 
     const { default: App } = await import('../App')
     render(<App />)
 
-    const home = screen.getByRole('region', { name: filledProfile.name })
+    const home = screen.getByRole('region', { name: profileFixture.name })
     expect(within(home).queryByRole('link', { name: /ver projetos/i })).not.toBeInTheDocument()
   })
 })
@@ -153,26 +306,26 @@ describe('CTA Contato', () => {
   })
 
   it('mostra o CTA quando existem canais de contato', async () => {
-    vi.doMock('../data/profile', () => ({ profile: filledProfile }))
+    vi.doMock('../data/profile', () => ({ profile: profileFixture }))
     vi.doMock('../data/projects', () => ({ projects: [] }))
 
     const { default: App } = await import('../App')
     render(<App />)
 
-    const home = screen.getByRole('region', { name: filledProfile.name })
+    const home = screen.getByRole('region', { name: profileFixture.name })
     expect(within(home).getByRole('link', { name: /contato/i })).toBeInTheDocument()
   })
 
   it('não mostra o CTA quando não existem canais de contato', async () => {
     vi.doMock('../data/profile', () => ({
-      profile: { ...filledProfile, social: [] },
+      profile: { ...profileFixture, social: [] },
     }))
     vi.doMock('../data/projects', () => ({ projects: [] }))
 
     const { default: App } = await import('../App')
     render(<App />)
 
-    const home = screen.getByRole('region', { name: filledProfile.name })
+    const home = screen.getByRole('region', { name: profileFixture.name })
     expect(within(home).queryByRole('link', { name: /contato/i })).not.toBeInTheDocument()
   })
 })
@@ -281,7 +434,7 @@ describe('secção de projetos', () => {
     )
   })
 
-  it('a fixture não fica no conteúdo real', async () => {
+  it('o conteúdo real não contém os projetos de teste', async () => {
     const actual = await vi.importActual<{ projects: Project[] }>('../content/projects')
     const { projects } = await import('../content/projects')
 
@@ -409,6 +562,12 @@ describe('normalização dos projetos', () => {
     ])
   })
 
+  it('não altera os projetos da fixture', async () => {
+    const projects = await loadProjects(projectsFixture)
+
+    expect(projects).toStrictEqual(projectsFixture)
+  })
+
   it('remove os espaços nas extremidades dos textos', async () => {
     const projects = await loadProjects([
       {
@@ -429,11 +588,6 @@ describe('normalização dos projetos', () => {
 })
 
 describe('secção de habilidades', () => {
-  const skillGroupsFixture: SkillGroup[] = [
-    { title: 'Categoria de teste', skills: ['TypeScript', 'React'] },
-    { title: 'Outra categoria de teste', skills: ['CSS'] },
-  ]
-
   afterEach(() => {
     vi.doUnmock('../content/skills')
   })
@@ -520,6 +674,12 @@ describe('normalização das habilidades', () => {
     expect(groups).toStrictEqual([{ title: 'Com habilidades vazias', skills: ['TypeScript'] }])
   })
 
+  it('não altera os grupos da fixture', async () => {
+    const groups = await loadSkillGroups(skillGroupsFixture)
+
+    expect(groups).toStrictEqual(skillGroupsFixture)
+  })
+
   it('apara o título e as habilidades', async () => {
     const padded = { title: '  Grupo  ', skills: [' TypeScript ', 'CSS  '] }
 
@@ -538,17 +698,6 @@ describe('secção de contato', () => {
   afterEach(() => {
     vi.doUnmock('../content/profile')
   })
-
-  function iconMarkup(Icon: ComponentType<{ className?: string }>): string {
-    const { container } = render(<Icon />)
-    const svg = container.querySelector('svg')
-
-    if (svg === null) {
-      throw new Error('Ícone sem SVG')
-    }
-
-    return svg.innerHTML
-  }
 
   async function renderContact(social: SocialLink[]): Promise<HTMLElement> {
     vi.doMock('../content/profile', () => ({ profile: { ...emptyProfile, social } }))
@@ -704,6 +853,12 @@ describe('normalização dos canais de contato', () => {
     ])
   })
 
+  it('não altera os canais da fixture', async () => {
+    const social = await loadSocial(profileFixture.social)
+
+    expect(social).toStrictEqual(profileFixture.social)
+  })
+
   it('apara o rótulo e a URL', async () => {
     const social = await loadSocial([
       { label: '  GitHub  ', url: ' https://github.com/utilizador-teste ', icon: 'github' },
@@ -714,5 +869,117 @@ describe('normalização dos canais de contato', () => {
       { label: 'GitHub', url: 'https://github.com/utilizador-teste', icon: 'github' },
       { label: 'Email', url: 'mailto:teste@exemplo.test', icon: 'email' },
     ])
+  })
+})
+
+describe('dados de teste das fixtures', () => {
+  it('o perfil de teste está completo', () => {
+    expect(profileFixture.name).not.toBe('')
+    expect(profileFixture.role).not.toBe('')
+    expect(profileFixture.summary).not.toBe('')
+    expect(profileFixture.photoUrl).not.toBe('')
+    expect(profileFixture.social.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('não repete títulos, habilidades, tecnologias nem rótulos', () => {
+    const titles = projectsFixture.map((project) => project.title)
+    const groupTitles = skillGroupsFixture.map((group) => group.title)
+    const skills = skillGroupsFixture.flatMap((group) => group.skills)
+    const labels = profileFixture.social.map((channel) => channel.label)
+
+    for (const values of [titles, groupTitles, skills, labels]) {
+      expect(new Set(values).size).toBe(values.length)
+    }
+
+    for (const project of projectsFixture) {
+      expect(new Set(project.technologies).size).toBe(project.technologies.length)
+    }
+  })
+
+  it('não contém marcadores de placeholder', () => {
+    const values = [
+      profileFixture.name,
+      profileFixture.role,
+      profileFixture.summary,
+      profileFixture.photoUrl,
+      profileFixture.location,
+      ...profileFixture.social.flatMap((channel) => [channel.label, channel.url]),
+      ...projectsFixture.flatMap((project) => [
+        project.title,
+        project.description,
+        ...project.technologies,
+        ...(project.repositoryUrl === undefined ? [] : [project.repositoryUrl]),
+        ...(project.liveUrl === undefined ? [] : [project.liveUrl]),
+      ]),
+      ...skillGroupsFixture.flatMap((group) => [group.title, ...group.skills]),
+    ]
+
+    for (const value of values) {
+      for (const marker of FIXTURE_FORBIDDEN_MARKERS) {
+        expect(value).not.toContain(marker)
+      }
+    }
+  })
+})
+
+interface RealContent {
+  profile: Profile
+  projects: Project[]
+  skillGroups: SkillGroup[]
+}
+
+async function importRealContent(): Promise<RealContent> {
+  const { profile } = await vi.importActual<{ profile: Profile }>('../content/profile')
+  const { projects } = await vi.importActual<{ projects: Project[] }>('../content/projects')
+  const { skillGroups } = await vi.importActual<{ skillGroups: SkillGroup[] }>('../content/skills')
+
+  return { profile, projects, skillGroups }
+}
+
+describe('conteúdo real', () => {
+  it('não tem marcadores no perfil, nos projetos nem nas habilidades', async () => {
+    const { profile, projects, skillGroups } = await importRealContent()
+    const values: string[] = [profile.name, profile.role, profile.summary]
+
+    for (const project of projects) {
+      values.push(project.title, project.description, ...project.technologies)
+    }
+
+    for (const group of skillGroups) {
+      values.push(group.title, ...group.skills)
+    }
+
+    for (const value of values) {
+      for (const marker of PLACEHOLDER_MARKERS) {
+        expect(value).not.toContain(marker)
+      }
+    }
+  })
+
+  it('não contém os dados de teste das fixtures', async () => {
+    const { profile, projects, skillGroups } = await importRealContent()
+
+    expect(profile.name).not.toBe(profileFixture.name)
+    expect(profile.role).not.toBe(profileFixture.role)
+    expect(profile.summary).not.toBe(profileFixture.summary)
+    expect(profile.location).not.toBe(profileFixture.location)
+
+    for (const channel of profileFixture.social) {
+      expect(profile.social.map((link) => `${link.label} ${link.url}`)).not.toContain(
+        `${channel.label} ${channel.url}`,
+      )
+    }
+
+    for (const project of projectsFixture) {
+      expect(projects.map((item) => `${item.title} ${item.description}`)).not.toContain(
+        `${project.title} ${project.description}`,
+      )
+    }
+
+    for (const group of skillGroupsFixture) {
+      expect(skillGroups.map((item) => `${item.title} ${item.skills.join(' ')}`)).not.toContain(
+        `${group.title} ${group.skills.join(' ')}`,
+      )
+    }
   })
 })

@@ -21,6 +21,15 @@ const contactProfile: Profile = {
   ],
 }
 
+const emptyProfile: Profile = {
+  name: '',
+  role: '',
+  summary: '',
+  photoUrl: '',
+  location: '',
+  social: [],
+}
+
 async function setProfileOverride(page: Page, profile: Profile): Promise<void> {
   await page.addInitScript((value) => {
     ;(window as unknown as { __PORTFOLIO_PROFILE__?: Profile }).__PORTFOLIO_PROFILE__ = value
@@ -412,6 +421,7 @@ test('mostra todos os links de navegação', async ({ page }) => {
 })
 
 test('sem nome, não renderiza fotografia', async ({ page }) => {
+  await setProfileOverride(page, emptyProfile)
   await page.goto('/')
 
   const images = await page.locator('img').count()
@@ -419,6 +429,7 @@ test('sem nome, não renderiza fotografia', async ({ page }) => {
 })
 
 test('sem nome, não renderiza texto alternativo vazio', async ({ page }) => {
+  await setProfileOverride(page, emptyProfile)
   await page.goto('/')
 
   const emptyAltImages = await page.locator('img[alt=""]').count()
@@ -484,6 +495,7 @@ test('com nome, a barra lateral apresenta o nome e a identidade', async ({ page 
 })
 
 test('não tem links de contacto inválidos', async ({ page }) => {
+  await setProfileOverride(page, contactProfile)
   await page.goto('/')
 
   const hrefs = await page
