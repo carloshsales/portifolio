@@ -188,8 +188,9 @@ test('o último elemento do conteúdo permanece acessível', async ({ page }) =>
   const probe = await page.evaluate(() => {
     const content = document.getElementById('conteudo')
     const bar = document.querySelector('nav')
+    const section = content?.querySelector('section:last-of-type') ?? null
 
-    if (content === null || bar === null) {
+    if (content === null || bar === null || section === null) {
       return null
     }
 
@@ -197,23 +198,35 @@ test('o último elemento do conteúdo permanece acessível', async ({ page }) =>
     // ela que se desloca até ao fim, e não o documento.
     content.scrollTop = content.scrollHeight
 
-    const contentRect = content.getBoundingClientRect()
     const barRect = bar.getBoundingClientRect()
 
-    // O ponto de prova é o fundo da área de conteúdo visível, logo acima
-    // da barra inferior: é onde o utilizador tocar para ler o fim do
-    // conteúdo.
-    const y = Math.round(barRect.top - 4)
-    const x = Math.round(contentRect.left + contentRect.width / 2)
-    const element = document.elementFromPoint(x, y)
+    // O último elemento de conteúdo que está visível no fundo da área de
+    // conteúdo. Medir o último elemento do DOM não serve, porque pode ter
+    // ficado acima da área visível e a comparação seria trivialmente
+    // verdadeira.
+    const candidatos = Array.from(section.querySelectorAll('p, li, a, h3, img, ul, div')).filter(
+      (el) => el.getBoundingClientRect().height > 0,
+    )
+    const visiveis = candidatos.filter((el) => {
+      const r = el.getBoundingClientRect()
+
+      return r.bottom > barRect.top
+    })
+    const ultimo = visiveis[visiveis.length - 1] ?? candidatos[candidatos.length - 1] ?? null
+
+    if (ultimo === null) {
+      return null
+    }
+
+    const rect = ultimo.getBoundingClientRect()
 
     return {
-      tag: element?.tagName ?? null,
-      // O elemento apanhado pertence ao conteúdo da página e não à barra
-      // inferior: a barra não cobre o fim do conteúdo.
-      dentroDoConteudo: element === null ? false : content.contains(element),
-      foraDaBarra: element === null ? false : !bar.contains(element),
-      y,
+      tag: ultimo.tagName,
+      // O fundo do último elemento de conteúdo tem de ficar acima da barra
+      // inferior. Se a barra cobrisse o conteúdo, o fundo ultrapassaria o
+      // topo da barra e a asserção falharia.
+      ultimoAcimaDaBarra: Math.round(rect.bottom) <= Math.round(barRect.top),
+      ultimoBottom: Math.round(rect.bottom),
       barTop: Math.round(barRect.top),
       scrollTop: content.scrollTop,
       transborda: content.scrollHeight > content.clientHeight,
@@ -223,10 +236,8 @@ test('o último elemento do conteúdo permanece acessível', async ({ page }) =>
   expect(probe).not.toBeNull()
   expect(probe?.tag).not.toBeNull()
 
-  // O ponto de prova tem de apanhar o conteúdo da página, e não a barra
-  // inferior que o cobriria.
-  expect(probe?.dentroDoConteudo).toBe(true)
-  expect(probe?.foraDaBarra).toBe(true)
+  // O último elemento de conteúdo tem de terminar acima da barra inferior.
+  expect(probe?.ultimoAcimaDaBarra).toBe(true)
 
   // O scroll interno só pode ser observado quando o conteúdo excede a
   // viewport. Sem conteúdo real, a condição não é observada.
