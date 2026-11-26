@@ -1,11 +1,11 @@
 # TASK-011 — Transformar o portfólio numa aplicação multi-página
 
 - Change: 001-portfolio-mvp
-- Status: IN PROGRESS
+- Status: COMPLETED
 - Depende de: TASK-009, TASK-010
 - Início: 2026-11-26
-- Verificação: PENDING
-- Evidência: —
+- Verificação: VERIFIED (2026-11-26) — pnpm test exit 0: 6 files, 381 passed | 1 skipped (382), 155.58s. pnpm test:e2e exit 0: build OK, 80 passed | 4 skipped (12.4s). pnpm lint 0 erros. pnpm typecheck exit 0. pnpm build exit 0: total_kb 372.16, max_kb 217.50. Revisores A e B aprovaram.
+- Evidência: pnpm test exit 0: 6 files, 381 passed | 1 skipped (382), 155.58s. pnpm test:e2e exit 0: build OK, 80 passed | 4 skipped (12.4s). pnpm lint 0 erros. pnpm typecheck exit 0. pnpm build exit 0: total_kb 372.16, max_kb 217.50. Revisores A e B aprovaram.
 - Plano de ação: none
 
 ## Objetivo
