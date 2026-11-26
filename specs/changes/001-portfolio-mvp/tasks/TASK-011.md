@@ -158,7 +158,7 @@ cria as três rotas com um componente mínimo e migra o ficheiro de testes;
 a TASK-014 estende-os. A ordem do grafo garante a sequência. Todos os
 outros ficheiros são exclusivos desta task.
 
-O `pnpm-lock.yaml` está no âmbito porque a instalação das duas
+O `pnpm-lock.yaml` está no âmbito porque a adição das duas
 dependências do router altera o lockfile, e não há forma de adicionar
 uma dependência sem o fazer. O gate de âmbito de
 `scripts/rawspec-v2.mjs` rejeitaria o commit sem esta entrada, e a
@@ -309,14 +309,27 @@ dependa de inferir o que remover.
   valor correcto para um link de navegação entre páginas.
 - **O `aria-current="page"` é aplicado pelo próprio `Link`.** O
   `@tanstack/react-router` define `aria-current="page"` automaticamente
-  quando o link está activo, e só nesse caso
-  (`dist/esm/link.js`, no bloco `if (isActive) { props["aria-current"]
-  = "page" }`). A implementação **não** escreve o atributo à mão.
+  quando o link está activo, e só nesse caso. A implementação **não**
+  escreve o atributo à mão. Esta é uma garantia da API do pacote
+  instalado, e não depende de nenhum ficheiro do repositório.
 - **O link para `/` usa `activeOptions: { exact: true }`.** Sem esta
   opção, a correspondência de estado activo do `Link` é feita por
   `startsWith`, e o link da raiz ficaria activo em **todas** as sete
   rotas, violando a aceitação de que existe exactamente um link
-  marcado. A opção aplica-se ao link de `/` da navegação.
+  marcado. A opção aplica-se a **todos** os `Link` que apontem para `/`,
+  e não apenas ao item de menu:
+  - o item de menu de Início, em `NAV_ITEMS`;
+  - o link da marca, que é um `Link` para `/` e **não** faz parte de
+    `NAV_ITEMS` (`src/components/Sidebar.tsx:30`, hoje
+    `<a href="#inicio" className={styles.brandLink}>`). O `aria-current`
+  é aplicado automaticamente pelo `Link` a qualquer link activo, pelo
+  que a marca também o receberia, e a aceitação exige que **nenhum**
+  outro link esteja marcado.
+- **O `activeProps` e o `activeOptions` pertencem ao mesmo `Link`.** O
+  `activeProps` define a classe e os atributos do estado activo; o
+  `activeOptions` define **como** a activação é calculada. Um `Link`
+  que use `activeProps` para o estilo activo usa também
+  `activeOptions: { exact: true }` quando aponta para `/`.
 - **O skip link continua a funcionar.** Aponta para `#conteudo`, e o
   elemento `main` mantém o `id="conteudo"`, para que o foco vá para o
   conteúdo da página actual.
@@ -627,9 +640,10 @@ dependa de inferir o que remover.
 - `src/routeTree.gen.ts` está versionado e `.gitignore` não foi
   alterado.
 - `e2e/playwright.config.ts` mantém o `pnpm preview` como `webServer`, com
-  o `appType: 'spa'` declarado explicitamente em `vite.config.ts`, e o
-  teste de carregamento directo navega por URL — `page.goto('/projetos')` —
-  provando o fallback em runtime.
+  o `timeout` de arranque aumentado, e o `appType: 'spa'` é declarado
+  explicitamente em `vite.config.ts`. O teste de carregamento directo
+  navega por URL — `page.goto('/projetos')` — provando o fallback em
+  runtime.
 - `docs/projeto.md` e `docs/deployment.md` reflectem a aplicação
   multi-página, e `docs/deployment.md` regista que o fallback SPA passa a
   ser necessário, sem escolher o destino de publicação.
@@ -669,21 +683,18 @@ dependa de inferir o que remover.
   O `webServer` do Playwright pode, por isso, manter o `pnpm preview`.
 - **`e2e/playwright.config.ts` é alterado.** O `webServer` actual corre
   `pnpm preview --host 127.0.0.1 --port 4173 --strictPort`
-  (`e2e/playwright.config.ts:34-39`), que se mantém. A alteração é
-  exigida pelo `appType`, para que o fallback dependa de uma decisão
-  explícita do projecto e não de um valor por omissão do Vite:
-  `appType: 'spa'` é declarado em `vite.config.ts`, e o `webServer`
-  passa a servir o `dist/` com o fallback garantido por essa
-  declaração.
+  (`e2e/playwright.config.ts:34-39`), e o comando **mantém-se**. A
+  alteração é a introdução de um `timeout` superior, para que o
+  primeiro arranque do servidor — que faz o build e arranca o `preview`
+  — não seja interrompido por timeouts de arranque do Playwright. O
+  `appType: 'spa'` é declarado explicitamente em `vite.config.ts`, para
+  que o fallback dependa de uma decisão explícita do projecto e não de
+  um valor por omissão do Vite. O `webServer` passa assim a servir o
+  `dist/` com o fallback garantido por essa declaração.
 - **A prova do fallback é feita em runtime, por carregamento directo.**
   O teste E2E navega por URL — `page.goto('/projetos')` — e confirma que
   a página da secção é renderizada. Não é uma navegação pelo cliente a
   partir de `/`, que não provaria o fallback.
-
-  A prova do fallback é feita em runtime, com `page.goto()`, e não por
-  uma navegação pelo cliente a partir de `/`, que não provaria o
-  fallback. O `webServer` mantém o `pnpm preview`, com o `appType: 'spa'`
-  declarado explicitamente em `vite.config.ts`.
 - **O router adiciona peso ao bundle.** O limite de 400 kB foi medido em
   298,50 kB na TASK-010, com 224,86 kB no ficheiro mais pesado. O router
   pode aproximar o limite. Se o limite for excedido, a task tem de reduzir
