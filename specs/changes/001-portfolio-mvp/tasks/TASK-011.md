@@ -532,6 +532,15 @@ dependa de inferir o que remover.
 - `pnpm lint`, `pnpm typecheck` e `pnpm test` passam.
 - `pnpm build` gera o artefacto de produção.
 - `pnpm test:e2e` passa nos três viewports.
+- **A barra inferior não cobre o fim do conteúdo, e o conteúdo é
+  alcançável por clique.** Abaixo de 1024px, um teste desloca a área de
+  conteúdo — que tem a sua própria barra de rolagem — até ao fim, e
+  compara a coordenada real do fundo do último elemento de conteúdo com
+  o topo da barra inferior. O fundo do elemento tem de ficar acima da
+  barra. A asserção é medida em runtime, e não assenta num ponto fixo.
+  O scroll interno é verificado **condicionalmente**, quando o conteúdo
+  excede a viewport; sem conteúdo real, a evidência declara a condição
+  não observada, com a rota e a razão.
 - **As sete rotas são verificadas em E2E.** Para cada uma das sete rotas, um
   teste navega até à URL directa, confirma que a página carrega e que o
   `h2` da secção correcta está presente, e confirma que o link activo da

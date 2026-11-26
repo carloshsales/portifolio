@@ -212,6 +212,11 @@ test('o último elemento do conteúdo permanece acessível', async ({ page }) =>
 
       return r.bottom > barRect.top
     })
+
+    // Quando o conteúdo não transborda, nenhum elemento ultrapassa a barra
+    // e a comparação seria trivialmente verdadeira para qualquer um deles.
+    // Mede-se então o último elemento do DOM, que é o que a comparação
+    // tem de proteger.
     const ultimo = visiveis[visiveis.length - 1] ?? candidatos[candidatos.length - 1] ?? null
 
     if (ultimo === null) {
