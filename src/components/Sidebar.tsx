@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { profile } from '../data/profile'
 import {
   ArticlesIcon,
@@ -32,6 +32,7 @@ const NAV_ITEMS: readonly NavItem[] = [
 ]
 
 export function Sidebar() {
+  const navigate = useNavigate()
   const hasName = profile.name.trim() !== ''
   const name = hasName ? profile.name : 'Início'
 
@@ -40,14 +41,22 @@ export function Sidebar() {
       <h1 className={styles.brand}>
         {/*
          * A marca é um link para a raiz, mas não é um item de navegação.
-         * Fica fora da lista de navegação e, por isso, não recebe o
-         * `aria-current`, que o `Link` do router aplica automaticamente
-         * quando o link está activo. O `aria-current="page"` identifica o
-         * item de menu da secção actual, dentro de `NAV_ITEMS`.
+         * Por isso não usa o `Link` do router: esse componente aplica
+         * `aria-current="page"` automaticamente quando o link está
+         * activo, e o `aria-current` identifica o item de menu da secção
+         * actual. A âncora navega pelo router, para não recarregar o
+         * documento, mas sem marcar o estado activo.
          */}
-        <Link to="/" className={styles.brandLink}>
+        <a
+          href="/"
+          className={styles.brandLink}
+          onClick={(event) => {
+            event.preventDefault()
+            void navigate({ to: '/' })
+          }}
+        >
           {name}
-        </Link>
+        </a>
       </h1>
 
       {hasName ? (
