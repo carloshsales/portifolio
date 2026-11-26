@@ -2086,6 +2086,23 @@ function listChangedFiles(repoRoot) {
 }
 
 /**
+ * Verifica se a remoção de um ficheiro já está preparada no índice.
+ *
+ * @param {string} repoRoot caminho raiz do repositório.
+ * @param {string} file caminho relativo do ficheiro removido do disco.
+ * @returns {boolean} `true` quando o índice já regista a remoção.
+ */
+function isDeletionStaged(repoRoot, file) {
+  const output = runCommand(
+    'git',
+    ['diff', '--cached', '--name-only', '--diff-filter=D', '--', file],
+    repoRoot,
+    'E_GIT_ERROR',
+  )
+  return output.trim() !== ''
+}
+
+/**
  * Normaliza um caminho para comparação, sem marcas de separador.
  *
  * @param {string} path caminho a normalizar.
@@ -3120,7 +3137,13 @@ export function commitAndPushTask(
   }
 
   for (const file of inScope) {
-    runCommand('git', ['add', '--', file], repoRoot, 'E_GIT_ERROR')
+    // Um ficheiro removido do disco prepara-se com `add -u`, exceto quando
+    // o índice já registou a remoção.
+    if (existsSync(join(repoRoot, file))) {
+      runCommand('git', ['add', '--', file], repoRoot, 'E_GIT_ERROR')
+    } else if (!isDeletionStaged(repoRoot, file)) {
+      runCommand('git', ['add', '-u', '--', file], repoRoot, 'E_GIT_ERROR')
+    }
   }
   runCommand('git', ['commit', '-m', message], repoRoot, 'E_GIT_ERROR')
 

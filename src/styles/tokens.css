@@ -52,4 +52,7 @@
   /* Foco acessível */
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
+
+  /* Alvo de toque mínimo (44 × 44 px) */
+  --touch-target-min: 44px;
 }

@@ -1597,6 +1597,39 @@ describe('branch e commit por tarefa', () => {
       expect(git(repo, ['rev-parse', '--short', 'HEAD']).trim()).toBe(before)
     })
 
+    it('commita a remoção de um ficheiro do âmbito apagado do disco', () => {
+      const repo = createRepoWithTask()
+      repoWithScope(repo, ['public/foto.png'])
+      mkdirSync(join(repo, 'public'), { recursive: true })
+      writeFileSync(join(repo, 'public', 'foto.png'), 'imagem\n', 'utf8')
+      git(repo, ['add', '--', 'public/foto.png'])
+      git(repo, ['commit', '-m', 'chore: adicionar foto'])
+      rmSync(join(repo, 'public', 'foto.png'))
+      touchTask(repo)
+
+      const result = commitAndPushTask(repo, 'TASK-001', { checks: [], push: false })
+
+      expect(result.pushed).toBe(false)
+      const files = git(repo, ['show', '--name-status', '--pretty=format:']).trim().split('\n')
+      expect(files).toContain('D\tpublic/foto.png')
+    })
+
+    it('commita a remoção de um ficheiro do âmbito já preparada no índice', () => {
+      const repo = createRepoWithTask()
+      repoWithScope(repo, ['public/foto.png'])
+      mkdirSync(join(repo, 'public'), { recursive: true })
+      writeFileSync(join(repo, 'public', 'foto.png'), 'imagem\n', 'utf8')
+      git(repo, ['add', '--', 'public/foto.png'])
+      git(repo, ['commit', '-m', 'chore: adicionar foto'])
+      git(repo, ['rm', '--', 'public/foto.png'])
+      touchTask(repo)
+
+      commitAndPushTask(repo, 'TASK-001', { checks: [], push: false })
+
+      const files = git(repo, ['show', '--name-status', '--pretty=format:']).trim().split('\n')
+      expect(files).toContain('D\tpublic/foto.png')
+    })
+
     it('não usa git add -A', () => {
       const source = readFileSync(join(import.meta.dirname, 'rawspec-v2.mjs'), 'utf8')
       expect(source).not.toContain("'add', '-A'")

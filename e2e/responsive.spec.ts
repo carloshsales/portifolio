@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
 import type { Profile } from '../src/types'
 
 const SECTION_IDS = ['inicio', 'projetos', 'habilidades', 'contato'] as const
+const MIN_TOUCH_TARGET_PX = 44
 
 const filledProfile: Profile = {
   name: 'Maria Silva',
@@ -1023,6 +1024,30 @@ test('não tem overflow horizontal durante a navegação', async ({ page }) => {
     )
 
     expect(overflow).toBeLessThanOrEqual(0)
+  }
+})
+
+test('os alvos de navegação em ecrãs pequenos têm pelo menos 44 × 44 px', async ({ page }) => {
+  await page.goto('/')
+
+  const viewport = page.viewportSize()
+  const width = viewport?.width ?? 0
+
+  // Abaixo de 1024px a navegação é uma barra inferior, e a marca do cabeçalho
+  // é uma ligação para o início. Os alvos medidos são, por isso, todos os links
+  // da barra lateral.
+  test.skip(width >= 1024, 'A barra inferior só existe abaixo de 1024px')
+
+  const targets = page.locator('aside a[href]')
+
+  await expect(targets).toHaveCount(SECTION_IDS.length + 1)
+
+  for (const target of await targets.all()) {
+    const href = (await target.getAttribute('href')) ?? ''
+    const box = await target.boundingBox()
+
+    expect(box?.width ?? 0, `largura de ${href}`).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX)
+    expect(box?.height ?? 0, `altura de ${href}`).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX)
   }
 })
 
