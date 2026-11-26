@@ -732,3 +732,21 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Autor: Carlos Henrique\nOrigem: execucao da change 001-portfolio-mvp\nDecisao: A TASK-009 (preparar a canalizacao de conteudo real do portfolio) foi concluida e verificada. Fixtures de testes criadas em src/test/fixtures/ (profile, projects, skills); content.test.tsx e e2e/responsive.spec.ts atualizados; bundle de producao sem valores das fixtures (varredura zero correspondencias); verificacao visual no browser sobre fixture injectada aprovada.\nMotivo: Habilitar o fluxo de introducao de conteudo real (src/content/) com fixtures de teste, sem tocar no codigo de apresentacao nem no conteudo de producao.\nImpacto: Canalizacao de conteudo real preparada; conteudo de producao em src/content/ permanece vazio por desenho; introducao do conteudo real do utilizador fica pendente para a TASK-009 da change 001 (secção Introducao do conteudo real); override window.__PORTFOLIO_PROFILE__ em producao adiado para a TASK-011. Dívida pre-existente: pnpm format:check falha em bakeoff/check-permissions.mjs e scripts/rawspec-v2-cli.test.mjs, pre-existentes em main, nao tocados por esta task; format:check nao faz parte do gate do commit-task.\nEvidencia: pnpm test exit 0 (371 passed, 1 skipped); pnpm test:e2e exit 0 (76 passed, 2 skipped pre-existentes); pnpm lint, typecheck, build exit 0; revisores A e B aprovados; bundle varredura zero correspondencias; verificacao visual no browser aprovada.
 - Impacto: não informado
 - Evidência: não informada
+
+## 2026-11-26 — Decisão — TASK-010 responsividade e performance
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: Removido foto-perfil.png 1.8MB; mantido apenas jpg. Corrigido scope. Teste negativo overflow comprovado. dist 298.50KB total, 224.86KB max. Revisores A e B aprovaram.
+- Motivo: Removido foto-perfil.png 1.8MB; mantido apenas jpg. Corrigido scope. Teste negativo overflow comprovado. dist 298.50KB total, 224.86KB max. Revisores A e B aprovaram.
+- Impacto: não informado
+- Evidência: não informada
+
+## 2026-11-26 — Evento — TASK-010 - Correcao do staging de ficheiro removido em scripts/rawspec-v2.mjs
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: Corrigido o staging de ficheiros removidos no commit-task: git add -u em vez de git add -- path, com guarda isDeletionStaged. Motivo: git add -- public/images/foto-perfil.png falhava com exit 128 porque o ficheiro ja foi removido do disco, bloqueando o commit da TASK-010. Impacto: scripts/rawspec-v2.mjs alterado; 2 testes novos em scripts/rawspec-v2.test.mjs (179/179 passam); teste negativo comprovado. Evidencia: suite do helper 179/179; pnpm test 373 passed 1 skipped; pnpm test:e2e 78 passed 3 skipped.
+- Motivo: Corrigido o staging de ficheiros removidos no commit-task: git add -u em vez de git add -- path, com guarda isDeletionStaged. Motivo: git add -- public/images/foto-perfil.png falhava com exit 128 porque o ficheiro ja foi removido do disco, bloqueando o commit da TASK-010. Impacto: scripts/rawspec-v2.mjs alterado; 2 testes novos em scripts/rawspec-v2.test.mjs (179/179 passam); teste negativo comprovado. Evidencia: suite do helper 179/179; pnpm test 373 passed 1 skipped; pnpm test:e2e 78 passed 3 skipped.
+- Impacto: não informado
+- Evidência: não informada
