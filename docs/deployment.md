@@ -15,8 +15,8 @@ O projeto é uma aplicação frontend estática, sem backend, sem base de dados 
 | Requer Node | 22 ou superior |
 | Requer pnpm | 12 (fixado em `package.json` pelo campo `packageManager`) |
 | Assets com hash | Sim: `index-<hash>.js`, `index-<hash>.css` |
-| Rotas | Só âncoras (`#inicio`, `#projetos`, `#habilidades`, `#contato`). Sem router. |
-| SPA fallback | **Desnecessário.** A aplicação tem uma única rota. |
+| Rotas | Sete rotas com URL próprio, sem `#`: `/`, `/projetos`, `/habilidades`, `/contato`, `/jogos`, `/artigos` e `/experimentos`. Router: TanStack Router, com as rotas definidas por código. |
+| SPA fallback | **Necessário.** As rotas são resolvidas no cliente, pelo que `/projetos` não corresponde a nenhum ficheiro em `dist/`. Sem reescrita para `index.html`, um carregamento directo ou um recarregamento dessa rota devolve 404. |
 
 Conteúdo gerado:
 
@@ -37,7 +37,7 @@ Qualquer destino tem de satisfazer estes cinco requisitos:
 
 1. **Servir `dist/`** como raiz do site, incluindo `index.html` na raiz.
 2. **HTTPS** com certificado válido e redireccionamento de HTTP.
-3. **Sem SPA fallback.** A aplicação tem uma única rota, portanto não é preciso reescrever URLs desconhecidas para `index.html`.
+3. **SPA fallback obrigatório.** Um pedido a uma rota que não corresponde a um ficheiro em `dist/`, como `/projetos`, tem de ser respondido com o conteúdo de `index.html`. Sem essa reescrita, um carregamento directo ou um recarregamento da página devolve 404, e o visitante vê um erro em vez do portfólio. A navegação por clique não depende do servidor, porque é feita no cliente.
 4. **Cache longo para `assets/`**, com `Cache-Control: public, max-age=31536000, immutable`. Os nomes dos ficheiros incluem hash, por isso o conteúdo nunca muda sob o mesmo nome.
 5. **Cache curto para `index.html`**, para que uma publicação nova sejadetectada rapidamente. Um valor de `no-cache` ou `max-age=0` é adequado.
 

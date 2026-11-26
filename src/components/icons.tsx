@@ -93,3 +93,36 @@ export function ExternalLinkIcon({ className }: IconProps) {
     </Icon>
   )
 }
+
+export function GamesIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <rect x="2" y="6" width="20" height="12" rx="4" />
+      <path d="M7 10v4" />
+      <path d="M5 12h4" />
+      <path d="M15 11h.01" />
+      <path d="M18 13h.01" />
+    </Icon>
+  )
+}
+
+export function ArticlesIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <polyline points="14 3 14 9 20 9" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="13" y2="17" />
+    </Icon>
+  )
+}
+
+export function ExperimentsIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M9 3h6" />
+      <path d="M10 3v6L4.7 18.1A1.5 1.5 0 0 0 6 20.5h12a1.5 1.5 0 0 0 1.3-2.4L14 9V3" />
+      <path d="M7.5 15h9" />
+    </Icon>
+  )
+}

@@ -35,6 +35,8 @@ export default defineConfig({
     command: `pnpm preview --host 127.0.0.1 --port ${PORT} --strictPort`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    // O `pnpm test:e2e` compila `dist/` antes do Playwright; o timeout cobre o arranque
+    // do `preview` em máquinas lentas.
+    timeout: 120_000,
   },
 })

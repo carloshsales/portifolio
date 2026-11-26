@@ -1,35 +1,53 @@
 import type { ComponentType } from 'react'
+import { Link } from '@tanstack/react-router'
 import { profile } from '../data/profile'
-import { useActiveSection } from '../hooks/useActiveSection'
-import { ContactIcon, HomeIcon, ProjectsIcon, SkillsIcon } from './icons'
+import {
+  ArticlesIcon,
+  ContactIcon,
+  ExperimentsIcon,
+  GamesIcon,
+  HomeIcon,
+  ProjectsIcon,
+  SkillsIcon,
+} from './icons'
 import styles from './Sidebar.module.css'
 
-const SECTION_IDS: readonly string[] = ['inicio', 'projetos', 'habilidades', 'contato']
+type SectionPath =
+  '/' | '/projetos' | '/habilidades' | '/contato' | '/jogos' | '/artigos' | '/experimentos'
 
 interface NavItem {
-  id: string
+  to: SectionPath
   label: string
   icon: ComponentType<{ className?: string }>
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { id: 'inicio', label: 'Início', icon: HomeIcon },
-  { id: 'projetos', label: 'Projetos', icon: ProjectsIcon },
-  { id: 'habilidades', label: 'Habilidades', icon: SkillsIcon },
-  { id: 'contato', label: 'Contato', icon: ContactIcon },
+const NAV_ITEMS: readonly NavItem[] = [
+  { to: '/', label: 'Início', icon: HomeIcon },
+  { to: '/projetos', label: 'Projetos', icon: ProjectsIcon },
+  { to: '/habilidades', label: 'Habilidades', icon: SkillsIcon },
+  { to: '/contato', label: 'Contato', icon: ContactIcon },
+  { to: '/jogos', label: 'Jogos', icon: GamesIcon },
+  { to: '/artigos', label: 'Artigos', icon: ArticlesIcon },
+  { to: '/experimentos', label: 'Experimentos', icon: ExperimentsIcon },
 ]
 
 export function Sidebar() {
-  const activeId = useActiveSection(SECTION_IDS)
   const hasName = profile.name.trim() !== ''
   const name = hasName ? profile.name : 'Início'
 
   return (
     <aside className={styles.sidebar}>
       <h1 className={styles.brand}>
-        <a href="#inicio" className={styles.brandLink}>
+        {/*
+         * A marca é um link para a raiz, mas não é um item de navegação.
+         * Fica fora da lista de navegação e, por isso, não recebe o
+         * `aria-current`, que o `Link` do router aplica automaticamente
+         * quando o link está activo. O `aria-current="page"` identifica o
+         * item de menu da secção actual, dentro de `NAV_ITEMS`.
+         */}
+        <Link to="/" className={styles.brandLink}>
           {name}
-        </a>
+        </Link>
       </h1>
 
       {hasName ? (
@@ -41,24 +59,20 @@ export function Sidebar() {
 
       <nav className={styles.nav} aria-label="Navegação principal">
         <ul className={styles.navList}>
-          {NAV_ITEMS.map(({ id, label, icon: NavIcon }) => {
-            const isActive = id === activeId
-
-            return (
-              <li key={id} className={styles.navItem}>
-                <a
-                  href={`#${id}`}
-                  className={
-                    isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink
-                  }
-                  aria-current={isActive ? 'true' : undefined}
-                >
-                  <NavIcon className={styles.navIcon} />
-                  <span>{label}</span>
-                </a>
-              </li>
-            )
-          })}
+          {NAV_ITEMS.map(({ to, label, icon: NavIcon }) => (
+            <li key={to} className={styles.navItem}>
+              <Link
+                to={to}
+                activeOptions={{ exact: true }}
+                activeProps={{ className: styles.navLinkActive }}
+                className={styles.navLink}
+                aria-label={label}
+              >
+                <NavIcon className={styles.navIcon} />
+                <span className={styles.navLabel}>{label}</span>
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
     </aside>

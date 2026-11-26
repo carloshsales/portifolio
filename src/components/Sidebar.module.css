@@ -82,9 +82,6 @@
 
 @media (max-width: 1023px) {
   .sidebar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -109,7 +106,7 @@
     inset: auto 0 0 0;
     z-index: 20;
     /* Altura fixa da barra inferior, partilhada com o espaçamento de
-       `main` em `App.module.css`, para que a barra nunca cubra o
+       `main` em `routes/__root.module.css`, para que a barra nunca cubra o
        conteúdo principal. */
     height: var(--nav-height-mobile);
     background: var(--color-surface);
@@ -132,5 +129,9 @@
     min-width: var(--touch-target-min);
     min-height: var(--touch-target-min);
     font-size: var(--text-xs);
+  }
+
+  .navLabel {
+    display: none;
   }
 }

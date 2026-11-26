@@ -25,6 +25,20 @@ function iconMarkup(Icon: ComponentType<{ className?: string }>): string {
   return svg.innerHTML
 }
 
+async function renderAt(path: string): Promise<ReturnType<typeof render>> {
+  const { RouterProvider, createMemoryHistory, createRouter } =
+    await import('@tanstack/react-router')
+  const { routeTree } = await import('../router')
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({ initialEntries: [path] }),
+  })
+
+  await router.load()
+
+  return render(<RouterProvider router={router} />)
+}
+
 const emptyProfile: Profile = {
   name: '',
   role: '',
@@ -52,8 +66,7 @@ describe('estado sem nome', () => {
   })
 
   it('não renderiza marcadores de placeholder', async () => {
-    const { default: App } = await import('../App')
-    const { container } = render(<App />)
+    const { container } = await renderAt('/')
     const text = container.textContent ?? ''
 
     for (const marker of PLACEHOLDER_MARKERS) {
@@ -62,8 +75,7 @@ describe('estado sem nome', () => {
   })
 
   it('não renderiza ligações com URL de exemplo', async () => {
-    const { default: App } = await import('../App')
-    const { container } = render(<App />)
+    const { container } = await renderAt('/')
     const links = Array.from(container.querySelectorAll('a[href]'))
 
     for (const link of links) {
@@ -75,16 +87,14 @@ describe('estado sem nome', () => {
   })
 
   it('não renderiza fotografia nem texto alternativo vazio', async () => {
-    const { default: App } = await import('../App')
-    const { container } = render(<App />)
+    const { container } = await renderAt('/')
 
     expect(container.querySelector('img')).toBeNull()
     expect(screen.queryByRole('img')).toBeNull()
   })
 
   it('apresenta a marca da barra lateral como Início', async () => {
-    const { default: App } = await import('../App')
-    render(<App />)
+    await renderAt('/')
 
     expect(screen.getByRole('heading', { name: 'Início', level: 1 })).toBeInTheDocument()
   })
@@ -102,8 +112,7 @@ describe('estado com nome', () => {
   })
 
   it('renderiza a fotografia com texto alternativo', async () => {
-    const { default: App } = await import('../App')
-    render(<App />)
+    await renderAt('/')
 
     expect(
       screen.getByRole('img', { name: `Fotografia de ${profileFixture.name}` }),
@@ -111,8 +120,7 @@ describe('estado com nome', () => {
   })
 
   it('renderiza o nome e a função na secção inicial', async () => {
-    const { default: App } = await import('../App')
-    render(<App />)
+    await renderAt('/')
 
     const home = screen.getByRole('region', { name: profileFixture.name })
 
@@ -136,9 +144,8 @@ describe('canalização de conteúdo com dados de teste completos', () => {
     vi.doUnmock('../content/skills')
   })
 
-  async function renderApp(): Promise<HTMLElement> {
-    const { default: App } = await import('../App')
-    const { container } = render(<App />)
+  async function renderApp(path: string): Promise<HTMLElement> {
+    const { container } = await renderAt(path)
 
     return container
   }
@@ -154,7 +161,7 @@ describe('canalização de conteúdo com dados de teste completos', () => {
   }
 
   it('apresenta a fotografia com o caminho e o texto alternativo do perfil', async () => {
-    await renderApp()
+    await renderApp('/')
 
     const photo = screen.getByRole('img', { name: `Fotografia de ${profileFixture.name}` })
 
@@ -162,7 +169,7 @@ describe('canalização de conteúdo com dados de teste completos', () => {
   })
 
   it('apresenta o nome, a função e o resumo na secção inicial', async () => {
-    await renderApp()
+    await renderApp('/')
 
     const home = screen.getByRole('region', { name: profileFixture.name })
     const projectsLink = within(home).getByRole('link', { name: 'Ver projetos' })
@@ -173,12 +180,12 @@ describe('canalização de conteúdo com dados de teste completos', () => {
     ).toBeInTheDocument()
     expect(within(home).getByText(profileFixture.role)).toBeInTheDocument()
     expect(within(home).getByText(profileFixture.summary)).toBeInTheDocument()
-    expect(projectsLink).toHaveAttribute('href', '#projetos')
-    expect(contactLink).toHaveAttribute('href', '#contato')
+    expect(projectsLink).toHaveAttribute('href', '/projetos')
+    expect(contactLink).toHaveAttribute('href', '/contato')
   })
 
   it('apresenta cada canal de contato com rótulo, destino e ícone da fixture', async () => {
-    await renderApp()
+    await renderApp('/contato')
 
     const section = screen.getByRole('region', { name: 'Contato' })
     const icons = {
@@ -197,7 +204,7 @@ describe('canalização de conteúdo com dados de teste completos', () => {
   })
 
   it('apresenta cada projeto com título, descrição, tecnologias e links', async () => {
-    await renderApp()
+    await renderApp('/projetos')
 
     const section = screen.getByRole('region', { name: 'Projetos' })
     const titles = within(section).getAllByRole('heading', { level: 3 })
@@ -235,7 +242,7 @@ describe('canalização de conteúdo com dados de teste completos', () => {
   })
 
   it('apresenta cada grupo de habilidades com título e habilidades', async () => {
-    await renderApp()
+    await renderApp('/habilidades')
 
     const section = screen.getByRole('region', { name: 'Habilidades' })
     const titles = within(section).getAllByRole('heading', { level: 3 })
@@ -253,19 +260,23 @@ describe('canalização de conteúdo com dados de teste completos', () => {
   })
 
   it('não renderiza marcadores de placeholder nem ligações de exemplo', async () => {
-    const container = await renderApp()
-    const text = container.textContent ?? ''
-
-    for (const marker of PLACEHOLDER_MARKERS) {
-      expect(text).not.toContain(marker)
-    }
-
-    for (const link of Array.from(container.querySelectorAll('a[href]'))) {
-      const href = link.getAttribute('href') ?? ''
+    for (const path of ['/', '/projetos', '/habilidades', '/contato']) {
+      const { container, unmount } = await renderAt(path)
+      const text = container.textContent ?? ''
 
       for (const marker of PLACEHOLDER_MARKERS) {
-        expect(href).not.toContain(marker)
+        expect(text).not.toContain(marker)
       }
+
+      for (const link of Array.from(container.querySelectorAll('a[href]'))) {
+        const href = link.getAttribute('href') ?? ''
+
+        for (const marker of PLACEHOLDER_MARKERS) {
+          expect(href).not.toContain(marker)
+        }
+      }
+
+      unmount()
     }
   })
 })
@@ -280,8 +291,7 @@ describe('CTA Ver projetos', () => {
     vi.doMock('../data/profile', () => ({ profile: profileFixture }))
     vi.doMock('../data/projects', () => ({ projects: projectsFixture }))
 
-    const { default: App } = await import('../App')
-    render(<App />)
+    await renderAt('/')
 
     const home = screen.getByRole('region', { name: profileFixture.name })
     expect(within(home).getByRole('link', { name: /ver projetos/i })).toBeInTheDocument()
@@ -291,8 +301,7 @@ describe('CTA Ver projetos', () => {
     vi.doMock('../data/profile', () => ({ profile: profileFixture }))
     vi.doMock('../data/projects', () => ({ projects: [] }))
 
-    const { default: App } = await import('../App')
-    render(<App />)
+    await renderAt('/')
 
     const home = screen.getByRole('region', { name: profileFixture.name })
     expect(within(home).queryByRole('link', { name: /ver projetos/i })).not.toBeInTheDocument()
@@ -309,8 +318,7 @@ describe('CTA Contato', () => {
     vi.doMock('../data/profile', () => ({ profile: profileFixture }))
     vi.doMock('../data/projects', () => ({ projects: [] }))
 
-    const { default: App } = await import('../App')
-    render(<App />)
+    await renderAt('/')
 
     const home = screen.getByRole('region', { name: profileFixture.name })
     expect(within(home).getByRole('link', { name: /contato/i })).toBeInTheDocument()
@@ -322,8 +330,7 @@ describe('CTA Contato', () => {
     }))
     vi.doMock('../data/projects', () => ({ projects: [] }))
 
-    const { default: App } = await import('../App')
-    render(<App />)
+    await renderAt('/')
 
     const home = screen.getByRole('region', { name: profileFixture.name })
     expect(within(home).queryByRole('link', { name: /contato/i })).not.toBeInTheDocument()
