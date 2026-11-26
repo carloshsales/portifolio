@@ -180,6 +180,49 @@ test('abaixo de 1024px, a barra inferior não cobre o fim do conteúdo', async (
   expect(layout.sectionBottom).toBeLessThanOrEqual(layout.barTop)
 })
 
+test('o último elemento do conteúdo permanece acessível', async ({ page }) => {
+  test.skip(!isBottomBarViewport(page), 'A barra inferior só existe abaixo de 1024px')
+
+  await page.goto('/projetos')
+
+  const probe = await page.evaluate(() => {
+    const content = document.getElementById('conteudo')
+    const bar = document.querySelector('nav')
+    const section = content?.querySelector('section:last-of-type') ?? null
+
+    if (content === null || bar === null || section === null) {
+      return null
+    }
+
+    // A área de conteúdo tem a sua própria barra de rolagem, pelo que é
+    // ela que se desloca até ao fim, e não o documento.
+    content.scrollTop = content.scrollHeight
+
+    const rect = section.getBoundingClientRect()
+    const barRect = bar.getBoundingClientRect()
+
+    // O ponto de prova é a parte inferior visível da última secção, acima
+    // da barra de navegação.
+    const y = Math.round(Math.min(rect.bottom, barRect.top) - 4)
+    const x = Math.round(rect.left + rect.width / 2)
+    const element = document.elementFromPoint(x, y)
+
+    return {
+      x,
+      y,
+      tag: element?.tagName ?? null,
+      inSection: element?.closest('section') === section,
+      sectionBottom: Math.round(rect.bottom),
+      barTop: Math.round(barRect.top),
+    }
+  })
+
+  expect(probe).not.toBeNull()
+  expect(probe?.tag).not.toBeNull()
+  expect(probe?.inSection).toBe(true)
+  expect(probe?.sectionBottom).toBeLessThanOrEqual(probe?.barTop ?? 0)
+})
+
 test('o tabulador percorre o link de salto, a marca e os sete links de navegação', async ({
   page,
 }) => {

@@ -51,6 +51,12 @@ export function Sidebar() {
           href="/"
           className={styles.brandLink}
           onClick={(event) => {
+            // Com uma tecla modificadora, o clique mantém o comportamento
+            // nativo do browser: abrir num novo separador.
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+              return
+            }
+
             event.preventDefault()
             void navigate({ to: '/' })
           }}

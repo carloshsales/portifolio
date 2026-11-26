@@ -85,7 +85,8 @@ Válida para qualquer um dos candidatos. Os passos 2 a 5 são comuns a todos.
 3. **Publicar o conteúdo de `dist/`** para o destino escolhido.
 4. **Confirmar em produção:**
    - a página carrega sem erros no console;
-   - a navegação por âncoras funciona;
+   - a navegação por rotas funciona, e um carregamento directo de
+     `/projetos` devolve a página da secção e não um erro 404;
    - a fotografia e as fontes carregam;
    - os links de contacto funcionam.
 5. **Verificar a cache:** `curl -I <url>` deve devolver `Cache-Control: immutable` para `assets/` e `no-cache` para `index.html`.
@@ -134,7 +135,8 @@ Antes de considerar a publicação concluída:
 - [ ] `pnpm build` termina sem erros
 - [ ] `dist/index.html` existe
 - [ ] A página abre em produção sem erros no console
-- [ ] A navegação por âncoras percorre as quatro secções
+- [ ] A navegação por rotas percorre as sete secções, e cada rota
+      responde com a página da secção correspondente
 - [ ] A fotografia carrega
 - [ ] Os links de contacto abrem
 - [ ] `Cache-Control` está definido correctamente para `assets/` e `index.html`

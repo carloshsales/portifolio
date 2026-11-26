@@ -333,15 +333,20 @@ dependa de inferir o que remover.
   por `startsWith`, e o link da raiz ficaria activo em **todas** as sete
   rotas. A opção aplica-se ao item de menu de Início, que é o único
   `Link` de `NAV_ITEMS` que aponta para `/`.
-- **A marca não usa `activeOptions: { exact: true }`.** A marca é um
-  `Link` para `/` e **não** faz parte de `NAV_ITEMS`
+- **A marca não usa o `Link` do router.** A marca é um link para a raiz
+  e **não** faz parte de `NAV_ITEMS`
   (`src/components/Sidebar.tsx:30`, hoje
   `<a href="#inicio" className={styles.brandLink}>`). Não é um item de
-  navegação, e por isso não recebe `activeOptions`. Recebe
-  `aria-current="page"` quando a rota actual é `/`, porque o `Link` aplica
-  o atributo automaticamente e não há forma de o desligar. A asserção de
-  "exactamente um link marcado" é feita sobre o `nav` da navegação, que
-  contém os sete itens de menu.
+  navegação, e por isso não recebe `activeOptions` nem `activeProps`.
+  O `Link` do router aplica `aria-current="page"` automaticamente quando
+  está activo, e **não há forma de o desligar**, pelo que a marca seria
+  marcada na rota `/` em conjunto com o item de menu, violando a
+  aceitação de "exactamente um link marcado". Por isso a marca é uma
+  **âncora simples** (`<a href="/">`) que navega pelo router com
+  `useNavigate`, preservando a navegação client-side sem marcar o
+  estado activo. Um clique com tecla modificadora (`Ctrl`, `⌘`, `Shift`,
+  `Alt`) mantém o comportamento nativo do browser e abre num novo
+  separador.
 - **O `activeProps` e o `activeOptions` pertencem ao mesmo `Link`.** O
   `activeProps` define a classe e os atributos do estado activo; o
   `activeOptions` define **como** a activação é calculada. Um `Link`
@@ -613,12 +618,11 @@ dependa de inferir o que remover.
   `/artigos` e `/experimentos` respondem com a página da secção
   correspondente, verificado por carregamento directo e por clique no menu.
 - A navegação lateral lista as sete secções, com `aria-current="page"` no
-  link da rota actual e sem qualquer outro link de menu marcado. O `Link`
-  do router aplica `aria-current="page"` automaticamente quando está
-  activo, e não há forma de o desligar, pelo que a **marca** da barra
-  lateral — que é um link para a raiz mas não é um item de navegação —
-  também o recebe quando a rota actual é `/`. A asserção é feita sobre o
-  `nav` da navegação, que contém os sete itens.
+  link da rota actual e sem qualquer outro link marcado. A **marca** da
+  barra lateral — que é um link para a raiz mas não é um item de
+  navegação — é uma âncora simples e não recebe o atributo, porque o
+  `Link` do router o aplicaria automaticamente quando a rota actual é
+  `/`, e não há forma de o desligar.
 - Clicar num item de menu navega para a rota correspondente e não altera a
   posição de scroll do documento.
 - Em cada uma das sete rotas, a área de conteúdo tem `overflow-y` computado

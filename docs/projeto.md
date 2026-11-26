@@ -677,21 +677,6 @@ estão em `tasks/TASK-NNN.md`, com uma tarefa por ficheiro.
 > `ARCHIVED`, em `specs/changes/001-portfolio-mvp/tasks/archive/`. As tasks 009 e
 > 010 estão `COMPLETED` e verificadas. A task 011 está em curso, e as tasks 012 e
 > 014 estão `PENDING`, por dependerem da 011.
-## 9.2 Change 002 — RawSpec Task Commands
-
-Diretório: `specs/changes/archive/002-rawspec-task-commands/`
-
-Objetivo original: implementar comandos personalizados `/startspec`,
-`/continuespec` e `/arquivespec`, com scripts partilhados, controlo de
-dependências, estados e arquivamento.
-
-Os documentos foram revistos e aprovados, mas a abordagem foi posteriormente
-identificada como geradora de complexidade operacional, e o processo foi
-refatorado.
-
-**Direção atual:** a implementação dos comandos personalizados não foi retomada.
-Os documentos são preservados como histórico e reaproveitam-se apenas as
-decisões úteis.
 
 ### 9.2 Change 002 — RawSpec Task Commands
 
