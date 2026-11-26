@@ -140,6 +140,7 @@ de rewrite pertencem à TASK-012.
 - `e2e/playwright.config.ts` (alteração)
 - `vite.config.ts` (alteração)
 - `package.json` (alteração)
+- `pnpm-lock.yaml` (alteração)
 - `tsconfig.json` (alteração)
 - `src/vite-env.d.ts` (alteração condicional)
 - `docs/projeto.md` (alteração)
@@ -156,6 +157,15 @@ TASK-014: `src/routes/jogos.tsx`, `src/routes/artigos.tsx`,
 cria as três rotas com um componente mínimo e migra o ficheiro de testes;
 a TASK-014 estende-os. A ordem do grafo garante a sequência. Todos os
 outros ficheiros são exclusivos desta task.
+
+O `pnpm-lock.yaml` está no âmbito porque a instalação das duas
+dependências do router altera o lockfile, e não há forma de adicionar
+uma dependência sem o fazer. O gate de âmbito de
+`scripts/rawspec-v2.mjs` rejeitaria o commit sem esta entrada, e a
+integração contínua corre `pnpm install --frozen-lockfile`
+(`.github/workflows/ci.yml:39`), que falha com um lockfile
+desatualizado. O lockfile é gerado pelo `pnpm add` e não é editado à
+mão.
 
 ## Entregáveis
 
@@ -209,6 +219,48 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
   `src/test/content.test.tsx` para acrescentar a verificação das seis
   listas e as fixtures novas, sobre o ficheiro já migrado por esta task.
 
+### Migração de `src/App.test.tsx` e `src/test/accessibility.test.tsx`
+
+Estes dois ficheiros importam o componente removido `src/App.tsx` e
+testam o mecanismo de destaque por scroll, que esta task elimina. O
+âmbito de ficheiro de ambos já está declarado em `## Arquivos`; o que
+segue explicita **o conteúdo** que muda, para que a implementação não
+dependa de inferir o que remover.
+
+`src/App.test.tsx`:
+
+- **O `renderApp()` é migrado** (`src/App.test.tsx:191-194`), porque
+  importa `'./App'` e monta o componente directamente. Passa a montar o
+  `RouterProvider` sobre um router de memória, como em
+  `src/test/content.test.tsx`.
+- **Os helpers do stub de `IntersectionObserver` e da geometria são
+  removidos** (`src/App.test.tsx:26-189`), juntamente com o `afterEach`
+  que os repõe (`src/App.test.tsx:196-218`). Testam um mecanismo que
+  deixa de existir, e a aceitação exige que nenhum ficheiro em `src/`
+  referencie `IntersectionObserver`.
+- **Os 8 testes do mecanismo de scroll são removidos**: os 6 de
+  "faixa central de observação" (`src/App.test.tsx:463-553`) e os 2 de
+  "degradação do hook" (`src/App.test.tsx:555-578`). São substituídos
+  por asserções sobre a rota actual.
+- **As asserções de navegação são reescritas para as rotas.**
+  `src/App.test.tsx:295-298` passa a verificar os `href` das sete rotas,
+  pela ordem das sete secções; `src/App.test.tsx:386-395` passa a
+  verificar a mesma ordem com os sete valores; e
+  `src/App.test.tsx:301-394` passa a verificar o `aria-current="page"`,
+  com exactamente um link marcado e no link da rota visitada.
+
+`src/test/accessibility.test.tsx`:
+
+- **As 7 importações de `'../App'` são migradas** — a estática
+  (`src/test/accessibility.test.tsx:4`) e as seis dinâmicas (linhas 95,
+  104, 132, 141, 176 e 185) — para a montagem do router de memória.
+- **A asserção do `aria-current` muda de valor.**
+  `src/test/accessibility.test.tsx:64` procura `a[aria-current="true"]`
+  e passa a procurar `a[aria-current="page"]`.
+- **A verificação das sete páginas é acrescentada**, conforme a secção
+  de Testes: cada uma das sete rotas é montada e verificada sem
+  violações automáticas.
+
 ### Router
 
 - **O router é o TanStack Router.** Duas dependências: `@tanstack/react-router`
@@ -255,6 +307,16 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
 - **O `aria-current` passa a descrever a rota actual**, e não a secção
   visível. A asserção passa a verificar `aria-current="page"`, que é o
   valor correcto para um link de navegação entre páginas.
+- **O `aria-current="page"` é aplicado pelo próprio `Link`.** O
+  `@tanstack/react-router` define `aria-current="page"` automaticamente
+  quando o link está activo, e só nesse caso
+  (`dist/esm/link.js`, no bloco `if (isActive) { props["aria-current"]
+  = "page" }`). A implementação **não** escreve o atributo à mão.
+- **O link para `/` usa `activeOptions: { exact: true }`.** Sem esta
+  opção, a correspondência de estado activo do `Link` é feita por
+  `startsWith`, e o link da raiz ficaria activo em **todas** as sete
+  rotas, violando a aceitação de que existe exactamente um link
+  marcado. A opção aplica-se ao link de `/` da navegação.
 - **O skip link continua a funcionar.** Aponta para `#conteudo`, e o
   elemento `main` mantém o `id="conteudo"`, para que o foco vá para o
   conteúdo da página actual.
@@ -450,11 +512,11 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
   pelo menos duas transições de rota.
 - **O carregamento directo de uma rota devolve a página correcta**, e não
   uma página de erro nem um ecrã em branco. Verificado em `e2e/`, com
-  navegação por URL e não por clique. O servidor de teste serve o `dist/`
-  com fallback para `index.html`, conforme a regra do risco relativo ao
-  `vite preview`. A excepção é a via 2, autorizada pela mesma regra, em
-  que o teste de carregamento directo navega pelo cliente a partir de `/`,
-  com a justificação registada na evidência.
+  navegação por URL e não por clique: `page.goto('/projetos')` carrega a
+  rota no servidor. O servidor de teste é o `pnpm preview`, que serve o
+  `dist/` com fallback para `index.html` porque o `appType: 'spa'` está
+  declarado em `vite.config.ts`. O teste não navega pelo cliente a partir
+  de `/`, porque isso não provaria o fallback.
 - **Cada página tem a sua própria barra de rolagem vertical, e o
   documento não faz scroll.** A verificação é **estrutural**, e não depende
   de injectar conteúdo fictício. O teste E2E percorre as sete rotas e, em
@@ -564,11 +626,10 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
   `@tanstack/router-plugin` em `devDependencies` no `package.json`.
 - `src/routeTree.gen.ts` está versionado e `.gitignore` não foi
   alterado.
-- `e2e/playwright.config.ts` serve o `dist/` com fallback para
-  `index.html`, ou o teste de carregamento directo navega pelo cliente a
-  partir de `/`. A via 1 é a implementada. A via 2 só é admissível com a
-  justificação exigida nos Riscos, e, nesse caso, `e2e/playwright.config.ts`
-  é alterado na mesma, com a alteração justificada na evidência.
+- `e2e/playwright.config.ts` mantém o `pnpm preview` como `webServer`, com
+  o `appType: 'spa'` declarado explicitamente em `vite.config.ts`, e o
+  teste de carregamento directo navega por URL — `page.goto('/projetos')` —
+  provando o fallback em runtime.
 - `docs/projeto.md` e `docs/deployment.md` reflectem a aplicação
   multi-página, e `docs/deployment.md` regista que o fallback SPA passa a
   ser necessário, sem escolher o destino de publicação.
@@ -592,28 +653,37 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
   2, requisito 3, passam a explicar o requisito. A secção 2, requisito 3,
   é a que afirma hoje "**Sem SPA fallback.**", e passa a afirmar que o
   fallback é obrigatório.
-- **O `pnpm preview` não faz fallback SPA por omissão.** O `vite preview`
-  serve `dist/` como ficheiros estáticos. Um teste E2E que carregue
-  directamente `/projetos` pode devolver 404 em `vite preview`, mesmo com a
-  aplicação correcta.
-- **`e2e/playwright.config.ts` é alterado para resolver o fallback.** O
-  `webServer` actual corre `pnpm preview --host 127.0.0.1 --port 4173
-  --strictPort` (`e2e/playwright.config.ts:34-39`), que não faz rewrite.
-  A alteração serve o `dist/` com fallback para `index.html`, por meio de
-  um servidor estático com rewrite. **A escolha concreta é do
-  implementador**, entre as duas vias:
-  1. substituir o `webServer.command` por um servidor estático que sirva
-     `dist/` com fallback para `index.html`; ou
-  2. manter o `pnpm preview` e fazer o teste de carregamento directo
-     navegar pelo cliente a partir de `/`.
+- **O `pnpm preview` do Vite 8 faz fallback SPA por omissão.** Este risco
+  foi verificado empiricamente contra o Vite 8.3.8 instalado no
+  repositório, e a premissa anterior da task — que o `vite preview`
+  servisse `dist/` como ficheiros estáticos e devolvesse 404 num
+  carregamento directo — **está errada**. O `vite preview` aplica
+  `htmlFallbackMiddleware(distDir, config.appType === "spa")`, e o
+  `appType` tem por omissão `"spa"` na configuração do Vite
+  (`node_modules/vite/dist/node/chunks/node.js`, em `appType: "spa"` e
+  na linha do `app.use(htmlFallbackMiddleware(...))` do preview). O
+  `vite.config.ts` deste projecto não altera o `appType`.
+  Verificado na prática: com o `dist/` construído, o `pnpm preview` devolve
+  **HTTP 200** com `text/html` e o `index.html` para `/`, `/projetos`,
+  `/habilidades`, `/experimentos` e para uma rota inexistente.
+  O `webServer` do Playwright pode, por isso, manter o `pnpm preview`.
+- **`e2e/playwright.config.ts` é alterado.** O `webServer` actual corre
+  `pnpm preview --host 127.0.0.1 --port 4173 --strictPort`
+  (`e2e/playwright.config.ts:34-39`), que se mantém. A alteração é
+  exigida pelo `appType`, para que o fallback dependa de uma decisão
+  explícita do projecto e não de um valor por omissão do Vite:
+  `appType: 'spa'` é declarado em `vite.config.ts`, e o `webServer`
+  passa a servir o `dist/` com o fallback garantido por essa
+  declaração.
+- **A prova do fallback é feita em runtime, por carregamento directo.**
+  O teste E2E navega por URL — `page.goto('/projetos')` — e confirma que
+  a página da secção é renderizada. Não é uma navegação pelo cliente a
+  partir de `/`, que não provaria o fallback.
 
-  A **via 1 é a implementada**, porque é a única que prova o requisito
-  real — que um carregamento directo de uma rota funciona — e porque
-  reflecte o que o alojamento em produção vai fazer. A via 2 é aceitável
-  se o implementador justificar na evidência que a via 1 não é viável no
-  ambiente. **Em qualquer das duas vias, `e2e/playwright.config.ts` é
-  alterado**, e a alteração tem de estar dentro do âmbito declarado.
-  A escolha não pode depender de `pnpm preview` sem fallback.
+  A prova do fallback é feita em runtime, com `page.goto()`, e não por
+  uma navegação pelo cliente a partir de `/`, que não provaria o
+  fallback. O `webServer` mantém o `pnpm preview`, com o `appType: 'spa'`
+  declarado explicitamente em `vite.config.ts`.
 - **O router adiciona peso ao bundle.** O limite de 400 kB foi medido em
   298,50 kB na TASK-010, com 224,86 kB no ficheiro mais pesado. O router
   pode aproximar o limite. Se o limite for excedido, a task tem de reduzir
@@ -726,8 +796,8 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
 - Critério de aceitação objetivo — ATENDE
 - Dependências declaradas explicitamente — ATENDE
 - Ausência de decisões pendentes para o implementador — ATENDE (a via de
-  router, o router escolhido, o texto de estado vazio, o conteúdo real e a
-  decisão de não tratar as dívidas técnicas estão decididos; a escolha
-  concreta do servidor estático de fallback para o E2E é uma decisão
-  técnica de implementação, com as duas vias declaradas nos Riscos e a
-  justificação exigida na evidência)
+  router, o router escolhido, o texto de estado vazio, o conteúdo real, o
+  tratamento do fallback SPA no E2E e a decisão de não tratar as dívidas
+  técnicas estão decididos; restam apenas decisões técnicas de
+  implementação, com critério verificável, como a geometria dos três
+  ícones novos e o texto do parágrafo provisório das três rotas)
