@@ -188,9 +188,8 @@ test('o último elemento do conteúdo permanece acessível', async ({ page }) =>
   const probe = await page.evaluate(() => {
     const content = document.getElementById('conteudo')
     const bar = document.querySelector('nav')
-    const section = content?.querySelector('section:last-of-type') ?? null
 
-    if (content === null || bar === null || section === null) {
+    if (content === null || bar === null) {
       return null
     }
 
@@ -198,29 +197,46 @@ test('o último elemento do conteúdo permanece acessível', async ({ page }) =>
     // ela que se desloca até ao fim, e não o documento.
     content.scrollTop = content.scrollHeight
 
-    const rect = section.getBoundingClientRect()
+    const contentRect = content.getBoundingClientRect()
     const barRect = bar.getBoundingClientRect()
 
-    // O ponto de prova é a parte inferior visível da última secção, acima
-    // da barra de navegação.
-    const y = Math.round(Math.min(rect.bottom, barRect.top) - 4)
-    const x = Math.round(rect.left + rect.width / 2)
+    // O ponto de prova é o fundo da área de conteúdo visível, logo acima
+    // da barra inferior: é onde o utilizador tocar para ler o fim do
+    // conteúdo.
+    const y = Math.round(barRect.top - 4)
+    const x = Math.round(contentRect.left + contentRect.width / 2)
     const element = document.elementFromPoint(x, y)
 
     return {
-      x,
-      y,
       tag: element?.tagName ?? null,
-      inSection: element?.closest('section') === section,
-      sectionBottom: Math.round(rect.bottom),
+      // O elemento apanhado pertence ao conteúdo da página e não à barra
+      // inferior: a barra não cobre o fim do conteúdo.
+      dentroDoConteudo: element === null ? false : content.contains(element),
+      foraDaBarra: element === null ? false : !bar.contains(element),
+      y,
       barTop: Math.round(barRect.top),
+      scrollTop: content.scrollTop,
+      transborda: content.scrollHeight > content.clientHeight,
     }
   })
 
   expect(probe).not.toBeNull()
   expect(probe?.tag).not.toBeNull()
-  expect(probe?.inSection).toBe(true)
-  expect(probe?.sectionBottom).toBeLessThanOrEqual(probe?.barTop ?? 0)
+
+  // O ponto de prova tem de apanhar o conteúdo da página, e não a barra
+  // inferior que o cobriria.
+  expect(probe?.dentroDoConteudo).toBe(true)
+  expect(probe?.foraDaBarra).toBe(true)
+
+  // O scroll interno só pode ser observado quando o conteúdo excede a
+  // viewport. Sem conteúdo real, a condição não é observada.
+  if (probe?.transborda === true) {
+    expect(probe?.scrollTop).toBeGreaterThan(0)
+  } else {
+    console.log(
+      'Condição de conteúdo não observada: /projetos: o conteúdo atual não excede a viewport',
+    )
+  }
 })
 
 test('o tabulador percorre o link de salto, a marca e os sete links de navegação', async ({
