@@ -118,7 +118,6 @@ de rewrite pertencem à TASK-012.
 - `src/routes/jogos.tsx` (criação)
 - `src/routes/artigos.tsx` (criação)
 - `src/routes/experimentos.tsx` (criação)
-- `src/routeTree.gen.ts` (criação, gerado)
 - `src/router.tsx` (criação)
 - `src/main.tsx` (alteração)
 - `src/App.tsx` (remoção)
@@ -200,14 +199,19 @@ inalcançável. Por isso o ficheiro está no âmbito desta task.
 - **As importações dinâmicas de `'../App'` passam a montar o router.**
   Cada bloco que importa `'../App'` passa a montar o `RouterProvider` com
   um router de memória, criado com `createRouter` e
-  `createMemoryHistory`, sobre a mesma `routeTree` de `src/router.tsx`. O
+  `createMemoryHistory`, sobre a árvore de rotas de `src/router.tsx`. O
   router de memória permite fixar a rota inicial em cada teste, que é o
   que substitui o `App` directo.
-- **O `vi.resetModules()` e o `vi.doMock` mantêm-se.** O ficheiro usa
+- **A árvore de rotas é importada depois dos mocks.** O ficheiro usa
   `vi.resetModules()` em `beforeEach` (`src/test/content.test.tsx:37-39`) e
   `vi.doMock('../data/profile', ...)` para injectar um perfil sem nome. O
   mock do módulo de dados continua a funcionar, porque o router de memória
-  importa os mesmos pontos de importação de `src/data/`.
+  importa os mesmos pontos de importação de `src/data/`. A ordem importa:
+  o `vi.resetModules()` corre **antes** do `vi.doMock`, e a importação
+  dinâmica do router e da árvore de rotas corre **depois** do mock, para
+  que os módulos de dados sejam reavaliados com o mock aplicado. É esta
+  ordem que torna o mock aplicável a **todos** os testes do ficheiro, e
+  não só ao primeiro.
 - **As asserções de âncora passam a verificar rotas.**
   `src/test/content.test.tsx:176-177` verifica que as chamadas para a acção
   de Início têm `href` igual a `#projetos` e `#contato`. Passam a
@@ -263,23 +267,35 @@ dependa de inferir o que remover.
 
 ### Router
 
-- **O router é o TanStack Router.** Duas dependências: `@tanstack/react-router`
-  em `dependencies`, por ser importado pelo bundle de produção, e
-  `@tanstack/router-plugin` em `devDependencies`, por correr apenas no
-  build. A versão de cada uma é a última estável publicada, registada no
+- **O router é o TanStack Router.** Uma dependência de runtime:
+  `@tanstack/react-router` em `dependencies`, por ser importado pelo bundle
+  de produção. A versão é a última estável publicada, registada no
   `package.json`.
-- **O routing é por ficheiros.** As rotas vivem em `src/routes/`, com
-  `__root.tsx` como layout raíz, `index.tsx` para `/` e um ficheiro por
-  secção para as restantes. `src/routeTree.gen.ts` é **gerado** pelo plugin
-  e não é editado à mão.
-- **O plugin do router é registado no `vite.config.ts`**, antes do plugin
-  do React, com `target: 'react'`.
-- **`src/router.tsx` exporta o router**, criado com `createRouter` e a
-  `routeTree` gerada. `src/main.tsx` monta o `RouterProvider`. O
-  `RouterProvider` substitui o `App` directo: `src/App.tsx` é **removido**,
-  e a composição passa a viver em `src/routes/__root.tsx`, que exporta o
-  layout raíz com o `Sidebar`, o skip link e o `Outlet`. Esta via é a única
-  admitida: `src/App.tsx` fica listado como `(remoção)` em `## Arquivos`.
+- **O routing é por código, e não por ficheiro.** As rotas são definidas
+  com `createRoute` e `createRootRoute` do `@tanstack/react-router`. Esta
+  decisão foi tomada depois de verificado que o **routing por ficheiro é
+  incompatível com os mocks por teste** que esta task exige: o ficheiro
+  gerado `src/routeTree.gen.ts` importa estaticamente os módulos das
+  rotas, e a cadeia de importações fica presa ao primeiro teste do
+  ficheiro, pelo que `vi.resetModules()` e `vi.doMock` não re-aplicam o
+  mock a um teste seguinte. Verificado em seis variantes de mocking
+  (`doMock` com e sem `resetModules`, `doUnmock`, `vi.mock` hoisted com
+  estado mutável, importação do módulo de rota em vez da árvore gerada):
+  todas falham com a árvore gerada e todas passam com a árvore de
+  código. A consequência é que **não existe `src/routeTree.gen.ts`** e
+  **não há plugin de router** no `vite.config.ts`.
+- **As rotas vivem em `src/routes/`**, com `__root.tsx` como layout raíz,
+  `index.tsx` para `/` e um ficheiro por secção para as restantes. Cada
+  ficheiro exporta a sua rota com `createRoute`, a partir do componente de
+  secção que lhe corresponde.
+- **`src/router.tsx` constrói a árvore de rotas e exporta o router**,
+  criado com `createRouter`. A árvore é montada a partir das rotas
+  exportadas pelos ficheiros de `src/routes/`. `src/main.tsx` monta o
+  `RouterProvider`. O `RouterProvider` substitui o `App` directo:
+  `src/App.tsx` é **removido**, e a composição passa a viver em
+  `src/routes/__root.tsx`, que exporta o layout raíz com o `Sidebar`, o
+  skip link e o `Outlet`. Esta via é a única admitida: `src/App.tsx` fica
+  listado como `(remoção)` em `## Arquivos`.
 - **Os estilos de `src/App.module.css` migram para o layout raíz.**
   `App.module.css` contém `.shell`, `.main` e `.skipLink`
   (`src/App.module.css:1-26`), que descrevem a estrutura que deixa de
@@ -405,28 +421,23 @@ dependa de inferir o que remover.
 
 - **`tsconfig.json` é alterado apenas no que o router exige.**
   `tsconfig.json:21` tem `include: ["src", "vite.config.ts"]`. As rotas
-  novas vivem em `src/routes/`, que já está incluído, e o ficheiro gerado
-  `src/routeTree.gen.ts` também.
+  novas vivem em `src/routes/`, que já está incluído, e o ficheiro
+  `src/router.tsx` também.
 - **O `include` não é alargado a `e2e/`.** O directório `e2e/` fica fora
   do `tsc --noEmit`, como está hoje. O Playwright compila os seus próprios
   ficheiros, e `e2e/responsive.spec.ts:3` importa `../src/types`, que é
   verificado pelo `include` de `src/`. A alteração do `tsconfig.json` limita-
-  se ao que o `@tanstack/router-plugin` exigir — tipicamente a inclusão de
-  tipos gerados — e **não** muda a cobertura de typecheck de `e2e/`.
+  se ao que o `@tanstack/react-router` exigir, e **não** muda a cobertura
+  de typecheck de `e2e/`.
 - **`src/vite-env.d.ts` é uma alteração condicional.** O ficheiro fica no
   âmbito declarado, para que o gate de âmbito não rejeite o commit caso o
-  plugin do router exija um tipo adicional que não esteja coberto pelas
-  referências geradas. **Só é alterado se essa necessidade se
-  confirmar**; caso contrário, fica intacto, e a evidência regista que não
-  foi necessário alterá-lo.
-- **`src/routeTree.gen.ts` é versionado.** O ficheiro gerado é
-  versionado, porque o build de produção precisa dele e porque um ficheiro
-  gerado e não versionado produz erros de build em clones novos e em
-  integrações contínuas. `.gitignore` **não** é alterado: o `.gitignore`
-  actual (`1-18`) não tem entrada para `src/routeTree.gen.ts`, e não
-  precisa de uma. O ficheiro não é editado à mão; é regenerado pelo
-  plugin. Um conflito de merge no ficheiro resolve-se regenerando-o, e
-  não resolvendo-se à mão.
+  router exija um tipo adicional que não esteja coberto pelas referências
+  geradas. **Só é alterado se essa necessidade se confirmar**; caso
+  contrário, fica intacto, e a evidência regista que não foi necessário
+  alterá-lo.
+- **Não há ficheiro gerado para versionar.** Com o routing por código não
+  existe `src/routeTree.gen.ts`, e por isso não há risco de conflito de
+  merge num ficheiro gerado. `.gitignore` **não** é alterado.
 
 ### Estrutura visual
 
@@ -503,8 +514,10 @@ dependa de inferir o que remover.
 - **Nenhuma dependência de runtime é adicionada além do router.**
   `react` e `react-dom` mantêm-se em `dependencies`, e
   `@tanstack/react-router` é a única adição a esse grupo.
-- **O `@tanstack/router-plugin` é uma dependência de desenvolvimento**, por
-  correr apenas no build, e nunca chega ao `dist/`.
+- **Não há dependência de desenvolvimento do router.** Com o routing por
+  código, o `@tanstack/router-plugin` deixa de ser necessário: não há
+  plugin registado no `vite.config.ts` nem ficheiro gerado. A dependência
+  é removida do `package.json` e do `pnpm-lock.yaml`.
 - **Nenhuma biblioteca de animação, de estado ou de formatação é
   adicionada.**
 
@@ -635,10 +648,9 @@ dependa de inferir o que remover.
 - `src/test/content.test.tsx` não importa `'../App'`: as onze importações
   dinâmicas foram substituídas por uma montagem do router com
   `createMemoryHistory`, e o ficheiro compila e passa.
-- `@tanstack/react-router` está em `dependencies` e
-  `@tanstack/router-plugin` em `devDependencies` no `package.json`.
-- `src/routeTree.gen.ts` está versionado e `.gitignore` não foi
-  alterado.
+- `@tanstack/react-router` está em `dependencies` no `package.json`, e
+  `@tanstack/router-plugin` **não** está em `devDependencies`.
+- Não existe `src/routeTree.gen.ts`, e `.gitignore` não foi alterado.
 - `e2e/playwright.config.ts` mantém o `pnpm preview` como `webServer`, com
   o `timeout` de arranque aumentado, e o `appType: 'spa'` é declarado
   explicitamente em `vite.config.ts`. O teste de carregamento directo
@@ -732,10 +744,16 @@ dependa de inferir o que remover.
   `useActiveSection` é importado apenas por `src/components/Sidebar.tsx:3`.
   A remoção só é segura depois de verificado, por pesquisa, que nenhum
   outro ficheiro em `src/` o referencia.
-- **`src/routeTree.gen.ts` é gerado e pode entrar em conflito de merge.**
-  A decisão está tomada: o ficheiro é **versionado**, e `.gitignore` não
-  é alterado. O ficheiro não é editado à mão, e um conflito de merge
-  resolve-se regenerando-o com o plugin, não resolvendo-se à mão.
+- **O routing por ficheiro foi substituído pelo routing por código.** O
+  ficheiro gerado `src/routeTree.gen.ts` importava estaticamente os
+  módulos das rotas, e essa cadeia de importações ficava presa ao
+  primeiro teste do ficheiro: `vi.resetModules()` e `vi.doMock` não
+  voltavam a aplicar o mock aos testes seguintes, e a task ficava
+  impossível de cumprir. O routing por código, com `createRoute` e
+  `createRootRoute`, elimina o problema e dispensa o plugin de router.
+  O custo é perder a convenção de routing por ficheiro, que o TanStack
+  Router trata como idiomática; a mitigação é a lista explícita das
+  rotas em `src/router.tsx`.
 - **As três rotas novas ficam provisoriamente sem conteúdo.** Até à
   TASK-014, `/jogos`, `/artigos` e `/experimentos` renderizam um
   componente mínimo. O menu apresenta as sete secções desde a primeira
@@ -781,8 +799,8 @@ dependa de inferir o que remover.
   001, secção 3, mas fora do âmbito desta task.
 - **Não se toca em `docs/history.md`** a não ser pelo `guardiao`, no
   registo da task.
-- **Não se altera `.gitignore`.** O `src/routeTree.gen.ts` é versionado e
-  não precisa de uma entrada de ignorância.
+- **Não se altera `.gitignore`.** Não há ficheiro gerado a versionar, e
+  o `.gitignore` actual não precisa de qualquer entrada nova.
 - **Não se alteram `scripts/rawspec-v2.mjs`,
   `scripts/rawspec-v2.test.mjs` nem `scripts/rawspec-v2-cli.test.mjs`.**
   O helper RawSpec não é afectado pela mudança, e a dívida de
