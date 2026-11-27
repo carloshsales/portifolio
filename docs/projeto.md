@@ -83,24 +83,24 @@ repositório, em português europeu.
 O portfólio é uma aplicação multi-página, com navegação lateral e rotas
 próprias por secção.
 
-**Menu implementado, com sete secções:**
+**Menu implementado, com seis secções:**
 
 1. Início
 2. Projetos
-3. Habilidades
-4. Contato
-5. Jogos
-6. Artigos
-7. Experimentos
+3. Contato
+4. Jogos
+5. Artigos
+6. Experimentos
 
-Cada secção tem uma URL própria, sem âncora: `/`, `/projetos`, `/habilidades`,
-`/contato`, `/jogos`, `/artigos` e `/experimentos`. A navegação é feita pelo
-clique no item de menu, e cada página tem a sua própria barra de rolagem
-vertical. O link da secção actual está marcado com `aria-current="page"`.
+Cada secção tem uma URL própria, sem âncora: `/`, `/projetos`, `/contato`,
+`/jogos`, `/artigos` e `/experimentos`. A navegação é feita pelo clique no item
+de menu, e cada página tem a sua própria barra de rolagem vertical. O link da
+secção actual está marcado com `aria-current="page"`.
 
-As habilidades e tecnologias são apresentadas na secção própria **Habilidades**,
-com uma secção independente no menu. A secção **Início** apresenta a identidade,
-o resumo profissional e a fotografia.
+As habilidades e tecnologias são apresentadas como um bloco dentro da secção
+**Início**, que apresenta também a identidade, o resumo profissional e a
+fotografia. As habilidades **não** têm secção própria no menu, nem rota
+própria.
 
 **Secções implementadas, com conteúdo por preencher:**
 
@@ -123,7 +123,8 @@ Apresentação pessoal e profissional. Contém:
 - apresentação resumida;
 - identidade visual do desenvolvedor;
 - fotografia em moldura circular;
-- chamadas para a ação que direcionam para as secções existentes.
+- chamadas para a ação que direcionam para as secções existentes;
+- o bloco de habilidades.
 
 As chamadas para a ação só aparecem quando existe conteúdo correspondente.
 
@@ -142,7 +143,8 @@ Apresentação de projetos de desenvolvimento. Cada projeto pode apresentar:
 
 #### Habilidades
 
-Linguagens, frameworks, ferramentas e competências, agrupadas por categoria.
+Linguagens, frameworks, ferramentas e competências, agrupadas por categoria. O
+bloco vive dentro da secção **Início** e não tem item de menu próprio.
 
 #### Contato
 
@@ -730,8 +732,10 @@ A prioridade atual é finalizar o MVP.
 2. Verificar e preservar a fundação técnica já implementada.
 3. Preservar os estilos globais e os tokens.
 4. Preservar a navegação lateral, agora por rotas.
-5. Preservar as secções de início, projetos, habilidades e contacto.
-6. Preencher o conteúdo real das secções já implementadas.
+5. Preservar as secções de início, projetos e contacto, e o bloco de
+   habilidades dentro de início.
+6. Preencher o conteúdo real das secções já implementadas. As habilidades
+   estão preenchidas; falta o perfil, os projetos e a fotografia.
 7. Construir as secções de jogos, artigos e experimentos, com conteúdo real.
 8. Preservar a responsividade e a acessibilidade.
 9. Preparar a publicação estática, com a decisão do destino de alojamento.

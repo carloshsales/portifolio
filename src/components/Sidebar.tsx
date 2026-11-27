@@ -8,12 +8,10 @@ import {
   GamesIcon,
   HomeIcon,
   ProjectsIcon,
-  SkillsIcon,
 } from './icons'
 import styles from './Sidebar.module.css'
 
-type SectionPath =
-  '/' | '/projetos' | '/habilidades' | '/contato' | '/jogos' | '/artigos' | '/experimentos'
+type SectionPath = '/' | '/projetos' | '/contato' | '/jogos' | '/artigos' | '/experimentos'
 
 interface NavItem {
   to: SectionPath
@@ -24,7 +22,6 @@ interface NavItem {
 const NAV_ITEMS: readonly NavItem[] = [
   { to: '/', label: 'Início', icon: HomeIcon },
   { to: '/projetos', label: 'Projetos', icon: ProjectsIcon },
-  { to: '/habilidades', label: 'Habilidades', icon: SkillsIcon },
   { to: '/contato', label: 'Contato', icon: ContactIcon },
   { to: '/jogos', label: 'Jogos', icon: GamesIcon },
   { to: '/artigos', label: 'Artigos', icon: ArticlesIcon },
@@ -73,7 +70,7 @@ export function Sidebar() {
       ) : null}
 
       <nav className={styles.nav} aria-label="Navegação principal">
-        <ul className={styles.navList}>
+        <ul className={styles.navList} role="list">
           {NAV_ITEMS.map(({ to, label, icon: NavIcon }) => (
             <li key={to} className={styles.navItem}>
               <Link

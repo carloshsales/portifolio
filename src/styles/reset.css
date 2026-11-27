@@ -57,3 +57,14 @@ ul[role='list'],
 ol[role='list'] {
   list-style: none;
 }
+
+/*
+ * A margem interna das listas é anulada em todas, e não apenas nas que
+ * levam `role="list"`. O browser atribui `padding-inline-start` de 40px
+ * às listas, e esse valor desloca o conteúdo para dentro sem que o
+ * reset o declare.
+ */
+ul,
+ol {
+  padding: 0;
+}

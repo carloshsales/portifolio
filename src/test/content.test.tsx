@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EmailIcon, GithubIcon, LinkedinIcon } from '../components/icons'
-import type { Profile, Project, SkillGroup, SocialLink } from '../types'
+import type { Profile, Project, Skill, SkillApplication, SkillGroup, SocialLink } from '../types'
 import { profile as profileFixture } from './fixtures/profile'
 import { projects as projectsFixture } from './fixtures/projects'
 import { skillGroups as skillGroupsFixture } from './fixtures/skills'
@@ -241,26 +241,28 @@ describe('canalização de conteúdo com dados de teste completos', () => {
     }
   })
 
-  it('apresenta cada grupo de habilidades com título e habilidades', async () => {
-    await renderApp('/habilidades')
+  it('apresenta cada grupo de habilidades com título e habilidades na secção inicial', async () => {
+    await renderApp('/')
 
-    const section = screen.getByRole('region', { name: 'Habilidades' })
-    const titles = within(section).getAllByRole('heading', { level: 3 })
+    const section = screen.getByRole('region', { name: profileFixture.name })
+    const titles = within(section).getAllByRole('heading', { level: 4 })
     const lists = within(section).getAllByRole('list')
     const skills = lists.map((list) => {
       const items = within(list).getAllByRole('listitem')
 
-      return items.map((item) => item.textContent)
+      return items.map((item) => item.querySelector('summary')?.textContent ?? item.textContent)
     })
 
     expect(titles.map((title) => title.textContent)).toEqual(
       skillGroupsFixture.map((group) => group.title),
     )
-    expect(skills).toEqual(skillGroupsFixture.map((group) => group.skills))
+    expect(skills).toEqual(
+      skillGroupsFixture.map((group) => group.skills.map((skill) => skill.name)),
+    )
   })
 
   it('não renderiza marcadores de placeholder nem ligações de exemplo', async () => {
-    for (const path of ['/', '/projetos', '/habilidades', '/contato']) {
+    for (const path of ['/', '/projetos', '/contato']) {
       const { container, unmount } = await renderAt(path)
       const text = container.textContent ?? ''
 
@@ -594,13 +596,13 @@ describe('normalização dos projetos', () => {
   })
 })
 
-describe('secção de habilidades', () => {
+describe('bloco de habilidades', () => {
   afterEach(() => {
     vi.doUnmock('../content/skills')
   })
 
-  function findGroup(section: HTMLElement, title: string): HTMLElement {
-    const heading = within(section).getByRole('heading', { level: 3, name: title })
+  function findGroup(block: HTMLElement, title: string): HTMLElement {
+    const heading = within(block).getByRole('heading', { level: 4, name: title })
     const group = heading.closest('div')
 
     if (group === null) {
@@ -614,38 +616,122 @@ describe('secção de habilidades', () => {
     vi.doMock('../content/skills', () => ({ skillGroups: [] }))
 
     const { Skills } = await import('../sections/Skills/Skills')
-    render(<Skills />)
+    const { container } = render(<Skills />)
 
-    const section = screen.getByRole('region', { name: 'Habilidades' })
-    const emptyState = within(section).getByText('Ainda não há habilidades para apresentar.')
+    const block = container.querySelector<HTMLElement>('div') ?? container
+    const emptyState = within(block).getByText('Ainda não há habilidades para apresentar.')
 
     expect(emptyState).toBeInTheDocument()
-    expect(within(section).queryByRole('heading', { level: 3 })).not.toBeInTheDocument()
-    expect(within(section).queryByRole('list')).not.toBeInTheDocument()
+    expect(within(block).queryByRole('heading', { level: 4 })).not.toBeInTheDocument()
+    expect(within(block).queryByRole('list')).not.toBeInTheDocument()
   })
 
-  it('apresenta cada grupo com título em h3 e a lista das suas habilidades', async () => {
+  it('apresenta o título do bloco em h3 e cada grupo com título em h4', async () => {
     vi.doMock('../content/skills', () => ({ skillGroups: skillGroupsFixture }))
 
     const { Skills } = await import('../sections/Skills/Skills')
-    render(<Skills />)
+    const { container } = render(<Skills />)
 
-    const section = screen.getByRole('region', { name: 'Habilidades' })
-    const titles = within(section).getAllByRole('heading', { level: 3 })
+    const block = container.querySelector<HTMLElement>('div') ?? container
+    const titles = within(block).getAllByRole('heading', { level: 4 })
     const expectedTitles = skillGroupsFixture.map((group) => group.title)
 
+    expect(
+      within(block).getByRole('heading', { level: 3, name: 'Habilidades' }),
+    ).toBeInTheDocument()
     expect(titles.map((title) => title.textContent)).toEqual(expectedTitles)
 
     for (const group of skillGroupsFixture) {
-      const block = findGroup(section, group.title)
-      const heading = within(block).getByRole('heading', { level: 3, name: group.title })
-      const list = within(block).getByRole('list')
+      const groupBlock = findGroup(block, group.title)
+      const heading = within(groupBlock).getByRole('heading', { level: 4, name: group.title })
+      const list = within(groupBlock).getByRole('list')
       const items = within(list).getAllByRole('listitem')
 
       expect(heading.nextElementSibling).toBe(list)
       expect(list).toHaveAttribute('role', 'list')
-      expect(items.map((item) => item.textContent)).toEqual(group.skills)
+      expect(items.map((item) => item.querySelector('summary')?.textContent)).toEqual(
+        group.skills.map((skill) => skill.name),
+      )
     }
+  })
+
+  it('apresenta cada habilidade como um painel fechado com a descrição e o uso', async () => {
+    vi.doMock('../content/skills', () => ({ skillGroups: skillGroupsFixture }))
+
+    const { Skills } = await import('../sections/Skills/Skills')
+    const { container } = render(<Skills />)
+
+    const details = Array.from(container.querySelectorAll('details'))
+
+    expect(details).toHaveLength(
+      skillGroupsFixture.reduce((total, group) => total + group.skills.length, 0),
+    )
+
+    for (const element of details) {
+      // Nenhum painel nasce aberto: o detalhe só aparece por acção do utilizador.
+      expect(element).not.toHaveAttribute('open')
+
+      const summary = element.querySelector('summary')
+      const panel = element.querySelector('div')
+
+      expect(summary).not.toBeNull()
+      expect(panel).not.toBeNull()
+      expect(panel?.textContent ?? '').not.toBe('')
+    }
+  })
+
+  it('abre o painel da habilidade ao clicar no seu rótulo', async () => {
+    vi.doMock('../content/skills', () => ({ skillGroups: skillGroupsFixture }))
+
+    const { Skills } = await import('../sections/Skills/Skills')
+    const { container } = render(<Skills />)
+
+    const details = container.querySelector('details')
+    const firstSkill = skillGroupsFixture[0].skills[0]
+
+    expect(details).not.toBeNull()
+    expect(details?.hasAttribute('open')).toBe(false)
+
+    const summary = within(details as HTMLElement).getByText(firstSkill.name)
+
+    fireEvent.click(summary)
+
+    expect(details?.hasAttribute('open')).toBe(true)
+  })
+
+  it('marca "Aplicado nesse Portfólio" apenas nas habilidades aplicadas', async () => {
+    vi.doMock('../content/skills', () => ({ skillGroups: skillGroupsFixture }))
+
+    const { Skills } = await import('../sections/Skills/Skills')
+    const { container } = render(<Skills />)
+
+    const details = Array.from(container.querySelectorAll('details'))
+    const skills = skillGroupsFixture.flatMap((group) => group.skills)
+
+    expect(details).toHaveLength(skills.length)
+
+    for (const [index, element] of details.entries()) {
+      // O rótulo vive no painel. O `summary` também tem spans, e por isso
+      // a busca tem de ser feita dentro do `div` do painel.
+      const panel = element.querySelector('div')
+      const label = panel?.querySelector('span')
+
+      if (skills[index].application === 'applied') {
+        expect(label?.textContent).toBe('Aplicado nesse Portfólio')
+      } else {
+        // Sem rótulo: a habilidade é conhecida, mas não é usada aqui.
+        expect(label).toBeNull()
+      }
+    }
+  })
+
+  it('não deixa nenhum rótulo de Planejado no painel', async () => {
+    vi.doMock('../content/skills', () => ({ skillGroups: skillGroupsFixture }))
+
+    const { Skills } = await import('../sections/Skills/Skills')
+    const { container } = render(<Skills />)
+
+    expect(container.textContent).not.toContain('Planejado')
   })
 })
 
@@ -663,7 +749,17 @@ describe('normalização das habilidades', () => {
   }
 
   it('remove grupos sem título ou sem habilidades', async () => {
-    const valid: SkillGroup = { title: 'Grupo válido', skills: ['TypeScript'] }
+    const valid: SkillGroup = {
+      title: 'Grupo válido',
+      skills: [
+        {
+          name: 'TypeScript',
+          description: 'Linguagem tipada.',
+          usage: 'Em todo o código.',
+          application: 'applied',
+        },
+      ],
+    }
     const withoutTitle = { ...valid, title: '   ' }
     const withoutSkills = { ...valid, skills: [] }
 
@@ -673,12 +769,71 @@ describe('normalização das habilidades', () => {
   })
 
   it('remove as habilidades vazias e o grupo quando a lista fica sem itens', async () => {
+    const skill: Skill = {
+      name: 'TypeScript',
+      description: 'Linguagem tipada.',
+      usage: 'Em todo o código.',
+      application: 'applied',
+    }
+
     const groups = await loadSkillGroups([
-      { title: 'Com habilidades vazias', skills: ['TypeScript', '', '   '] },
-      { title: 'Só com habilidades vazias', skills: ['', '  '] },
+      { title: 'Com habilidades vazias', skills: [skill, { ...skill, name: '' }] },
+      { title: 'Só com habilidades vazias', skills: [{ ...skill, name: '' }] },
     ])
 
-    expect(groups).toStrictEqual([{ title: 'Com habilidades vazias', skills: ['TypeScript'] }])
+    expect(groups).toStrictEqual([{ title: 'Com habilidades vazias', skills: [skill] }])
+  })
+
+  it('remove as habilidades sem descrição ou sem uso', async () => {
+    const skill: Skill = {
+      name: 'TypeScript',
+      description: 'Linguagem tipada.',
+      usage: 'Em todo o código.',
+      application: 'applied',
+    }
+
+    const groups = await loadSkillGroups([
+      {
+        title: 'Grupo',
+        skills: [skill, { ...skill, description: '  ' }, { ...skill, usage: '' }],
+      },
+    ])
+
+    expect(groups).toStrictEqual([{ title: 'Grupo', skills: [skill] }])
+  })
+
+  it('preserva o campo application e normaliza um valor inválido', async () => {
+    const groups = await loadSkillGroups([
+      {
+        title: 'Grupo',
+        skills: [
+          {
+            name: 'Aplicada',
+            description: 'Aplicada de verdade.',
+            usage: 'Em uso.',
+            application: 'applied',
+          },
+          {
+            name: 'Com experiência',
+            description: 'Conhecida de outros contextos.',
+            usage: 'Usada noutros projetos.',
+            application: 'experienced',
+          },
+          {
+            name: 'Valor inválido',
+            description: 'Campo de aplicação desconhecido.',
+            usage: 'Cai para o estado conservador.',
+            application: 'desconhecido' as SkillApplication,
+          },
+        ],
+      },
+    ])
+
+    expect(groups[0].skills.map((skill) => skill.application)).toEqual([
+      'applied',
+      'experienced',
+      'experienced',
+    ])
   })
 
   it('não altera os grupos da fixture', async () => {
@@ -687,12 +842,34 @@ describe('normalização das habilidades', () => {
     expect(groups).toStrictEqual(skillGroupsFixture)
   })
 
-  it('apara o título e as habilidades', async () => {
-    const padded = { title: '  Grupo  ', skills: [' TypeScript ', 'CSS  '] }
+  it('apara o título, o nome, a descrição e o uso', async () => {
+    const padded: SkillGroup = {
+      title: '  Grupo  ',
+      skills: [
+        {
+          name: ' TypeScript ',
+          description: ' Linguagem tipada. ',
+          usage: ' Em todo o código. ',
+          application: 'applied',
+        },
+      ],
+    }
 
     const groups = await loadSkillGroups([padded])
 
-    expect(groups).toStrictEqual([{ title: 'Grupo', skills: ['TypeScript', 'CSS'] }])
+    expect(groups).toStrictEqual([
+      {
+        title: 'Grupo',
+        skills: [
+          {
+            name: 'TypeScript',
+            description: 'Linguagem tipada.',
+            usage: 'Em todo o código.',
+            application: 'applied',
+          },
+        ],
+      },
+    ])
   })
 })
 
@@ -891,7 +1068,7 @@ describe('dados de teste das fixtures', () => {
   it('não repete títulos, habilidades, tecnologias nem rótulos', () => {
     const titles = projectsFixture.map((project) => project.title)
     const groupTitles = skillGroupsFixture.map((group) => group.title)
-    const skills = skillGroupsFixture.flatMap((group) => group.skills)
+    const skills = skillGroupsFixture.flatMap((group) => group.skills.map((skill) => skill.name))
     const labels = profileFixture.social.map((channel) => channel.label)
 
     for (const values of [titles, groupTitles, skills, labels]) {
@@ -918,7 +1095,10 @@ describe('dados de teste das fixtures', () => {
         ...(project.repositoryUrl === undefined ? [] : [project.repositoryUrl]),
         ...(project.liveUrl === undefined ? [] : [project.liveUrl]),
       ]),
-      ...skillGroupsFixture.flatMap((group) => [group.title, ...group.skills]),
+      ...skillGroupsFixture.flatMap((group) => [
+        group.title,
+        ...group.skills.flatMap((skill) => [skill.name, skill.description, skill.usage]),
+      ]),
     ]
 
     for (const value of values) {
@@ -953,7 +1133,10 @@ describe('conteúdo real', () => {
     }
 
     for (const group of skillGroups) {
-      values.push(group.title, ...group.skills)
+      values.push(
+        group.title,
+        ...group.skills.flatMap((skill) => [skill.name, skill.description, skill.usage]),
+      )
     }
 
     for (const value of values) {
@@ -984,8 +1167,12 @@ describe('conteúdo real', () => {
     }
 
     for (const group of skillGroupsFixture) {
-      expect(skillGroups.map((item) => `${item.title} ${item.skills.join(' ')}`)).not.toContain(
-        `${group.title} ${group.skills.join(' ')}`,
+      const realGroups = skillGroups.map(
+        (item) => `${item.title} ${item.skills.map((s) => s.name).join(' ')}`,
+      )
+
+      expect(realGroups).not.toContain(
+        `${group.title} ${group.skills.map((s) => s.name).join(' ')}`,
       )
     }
   })

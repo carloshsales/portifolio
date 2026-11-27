@@ -12,22 +12,47 @@
 
 Transformar o portfólio de página única com âncoras numa aplicação
 multi-página com URLs próprios, autorizada pelo utilizador, e estabelecer a
-navegação entre as sete secções.
+navegação entre as secções.
 
 Ao final desta task:
 
-- cada secção é uma página com URL própria (`/`, `/projetos`, `/habilidades`,
-  `/contato`, `/jogos`, `/artigos`, `/experimentos`);
+- cada secção é uma página com URL próprio (`/`, `/projetos`, `/contato`,
+  `/jogos`, `/artigos` e `/experimentos`);
 - a navegação entre secções é feita por clique no item de menu, sem deslocar
   a página por scroll;
 - cada página tem a sua própria barra de rolagem vertical, conforme a
   quantidade de conteúdo;
-- a navegação lateral lista as sete secções, com o link da secção actual
+- a navegação lateral lista as seis secções, com o link da secção actual
   marcado com `aria-current="page"`.
 
-Esta task é a **fundação técnica**. O conteúdo real do perfil, dos projetos e
-das habilidades, e a implementação das três secções novas — Jogos, Artigos e
-Experimentos — pertencem à **TASK-014**, que depende desta.
+### Reformulação do menu
+
+O utilizador reformulou o menu depois de a task ser concluída, e esta task
+absorve a reformulação:
+
+- **As habilidades deixam de ter página própria.** A rota `/habilidades` é
+  removida, e as habilidades passam a ser uma secção dentro de **Início**,
+  com o rótulo `h3` "Habilidades" e as categorias em `h4`.
+- **O menu passa de sete para seis itens.** "Habilidades" deixa de ser item
+  de navegação, e o `SkillsIcon` fica órfão.
+- **A margem esquerda dos itens de menu é corrigida.** A causa era o
+  `reset.css` anular a margem de todos os elementos mas não a margem
+  interna das listas: o `.navList` herdava o `padding-inline-start` de 40px
+  do browser, que empurrava os ícones 52px para dentro e os desalinhava da
+  marca e do bloco de identidade.
+- **Cada habilidade tem um painel de detalhe.** Ao clicar no rótulo, abre um
+  painel inline — sem modal — com o que a habilidade é e como é usada neste
+  projecto. O painel usa `<details>` nativo, sem JavaScript.
+- **O conteúdo real das habilidades é escrito.** As 32 habilidades estão
+  em `src/content/skills.ts`, agrupadas em cinco categorias, todas em
+  português brasileiro.
+- **O texto visível distingue o que é aplicado aqui do que é experiência.**
+  O campo `application` do tipo `Skill` é `applied` ou `experienced`: só o
+  primeiro recebe o rótulo "Aplicado nesse Portfólio".
+
+Esta task é a **fundação técnica**. O conteúdo real do perfil e dos projetos, e
+a implementação das três secções novas — Jogos, Artigos e Experimentos —
+pertencem à **TASK-014**, que depende desta.
 
 ### Condição de conclusão
 
@@ -113,16 +138,17 @@ de rewrite pertencem à TASK-012.
 - `src/routes/__root.module.css` (criação)
 - `src/routes/index.tsx` (criação)
 - `src/routes/projetos.tsx` (criação)
-- `src/routes/habilidades.tsx` (criação)
+- `src/routes/habilidades.tsx` (remoção)
 - `src/routes/contato.tsx` (criação)
 - `src/routes/jogos.tsx` (criação)
 - `src/routes/artigos.tsx` (criação)
 - `src/routes/experimentos.tsx` (criação)
-- `src/router.tsx` (criação)
+- `src/router.tsx` (alteração)
 - `src/main.tsx` (alteração)
 - `src/App.tsx` (remoção)
 - `src/App.module.css` (remoção)
 - `src/styles/globals.css` (alteração)
+- `src/styles/reset.css` (alteração)
 - `src/components/Sidebar.tsx` (alteração)
 - `src/components/Sidebar.module.css` (alteração)
 - `src/components/Section.tsx` (alteração)
@@ -131,6 +157,12 @@ de rewrite pertencem à TASK-012.
 - `src/hooks/useActiveSection.ts` (remoção)
 - `src/sections/Home/Home.tsx` (alteração)
 - `src/sections/Home/Home.module.css` (alteração)
+- `src/sections/Skills/Skills.tsx` (alteração)
+- `src/sections/Skills/Skills.module.css` (alteração)
+- `src/data/skills.ts` (alteração)
+- `src/content/skills.ts` (alteração)
+- `src/types/index.ts` (alteração)
+- `src/test/fixtures/skills.ts` (alteração)
 - `src/test/accessibility.test.tsx` (alteração)
 - `src/test/content.test.tsx` (alteração)
 - `src/App.test.tsx` (alteração)
@@ -144,18 +176,76 @@ de rewrite pertencem à TASK-012.
 - `src/vite-env.d.ts` (alteração condicional)
 - `docs/projeto.md` (alteração)
 - `docs/deployment.md` (alteração)
+- `docs/conteudo-real.md` (alteração)
+- `specs/changes/001-portfolio-mvp/tasks/TASK-014.md` (alteração)
 
 Cada bullet da secção `## Arquivos` declara exactamente um caminho entre
 crases. O parser de âmbito de `scripts/rawspec-v2.mjs` extrai apenas o
 primeiro caminho de cada bullet, pelo que dois caminhos no mesmo bullet
 produziriam um âmbito menor do que o declarado.
 
-Quatro ficheiros são **sobreposição sequencial intencional** com a
-TASK-014: `src/routes/jogos.tsx`, `src/routes/artigos.tsx`,
-`src/routes/experimentos.tsx` e `src/test/content.test.tsx`. Esta task
-cria as três rotas com um componente mínimo e migra o ficheiro de testes;
-a TASK-014 estende-os. A ordem do grafo garante a sequência. Todos os
-outros ficheiros são exclusivos desta task.
+### Ampliação do âmbito pela reformulação do menu
+
+A reformulação do menu, autorizada pelo utilizador depois de a task ser
+concluída, altera o alcance desta task. As entradas acima foram corrigidas
+para reflectir o estado real do ficheiro (`src/routes/habilidades.tsx` passa
+de criação a remoção) e foram acrescentados os ficheiros que a reformulação
+tocou:
+
+- `src/routes/habilidades.tsx` — **remoção**. As habilidades deixam de ter
+  página própria e passam a ser uma secção dentro de **Início**.
+- `src/router.tsx` — a rota `/habilidades` deixou de existir.
+- `src/components/Sidebar.tsx` e `src/components/Sidebar.module.css` — o
+  item de menu **Habilidades** foi retirado, e a margem esquerda dos itens
+  foi corrigida.
+- `src/components/icons.tsx` — o `SkillsIcon` ficou órfão e foi removido.
+- `src/styles/reset.css` — o reset passou a anular a margem interna das
+  listas, que o browser atribui em 40px e que desalinhava os ícones do menu.
+- `src/sections/Home/Home.tsx` — passou a renderizar o bloco de habilidades.
+- `src/sections/Skills/Skills.tsx` e `Skills.module.css` — deixou de ser uma
+  `Section` de topo e passou a ser um bloco embebido, com painel de detalhe
+  por habilidade.
+- `src/types/index.ts`, `src/data/skills.ts` e `src/content/skills.ts` — o
+  tipo `Skill` ganhou `description`, `usage` e `application`, e o conteúdo
+  real das habilidades foi escrito.
+- `src/test/fixtures/skills.ts`, `src/test/content.test.tsx`,
+  `src/test/accessibility.test.tsx` e `src/App.test.tsx` — as asserções
+  acompanham a mudança de seis rotas e o novo formato das habilidades.
+- `e2e/navigation.spec.ts` e `e2e/responsive.spec.ts` — a lista de rotas
+  passa de sete para seis, e há testes novos para o painel de habilidade.
+- `docs/projeto.md`, `docs/deployment.md` e `docs/conteudo-real.md` — a
+  documentação passa a descrever seis secções e o formato novo das
+  habilidades.
+
+**Esta ampliação não altera o estado de aprovação da task.** O `Status` e o
+`Verificação` mantêm-se como estão, e o registo desta reformulação é feito
+pelo `guardiao`, com a evidência da verificação executada.
+
+### Sobreposição com a TASK-014
+
+Oito ficheiros são **sobreposição sequencial intencional** com a TASK-014.
+A ordem do grafo garante a sequência: esta task escreve primeiro, e a
+TASK-014 estende depois.
+
+| Ficheiro | O que esta task faz | O que a TASK-014 estende |
+|---|---|---|
+| `src/routes/jogos.tsx` | cria a rota com componente mínimo | substitui pelo componente definitivo |
+| `src/routes/artigos.tsx` | cria a rota com componente mínimo | substitui pelo componente definitivo |
+| `src/routes/experimentos.tsx` | cria a rota com componente mínimo | substitui pelo componente definitivo |
+| `src/test/content.test.tsx` | migra para o router de memória | estende a verificação às seis listas |
+| `src/content/skills.ts` | escreve as 32 habilidades reais | acrescenta o conteúdo que o utilizador fornecer depois |
+| `src/data/skills.ts` | normaliza o novo formato de `Skill` | estende a normalização, se as listas novas precisarem |
+| `src/test/fixtures/skills.ts` | migra a fixture para o novo formato | estende a fixture com as listas novas |
+| `specs/changes/001-portfolio-mvp/tasks/TASK-014.md` | regista que as habilidades já têm conteúdo | mantém-se como documentação da task dependente |
+
+**Esta task escreve o conteúdo real das habilidades**, porque o utilizador o
+forneceu durante a reformulação do menu. A TASK-014 mantém no seu âmbito
+estes três ficheiros, e a sua aceitação — "conteúdo real fornecido pelo
+utilizador" — passa a estar parcialmente satisfeita por esta task. A
+TASK-014 **não** os reescreve: apenas os estende, quando o utilizador
+fornecer conteúdo adicional.
+
+Todos os outros ficheiros são exclusivos desta task.
 
 O `pnpm-lock.yaml` está no âmbito porque a adição das duas
 dependências do router altera o lockfile, e não há forma de adicionar
@@ -623,30 +713,69 @@ dependa de inferir o que remover.
 
 ## Aceitação
 
-- As sete rotas `/`, `/projetos`, `/habilidades`, `/contato`, `/jogos`,
-  `/artigos` e `/experimentos` respondem com a página da secção
-  correspondente, verificado por carregamento directo e por clique no menu.
-- A navegação lateral lista as sete secções, com `aria-current="page"` no
+**Precedência.** A emenda de 2026-11-27 prevalece sobre esta secção. Onde
+esta secção falar em "sete rotas", "sete secções" ou `/habilidades`, vale o
+que a emenda e os itens abaixo dizem.
+
+### Da aplicação multi-página
+
+- As seis rotas `/`, `/projetos`, `/contato`, `/jogos`, `/artigos` e
+  `/experimentos` respondem com a página da secção correspondente,
+  verificado por carregamento directo e por clique no menu.
+- A navegação lateral lista as seis secções, com `aria-current="page"` no
   link da rota actual e sem qualquer outro link marcado. A **marca** da
   barra lateral — que é um link para a raiz mas não é um item de
   navegação — é uma âncora simples e não recebe o atributo, porque o
   `Link` do router o aplicaria automaticamente quando a rota actual é
   `/`, e não há forma de o desligar.
+- O link activo conserva as classes base do link. O `activeProps.className`
+  é acrescentado ao `className` pelo router, e não o substitui: se o
+  substituísse, o item activo perderia o `display: flex`, o `gap` e o
+  `padding`, e o alinhamento dos ícones partir-se-ia.
 - Clicar num item de menu navega para a rota correspondente e não altera a
   posição de scroll do documento.
-- Em cada uma das sete rotas, a área de conteúdo tem `overflow-y` computado
+- Em cada uma das seis rotas, a área de conteúdo tem `overflow-y` computado
   de `auto` ou `scroll`, a sua altura não excede a altura da viewport, e o
   documento não faz scroll. Quando o conteúdo real de uma rota exceder a
   altura da viewport, a área de conteúdo tem `scrollHeight` maior que
   `clientHeight`.
-- Não existe overflow horizontal em nenhuma das sete rotas, nos três
+- Não existe overflow horizontal em nenhuma das seis rotas, nos três
   viewports.
-- As quatro secções existentes — Início, Projetos, Habilidades e Contato —
-  renderizam uma página cada, com o conteúdo actual de `src/data/`.
+- As secções existentes — Início, Projetos, Habilidades e Contato —
+  renderizam uma página cada, com o conteúdo actual de `src/data/`. As
+  habilidades renderizam **dentro** de Início.
 - As rotas `/jogos`, `/artigos` e `/experimentos` são navegáveis e
   renderizam o `h2` da secção correcta, com um componente mínimo. Os
   componentes completos destas secções **não** existem: pertencem à
   TASK-014.
+
+### Da reformulação do menu
+
+- A navegação lateral lista **seis** itens, pela ordem `/`, `/projetos`,
+  `/contato`, `/jogos`, `/artigos` e `/experimentos`. "Habilidades" não é item
+  de menu.
+- `src/routes/habilidades.tsx` não existe, `src/router.tsx` não declara a
+  rota `/habilidades`, e `/habilidades` não resolve para a página de
+  habilidades.
+- A página `/` apresenta as habilidades, com o `h3` "Habilidades" e um `h4`
+  por categoria. A hierarquia de títulos é `h1` na marca, `h2` na secção,
+  `h3` no bloco e `h4` nos itens.
+- Cada habilidade é um `<details>` cujo `<summary>` é o rótulo. Clicar no
+  rótulo abre o painel **inline**, sem modal e sem JavaScript, e o painel
+  mostra a descrição da habilidade e o texto de uso.
+- O rótulo "Aplicado nesse Portfólio" aparece **apenas** nas habilidades com
+  `application: 'applied'`. As habilidades com `application: 'experienced'`
+  não mostram qualquer rótulo, e a palavra "Planejado" não aparece em
+  lado nenhum.
+- `src/content/skills.ts` contém 32 habilidades em cinco categorias, todas
+  em português brasileiro, e sem níveis de proficiência.
+- O `reset.css` anula a margem interna de `ul` e `ol`. O `.navList` repete
+  o `padding: 0` de propósito, para que o alinhamento dos ícones com a
+  marca não dependa de uma regra global.
+- `src/components/icons.tsx` não exporta `SkillsIcon`, e `src/components/Sidebar.tsx`
+  não o importa.
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:e2e`
+  passam nos três viewports.
 - `src/hooks/useActiveSection.ts` não existe, e nenhum ficheiro em `src/`
   referencia `IntersectionObserver` nem `useActiveSection`.
 - `src/App.tsx` e `src/App.module.css` não existem, e a composição e os
@@ -849,3 +978,64 @@ dependa de inferir o que remover.
   técnicas estão decididos; restam apenas decisões técnicas de
   implementação, com critério verificável, como a geometria dos três
   ícones novos e o texto do parágrafo provisório das três rotas)
+
+---
+
+## Emenda de 2026-11-27 — Reformulação do menu
+
+Esta secção **prevalece** sobre as menções a "sete secções", "sete rotas" e
+`/habilidades` que ficaram no corpo desta task. A task foi escrita e
+concluída com sete secções; a reformulação autorizada pelo utilizador depois
+de concluída reduz o menu a seis secções e move as habilidades para dentro
+de **Início**.
+
+O corpo da task mantém-se como registo do que foi feito na altura. Onde
+contradiz esta emenda, **esta emenda prevalece**.
+
+### O que mudou
+
+| Antes | Agora |
+|---|---|
+| Sete secções no menu | Seis secções no menu |
+| Sete rotas: `/`, `/projetos`, `/habilidades`, `/contato`, `/jogos`, `/artigos`, `/experimentos` | Seis rotas: `/`, `/projetos`, `/contato`, `/jogos`, `/artigos`, `/experimentos` |
+| `/habilidades` é uma página com `Section` própria | A rota é removida; as habilidades são uma secção dentro de `/` |
+| "Habilidades" é um item de menu | Não é item de menu; o `SkillsIcon` é removido |
+| Sete ícones decorativos na navegação | Seis ícones decorativos na navegação |
+| As habilidades são uma lista de etiquetas | Cada habilidade é um `<details>` com painel de detalhe inline |
+| `SkillGroup.skills` é `string[]` | `Skill` tem `name`, `description`, `usage` e `application` |
+| Conteúdo das habilidades vazio | 32 habilidades reais, em cinco categorias, em pt-BR |
+
+### Decisões do utilizador
+
+1. **As habilidades são apenas uma secção dentro de "Início".** Não têm item
+   de menu nem rota própria. A rota `/habilidades` deixa de existir.
+2. **A margem esquerda dos itens de menu é corrigida**, alinhando os ícones
+   com a marca e com o bloco de identidade.
+3. **O painel de detalhe não é modal.** Abre inline, ao lado do conteúdo, e
+   usa `<details>` nativo, sem JavaScript.
+4. **O texto visível distingue aplicação de experiência.** Só o que é
+   realmente usado neste projecto recebe o rótulo "Aplicado nesse Portfólio".
+   O que é experiência noutros contextos não recebe rótulo, e o texto
+   descreve a experiência sem a apresentar como aplicação aqui.
+5. **Todo o texto visível está em português brasileiro**, conforme
+   `docs/projeto.md`, secção 1.
+
+### Âmbito afectado
+
+A secção `## Arquivos` foi ampliada com os ficheiros que a reformulação
+tocou, e `src/routes/habilidades.tsx` passou de criação a remoção. A
+explicação está na subsecção "Ampliação do âmbito pela reformulação do
+menu", na mesma secção.
+
+### O que esta emenda não altera
+
+- **O estado de aprovação da task.** `Status: COMPLETED` e
+  `Verificação: VERIFIED` mantêm-se. A emenda documenta o âmbito, e a
+  verificação da reformulação é registada pelo `guardiao`, com a evidência
+  das verificações executadas.
+- **O grafo de dependências.** TASK-014 continua a depender desta task, e
+  continua a ter como parte do seu âmbito o conteúdo real do perfil e dos
+  projetos, e as três secções novas.
+- **As exclusões declaradas na TASK-014.** A TASK-014 continua a não tocar no
+  `Sidebar.tsx`, no router, no `App.test.tsx` nem no `globals.css` — o
+  menu e a navegação pertencem a esta task.

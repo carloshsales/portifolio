@@ -39,6 +39,13 @@
   flex-direction: column;
   gap: var(--space-1);
   list-style: none;
+  /*
+   * O `reset.css` anula a margem interna de todas as listas. Esta
+   * regra repete o valor de propósito: o `reset` é global e pode
+   * mudar, e a dependência do alinhamento dos ícones com a marca é
+   * local a este componente.
+   */
+  padding: 0;
 }
 
 .navLink {

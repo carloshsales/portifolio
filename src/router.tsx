@@ -2,7 +2,6 @@ import { createRouter } from '@tanstack/react-router'
 import { rootRoute } from './routes/__root'
 import { Route as indexRoute } from './routes/index'
 import { Route as projetosRoute } from './routes/projetos'
-import { Route as habilidadesRoute } from './routes/habilidades'
 import { Route as contatoRoute } from './routes/contato'
 import { Route as jogosRoute } from './routes/jogos'
 import { Route as artigosRoute } from './routes/artigos'
@@ -11,7 +10,6 @@ import { Route as experimentosRoute } from './routes/experimentos'
 export const routeTree = rootRoute.addChildren([
   indexRoute,
   projetosRoute,
-  habilidadesRoute,
   contatoRoute,
   jogosRoute,
   artigosRoute,
