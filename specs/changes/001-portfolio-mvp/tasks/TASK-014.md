@@ -29,12 +29,19 @@ A TASK-011 transformou o portfólio numa aplicação multi-página com sete
 rotas, e criou as rotas `/jogos`, `/artigos` e `/experimentos` com um
 componente de secção mínimo, à espera desta task.
 
-O conteúdo de produção continua vazio. `src/content/profile.ts:5-12` tem
+O conteúdo de produção continua vazio, com uma excepção. `src/content/profile.ts:5-12` tem
 `name`, `role`, `summary` e `location` vazios e `social: []`;
-`src/content/projects.ts:5` e `src/content/skills.ts:6` são listas vazias.
+`src/content/projects.ts:5` é uma lista vazia.
 `src/data/profile.ts:41-52` remove todos os canais de contacto, e
 `src/sections/Home/Home.tsx:7-11` omite a fotografia, o resumo e as chamadas
 para a acção.
+
+**Excepção: as habilidades já têm conteúdo.** A reformulação do menu, feita
+na TASK-011 depois de esta task ser escrita, fixou o conteúdo real das
+habilidades: `src/content/skills.ts` tem 32 habilidades em cinco categorias,
+com o tipo `Skill` alargado a `name`, `description`, `usage` e
+`application`. Esta task **estende** o ficheiro, se o utilizador fornecer
+conteúdo adicional, e **não** o reescreve.
 
 `src/content/profile.ts:9` e a fixture `src/test/fixtures/profile.ts` apontam
 ambos para `public/images/foto-perfil.jpg`, que existe e cumpre os requisitos
@@ -142,11 +149,18 @@ crases. O parser de âmbito de `scripts/rawspec-v2.mjs` extrai apenas o
 primeiro caminho de cada bullet, pelo que dois caminhos no mesmo bullet
 produziriam um âmbito menor do que o declarado.
 
-Quatro ficheiros são **sobreposição sequencial intencional** com a
+Sete ficheiros são **sobreposição sequencial intencional** com a
 TASK-011: `src/routes/jogos.tsx`, `src/routes/artigos.tsx`,
-`src/routes/experimentos.tsx` e `src/test/content.test.tsx`. A TASK-011
-cria-os ou migra-os; esta task estende-os. A ordem do grafo garante a
-sequência. Todos os outros ficheiros são exclusivos desta task.
+`src/routes/experimentos.tsx`, `src/test/content.test.tsx`,
+`src/content/skills.ts`, `src/data/skills.ts` e
+`src/test/fixtures/skills.ts`. A TASK-011 cria-os, migra-os ou escreve o
+conteúdo real das habilidades; esta task estende-os. A ordem do grafo
+garante a sequência. Todos os outros ficheiros são exclusivos desta task.
+
+**Os três ficheiros das habilidades já têm conteúdo.** A TASK-011 escreveu as
+32 habilidades reais em `src/content/skills.ts` e adaptou o tipo `Skill`, a
+normalização e a fixture. Esta task estende-os apenas se o utilizador
+fornecer conteúdo adicional, e não os reescreve.
 
 ## Entregáveis
 
@@ -203,9 +217,13 @@ usado, não o que seria desejável. Sem `repositoryUrl` quando o repositório
 
 ### `src/content/skills.ts`
 
-Grupos com `title` e `skills`. Sem níveis de proficiência, sem percentagens
-e sem categorias vagas ("Diversos", "Vários", "Outras"). 3 a 5 categorias é
-o padrão razoável.
+Grupos com `title` e `skills`. Cada habilidade tem `name`, `description`,
+`usage` e `application` (`'applied'` ou `'experienced'`). Sem níveis de
+proficiência, sem percentagens e sem categorias vagas ("Diversos", "Vários",
+"Outras"). 3 a 5 categorias é o padrão razoável.
+
+**O conteúdo real já está escrito pela TASK-011.** Esta secção descreve o
+formato, para o caso de o utilizador fornecer habilidades adicionais.
 
 ### `src/content/games.ts`, `src/content/articles.ts` e `src/content/experiments.ts`
 
@@ -426,12 +444,15 @@ como estão em `src/types/index.ts:18-24`.
 
 ## Aceitação
 
-- `src/content/profile.ts`, `src/content/projects.ts` e
-  `src/content/skills.ts` contêm o conteúdo real fornecido pelo utilizador,
-  e `src/content/games.ts`, `src/content/articles.ts` e
-  `src/content/experiments.ts` contêm o conteúdo real fornecido para as
-  três secções novas. **Nenhum item foi inventado** para preencher uma
-  secção.
+- `src/content/profile.ts` e `src/content/projects.ts` contêm o conteúdo real
+  fornecido pelo utilizador, e `src/content/games.ts`,
+  `src/content/articles.ts` e `src/content/experiments.ts` contêm o conteúdo
+  real fornecido para as três secções novas. **Nenhum item foi inventado**
+  para preencher uma secção.
+- `src/content/skills.ts` contém as habilidades reais. **Este requisito já
+  está satisfeito pela TASK-011**, que escreveu as 32 habilidades durante a
+  reformulação do menu. Esta task apenas o estende, se o utilizador
+  fornecer conteúdo adicional.
 - As três secções novas — Jogos, Artigos e Experimentos — estão
   implementadas, com componente, estilos, conteúdo e rota, e as rotas
   `/jogos`, `/artigos` e `/experimentos` deixam de usar o componente

@@ -5,7 +5,6 @@ import type { Profile } from '../src/types'
 const ROUTES = [
   { path: '/', label: 'Início' },
   { path: '/projetos', label: 'Projetos' },
-  { path: '/habilidades', label: 'Habilidades' },
   { path: '/contato', label: 'Contato' },
   { path: '/jogos', label: 'Jogos' },
   { path: '/artigos', label: 'Artigos' },
@@ -74,7 +73,7 @@ async function horizontalOverflow(page: Page): Promise<number> {
   )
 }
 
-test('não tem overflow horizontal em nenhuma das sete rotas', async ({ page }) => {
+test('não tem overflow horizontal em nenhuma das seis rotas', async ({ page }) => {
   for (const route of ROUTES) {
     await page.goto(route.path)
 
@@ -99,7 +98,7 @@ test('não tem overflow horizontal durante a navegação por clique', async ({ p
   }
 })
 
-test('o menu mostra os sete links, visíveis e com o destino da rota', async ({ page }) => {
+test('o menu mostra os seis links, visíveis e com o destino da rota', async ({ page }) => {
   await page.goto('/')
 
   const menu = navigation(page)
@@ -255,7 +254,7 @@ test('o último elemento do conteúdo permanece acessível', async ({ page }) =>
   }
 })
 
-test('o tabulador percorre o link de salto, a marca e os sete links de navegação', async ({
+test('o tabulador percorre o link de salto, a marca e os seis links de navegação', async ({
   page,
 }) => {
   await page.goto('/')

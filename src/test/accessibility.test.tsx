@@ -2,15 +2,7 @@ import { render } from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const SECTION_PATHS = [
-  '/',
-  '/projetos',
-  '/habilidades',
-  '/contato',
-  '/jogos',
-  '/artigos',
-  '/experimentos',
-] as const
+const SECTION_PATHS = ['/', '/projetos', '/contato', '/jogos', '/artigos', '/experimentos'] as const
 
 async function renderAt(path: string): Promise<ReturnType<typeof render>> {
   const { RouterProvider, createMemoryHistory, createRouter } =
@@ -149,8 +141,34 @@ describe('acessibilidade com habilidades preenchidas', () => {
     vi.resetModules()
     vi.doMock('../data/skills', () => ({
       skillGroups: [
-        { title: 'Categoria de teste', skills: ['TypeScript', 'React'] },
-        { title: 'Outra categoria de teste', skills: ['CSS'] },
+        {
+          title: 'Categoria de teste',
+          skills: [
+            {
+              name: 'TypeScript',
+              description: 'Linguagem tipada.',
+              usage: 'Em todo o código.',
+              application: 'applied',
+            },
+            {
+              name: 'React',
+              description: 'Biblioteca de UI.',
+              usage: 'Nos componentes.',
+              application: 'experienced',
+            },
+          ],
+        },
+        {
+          title: 'Outra categoria de teste',
+          skills: [
+            {
+              name: 'CSS',
+              description: 'Folha de estilos.',
+              usage: 'Nos módulos.',
+              application: 'applied',
+            },
+          ],
+        },
       ],
     }))
   })
@@ -160,16 +178,16 @@ describe('acessibilidade com habilidades preenchidas', () => {
   })
 
   it('não apresenta violações automáticas com habilidades preenchidas', async () => {
-    const { container } = await renderAt('/habilidades')
+    const { container } = await renderAt('/')
 
     const results = await axe(container)
 
     expect(results.violations).toEqual([])
   })
 
-  it('não apresenta violações automáticas na secção de habilidades preenchida', async () => {
-    const { container } = await renderAt('/habilidades')
-    const section = container.querySelector('section#habilidades')
+  it('não apresenta violações automáticas no bloco de habilidades preenchido', async () => {
+    const { container } = await renderAt('/')
+    const section = container.querySelector('section#inicio')
 
     expect(section).not.toBeNull()
 

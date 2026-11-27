@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { profile } from '../../data/profile'
 import { projects } from '../../data/projects'
 import { Section } from '../../components/Section'
+import { Skills } from '../Skills/Skills'
 import styles from './Home.module.css'
 
 export function Home() {
@@ -43,6 +44,8 @@ export function Home() {
           ) : null}
         </div>
       </div>
+
+      <Skills />
     </Section>
   )
 }

@@ -97,14 +97,42 @@ Lista de grupos:
 ```ts
 {
   title: 'Frontend',
-  skills: ['TypeScript', 'React', 'CSS'],
+  skills: [
+    {
+      name: 'TypeScript',
+      description: 'O que a habilidade é.',
+      usage: 'Como a habilidade é usada neste projecto.',
+      application: 'applied',
+    },
+  ],
 }
 ```
 
 | Campo | Obrigatório | Descrição |
 |---|---|---|
 | `title` | Sim | Nome da categoria. |
-| `skills` | Sim | Tecnologias ou competências da categoria. Lista não vazia. |
+| `skills` | Sim | Habilidades da categoria. Lista não vazia. |
+| `skills[].name` | Sim | Nome da habilidade, como aparece no rótulo. |
+| `skills[].description` | Sim | O que a habilidade é. 1 a 3 frases. |
+| `skills[].usage` | Sim | Como a habilidade é usada neste projecto. 1 a 3 frases. |
+| `skills[].application` | Sim | `applied` ou `experienced`. |
+
+Cada habilidade é um painel fechado que se abre ao clicar no rótulo. O texto
+`description` responde a "o que é" e o texto `usage` responde a "como é usada
+aqui".
+
+O campo `application` distingue dois estados, e apenas um deles recebe
+rótulo:
+
+- `applied` — a habilidade é usada neste projecto. O painel mostra o rótulo
+  **"Aplicado nesse Portfólio"**, e o texto `usage` descreve o que foi de facto
+  feito aqui.
+- `experienced` — a habilidade é conhecida e usada noutros contextos, mas não
+  é usada neste projecto. O painel **não mostra rótulo**, e o texto `usage`
+  descreve a experiência, sem sugerir aplicação aqui.
+
+A distinção importa: sem ela, uma tecnologia ainda não usada neste projecto
+apareceria ao leitor como algo já feito aqui.
 
 ### Regras de conteúdo
 
@@ -112,6 +140,17 @@ Lista de grupos:
 - **Sem categorias vagas.** Evitar "Diversos", "Vários", "Outras".
 - Usar nomes de tecnologia reconhecíveis, para que a lista seja útil a quem lê.
 - 3 a 5 categorias é o padrão razoável para um portfólio.
+- **`description` descreve a tecnologia, não este projecto.** É o mesmo texto para
+  qualquer pessoa que não conheça o projecto.
+- **`usage` é específico deste projecto.** Citar o que é realmente feito, e
+  dizer com franqueza quando a tecnologia ainda não é usada.
+- **`application` é uma afirmação verificável.** Pôr `applied` só quando a
+  habilidade está de facto em uso no repositório — uma dependência
+  instalada, um ficheiro de configuração presente, um comando executado.
+  Não é uma avaliação de proficiência, e sim um facto.
+- **`experienced` não é uma habilidade mais fraca.** A habilidade conta, e o
+  texto `usage` descreve onde e como é usada, sem a apresentar como aplicação
+  neste projecto.
 
 ## 6. Fotografia
 
@@ -129,7 +168,7 @@ O `public/images/foto-perfil.png` actual tem **1,8 MB** e é demasiado pesado. S
 ## 7. Ordem de preenchimento
 
 1. `src/content/profile.ts` — identidade e contactos.
-2. `src/content/skills.ts` — habilidades.
+2. `src/content/skills.ts` — habilidades. **Preenchido.**
 3. `src/content/projects.ts` — projetos.
 4. `public/images/` — fotografia, com o nome registado no passo 1.
 

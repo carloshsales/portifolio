@@ -15,7 +15,7 @@ O projeto é uma aplicação frontend estática, sem backend, sem base de dados 
 | Requer Node | 22 ou superior |
 | Requer pnpm | 12 (fixado em `package.json` pelo campo `packageManager`) |
 | Assets com hash | Sim: `index-<hash>.js`, `index-<hash>.css` |
-| Rotas | Sete rotas com URL próprio, sem `#`: `/`, `/projetos`, `/habilidades`, `/contato`, `/jogos`, `/artigos` e `/experimentos`. Router: TanStack Router, com as rotas definidas por código. |
+| Rotas | Seis rotas com URL próprio, sem `#`: `/`, `/projetos`, `/contato`, `/jogos`, `/artigos` e `/experimentos`. Router: TanStack Router, com as rotas definidas por código. |
 | SPA fallback | **Necessário.** As rotas são resolvidas no cliente, pelo que `/projetos` não corresponde a nenhum ficheiro em `dist/`. Sem reescrita para `index.html`, um carregamento directo ou um recarregamento dessa rota devolve 404. |
 
 Conteúdo gerado:
@@ -135,7 +135,7 @@ Antes de considerar a publicação concluída:
 - [ ] `pnpm build` termina sem erros
 - [ ] `dist/index.html` existe
 - [ ] A página abre em produção sem erros no console
-- [ ] A navegação por rotas percorre as sete secções, e cada rota
+- [ ] A navegação por rotas percorre as seis secções, e cada rota
       responde com a página da secção correspondente
 - [ ] A fotografia carrega
 - [ ] Os links de contacto abrem

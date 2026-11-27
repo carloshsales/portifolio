@@ -11,7 +11,6 @@ interface SectionRoute {
 const ROUTES: readonly SectionRoute[] = [
   { path: '/', id: 'inicio', label: 'Início' },
   { path: '/projetos', id: 'projetos', label: 'Projetos', heading: 'Projetos' },
-  { path: '/habilidades', id: 'habilidades', label: 'Habilidades', heading: 'Habilidades' },
   { path: '/contato', id: 'contato', label: 'Contato', heading: 'Contato' },
   { path: '/jogos', id: 'jogos', label: 'Jogos', heading: 'Jogos' },
   { path: '/artigos', id: 'artigos', label: 'Artigos', heading: 'Artigos' },
@@ -66,7 +65,7 @@ for (const route of ROUTES) {
   })
 }
 
-test('o menu lista as sete seções pela ordem das rotas', async ({ page }) => {
+test('o menu lista as seis seções pela ordem das rotas', async ({ page }) => {
   await page.goto('/')
 
   const links = navigation(page).locator('a')
@@ -75,6 +74,97 @@ test('o menu lista as sete seções pela ordem das rotas', async ({ page }) => {
   )
 
   expect(hrefs).toEqual(ROUTES.map((route) => route.path))
+})
+
+test('os painéis das habilidades abrem e fecham ao clicar no seu rótulo', async ({ page }) => {
+  await page.goto('/')
+
+  const first = page.locator('main details').first()
+
+  // O atributo `open` existe no DOM mesmo fechado; o estado real é a
+  // propriedade `open` do elemento.
+  const isOpen = (locator: Locator): Promise<boolean> =>
+    locator.evaluate((element) => (element as HTMLDetailsElement).open)
+
+  expect(await isOpen(first)).toBe(false)
+
+  await first.locator('summary').click()
+
+  expect(await isOpen(first)).toBe(true)
+
+  await first.locator('summary').click()
+
+  expect(await isOpen(first)).toBe(false)
+})
+
+test('os painéis das habilidades são independentes entre si', async ({ page }) => {
+  await page.goto('/')
+
+  const first = page.locator('main details').first()
+  const second = page.locator('main details').nth(1)
+
+  const isOpen = (locator: Locator): Promise<boolean> =>
+    locator.evaluate((element) => (element as HTMLDetailsElement).open)
+
+  await first.locator('summary').click()
+  await second.locator('summary').click()
+
+  // Abrir um painel não fecha os outros: é possível comparar duas
+  // habilidades lado a lado.
+  expect(await isOpen(first)).toBe(true)
+  expect(await isOpen(second)).toBe(true)
+})
+
+test('o painel de uma habilidade mostra a descrição e o uso neste projecto', async ({ page }) => {
+  await page.goto('/')
+
+  const summary = page.locator('main details summary', { hasText: 'RawSpec v2' })
+
+  await summary.click()
+
+  const panel = summary.locator('xpath=following-sibling::div')
+
+  await expect(panel).toContainText('Formato de especificações')
+  // O rótulo é maiúsculo por CSS; o texto no DOM é "Aplicado nesse Portfólio".
+  await expect(panel).toContainText('Aplicado nesse Portfólio')
+  await expect(panel.locator('span')).toHaveText('Aplicado nesse Portfólio')
+})
+
+test('as habilidades que não são usadas aqui não recebem o rótulo de aplicação', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  const summary = page.locator('main details summary', { hasText: 'Supabase' })
+
+  await summary.click()
+
+  const panel = summary.locator('xpath=following-sibling::div')
+
+  await expect(panel).not.toContainText('Aplicado nesse Portfólio')
+  await expect(panel).not.toContainText('Planejado')
+  await expect(panel.locator('span')).toHaveCount(0)
+})
+
+test('o painel de uma habilidade abre e fecha pelo teclado', async ({ page }) => {
+  await page.goto('/')
+
+  const summary = page.locator('main details summary').first()
+  const details = summary.locator('xpath=..')
+
+  const isOpen = (): Promise<boolean> =>
+    details.evaluate((element) => (element as HTMLDetailsElement).open)
+
+  await summary.focus()
+  await expect(summary).toBeFocused()
+
+  await page.keyboard.press('Enter')
+
+  expect(await isOpen()).toBe(true)
+
+  await page.keyboard.press('Enter')
+
+  expect(await isOpen()).toBe(false)
 })
 
 test('clicar num item de menu muda de página sem deslocar o documento', async ({ page }) => {

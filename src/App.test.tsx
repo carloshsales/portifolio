@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const SECTION_ROUTES = [
   { path: '/', label: 'Início' },
   { path: '/projetos', label: 'Projetos' },
-  { path: '/habilidades', label: 'Habilidades' },
   { path: '/contato', label: 'Contato' },
   { path: '/jogos', label: 'Jogos' },
   { path: '/artigos', label: 'Artigos' },
@@ -102,19 +101,39 @@ describe('App', () => {
     ])
   })
 
-  it('apresenta cada categoria de habilidades com título h3 na secção Habilidades', async () => {
+  it('apresenta cada categoria de habilidades com título h4 na secção Início', async () => {
     vi.doMock('./data/skills', () => ({
       skillGroups: [
-        { title: 'Primeira categoria', skills: ['TypeScript'] },
-        { title: 'Segunda categoria', skills: ['CSS'] },
+        {
+          title: 'Primeira categoria',
+          skills: [
+            {
+              name: 'TypeScript',
+              description: 'Linguagem tipada.',
+              usage: 'Em todo o código.',
+              application: 'applied',
+            },
+          ],
+        },
+        {
+          title: 'Segunda categoria',
+          skills: [
+            {
+              name: 'CSS',
+              description: 'Folha de estilos.',
+              usage: 'Nos módulos.',
+              application: 'experienced',
+            },
+          ],
+        },
       ],
     }))
 
-    await renderAt('/habilidades')
+    await renderAt('/')
 
-    const section = screen.getByRole('region', { name: 'Habilidades' })
-    const heading = within(section).getByRole('heading', { level: 2, name: 'Habilidades' })
-    const groupTitles = within(section).getAllByRole('heading', { level: 3 })
+    const section = getHomeSection()
+    const heading = within(section).getByRole('heading', { level: 3, name: 'Habilidades' })
+    const groupTitles = within(section).getAllByRole('heading', { level: 4 })
 
     expect(heading).toBeInTheDocument()
     expect(groupTitles.map((title) => title.textContent)).toEqual([
@@ -153,6 +172,21 @@ describe('App', () => {
     )
 
     expect(hrefs).toEqual(SECTION_ROUTES.map(({ path }) => path))
+  })
+
+  it('mantém as classes base no link activo, para que o item não perca o layout', async () => {
+    await renderAt('/projetos')
+
+    const current = getNavigation().querySelector('a[aria-current="page"]')
+
+    expect(current).not.toBeNull()
+
+    // O `activeProps.className` é acrescentado ao `className` base pelo
+    // router. Se deixasse de o ser, o item activo perdia o `display: flex`,
+    // o `gap` e o `padding`, e o alinhamento dos ícones partir-se-ia.
+    const className = current?.className ?? ''
+
+    expect(className.split(/\s+/).filter(Boolean).length).toBeGreaterThanOrEqual(2)
   })
 
   it('renders one decorative icon per navigation link', async () => {

@@ -1,6 +1,22 @@
+.skills {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-12);
+}
+
+.title {
+  font-size: var(--text-2xl);
+}
+
 .groups {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  /*
+   * A coluna mínima é de 22rem, e não 16rem: o painel de detalhe de cada
+   * habilidade tem de caber numa largura confortável de leitura, e a 16rem
+   * o texto ficava demasiado estreito.
+   */
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
   gap: var(--space-6);
 }
 
@@ -21,18 +37,137 @@
 
 .skillList {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-2);
   list-style: none;
   padding: 0;
 }
 
-.skill {
+/*
+ * O painel de detalhe acompanha a largura do cartão, e não a da etiqueta.
+ * Por isso a lista é uma coluna e não uma linha: um `details` dentro de
+ * uma lista flex-wrap ficaria limitado à largura do texto do rótulo.
+ */
+.skillItem {
+  margin: 0;
+}
+
+.details {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.details[open] {
+  border-color: rgba(255, 146, 43, 0.35);
+  background: rgba(255, 146, 43, 0.05);
+}
+
+.details:hover {
+  border-color: rgba(255, 146, 43, 0.25);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 0.375rem;
+  cursor: pointer;
+  list-style: none;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
+  transition: color 150ms ease;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:hover {
+  color: var(--color-accent);
+}
+
+.summary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: 0.375rem;
+}
+
+.skillName {
+  font-family: var(--font-mono);
+}
+
+/*
+ * O indicador é desenhado com CSS a partir de dois traços, para que a
+ * seta mude de direcção quando o painel abre sem depender de JavaScript.
+ */
+.indicator {
+  position: relative;
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  color: var(--color-text-muted);
+  transition: transform 150ms ease;
+}
+
+.indicator::before,
+.indicator::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.5rem;
+  height: 1.5px;
+  margin-top: -0.75px;
+  margin-left: -0.25rem;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.indicator::after {
+  transform: rotate(90deg);
+  transition: opacity 150ms ease;
+}
+
+.details[open] .indicator {
+  transform: rotate(180deg);
+}
+
+.details[open] .indicator::after {
+  opacity: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.description,
+.usage {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.usage {
+  color: var(--color-text);
+}
+
+.usageLabel {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .empty {
