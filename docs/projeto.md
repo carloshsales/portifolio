@@ -80,21 +80,29 @@ repositório, em português europeu.
 
 ### 2.1 Estrutura principal
 
-O portfólio é uma experiência de página única, com navegação lateral e secções
-organizadas.
+O portfólio é uma aplicação multi-página, com navegação lateral e rotas
+próprias por secção.
 
-**Menu implementado, com quatro secções:**
+**Menu implementado, com sete secções:**
 
 1. Início
 2. Projetos
 3. Habilidades
 4. Contato
+5. Jogos
+6. Artigos
+7. Experimentos
+
+Cada secção tem uma URL própria, sem âncora: `/`, `/projetos`, `/habilidades`,
+`/contato`, `/jogos`, `/artigos` e `/experimentos`. A navegação é feita pelo
+clique no item de menu, e cada página tem a sua própria barra de rolagem
+vertical. O link da secção actual está marcado com `aria-current="page"`.
 
 As habilidades e tecnologias são apresentadas na secção própria **Habilidades**,
 com uma secção independente no menu. A secção **Início** apresenta a identidade,
 o resumo profissional e a fotografia.
 
-**Secções planeadas, ainda por construir:**
+**Secções implementadas, com conteúdo por preencher:**
 
 | Secção | Estado | Conteúdo previsto |
 |---|---|---|
@@ -102,9 +110,9 @@ o resumo profissional e a fotografia.
 | Artigos | por construir | conhecimentos, experiências técnicas e conteúdos sobre desenvolvimento de software |
 | Experimentos | por construir | protótipos, testes de tecnologias, provas de conceito, pequenas aplicações, estudos técnicos e experimentos com IA |
 
-Estas três secções dependem da conclusão do MVP e da disponibilidade de conteúdo
-real. A sua criação exige tarefas próprias na change `001-portfolio-mvp`, com
-respeto pelo grafo de dependências.
+Estas três secções já têm rota e são navegáveis, mas ainda não têm conteúdo
+real. A construção do conteúdo exige tarefas próprias na change
+`001-portfolio-mvp`, com respeito pelo grafo de dependências.
 
 ### 2.2 Conteúdo de cada secção
 
@@ -650,32 +658,25 @@ estão em `tasks/TASK-NNN.md`, com uma tarefa por ficheiro.
 
 | Tarefa | Título | Estado |
 |---|---|---|
-| TASK-001 | Inicializar aplicação | `PENDING` |
-| TASK-002 | Configurar qualidade e Git Hooks | `PENDING` |
-| TASK-003 | Configurar estilos globais | `PENDING` |
-| TASK-004 | Criar estrutura de navegação | `PENDING` |
-| TASK-005 | Implementar secção inicial | `PENDING` |
-| TASK-006 | Implementar secção de projetos | `PENDING` |
-| TASK-007 | Implementar secção de habilidades | `PENDING` |
-| TASK-008 | Implementar secção de contacto | `PENDING` |
-| TASK-009 | Preencher o conteúdo real do portfólio | `PENDING` |
-| TASK-010 | Revisar responsividade e performance | `PENDING` |
-| TASK-011 | Validação final | `PENDING` |
-| TASK-012 | Preparar publicação | `PENDING` |
+| TASK-001 | Inicializar aplicação | `ARCHIVED` |
+| TASK-002 | Configurar qualidade e Git Hooks | `ARCHIVED` |
+| TASK-003 | Configurar estilos globais | `ARCHIVED` |
+| TASK-004 | Rever e corrigir a estrutura de navegação | `ARCHIVED` |
+| TASK-005 | Implementar seção inicial | `ARCHIVED` |
+| TASK-006 | Rever e completar a seção de projetos | `ARCHIVED` |
+| TASK-007 | Rever e completar a seção de habilidades | `ARCHIVED` |
+| TASK-008 | Rever e completar a seção de contato | `ARCHIVED` |
+| TASK-009 | Preparar a canalização de conteúdo real do portfólio | `COMPLETED` |
+| TASK-010 | Revisar responsividade e performance | `COMPLETED` |
+| TASK-011 | Transformar o portfólio numa aplicação multi-página | `IN PROGRESS` |
+| TASK-012 | Manter a publicação em espera | `PENDING` |
+| TASK-013 | Diagnóstico-first: falha `lint-staged could not find any staged files` no commit-task de TASK-006 | `ARCHIVED` |
+| TASK-014 | Alargar o conteúdo e construir as secções de Jogos, Artigos e Experimentos | `PENDING` |
 
-> **Nota sobre o desvio entre estado registado e estado real.** O código das
-> secções Início, Projetos, Habilidades e Contacto, os estilos globais, os
-> tokens, a navegação lateral e a cadeia de qualidade **já estão implementados**,
-> enquanto as tarefas correspondentes continuam `PENDING`. A TASK-001 foi
-> reescrita para reflectir a revisão e a verificação do código existente, e as
-> restantes estão em processo de reescrita com o mesmo critério.
->
-> A TASK-001 está `COMPLETED` + `VERIFIED` + `ARCHIVED` na branch
-> `task/001-001-inicializar-aplicacao`, que ainda não foi integrada em `main`.
-> Até essa integração, `main` mostra a tarefa como `PENDING`.
->
-> O ficheiro de uma tarefa é a fonte de verdade do seu próprio estado, e o
-> `docs/history.md` regista as decisões tomadas.
+> **Nota sobre o estado das tarefas.** As tasks 001 a 008 e a 013 estão
+> `ARCHIVED`, em `specs/changes/001-portfolio-mvp/tasks/archive/`. As tasks 009 e
+> 010 estão `COMPLETED` e verificadas. A task 011 está em curso, e as tasks 012 e
+> 014 estão `PENDING`, por dependerem da 011.
 
 ### 9.2 Change 002 — RawSpec Task Commands
 
@@ -727,14 +728,13 @@ A prioridade atual é finalizar o MVP.
 
 1. Consolidar o processo de desenvolvimento sem burocracia excessiva.
 2. Verificar e preservar a fundação técnica já implementada.
-3. Finalizar estilos globais e tokens.
-4. Construir a navegação lateral.
-5. Desenvolver a secção inicial.
-6. Desenvolver as secções de projetos, jogos, artigos e experimentos.
-7. Desenvolver a secção de contacto.
-8. Finalizar responsividade e acessibilidade.
-9. Executar validações finais.
-10. Preparar a publicação estática.
+3. Preservar os estilos globais e os tokens.
+4. Preservar a navegação lateral, agora por rotas.
+5. Preservar as secções de início, projetos, habilidades e contacto.
+6. Preencher o conteúdo real das secções já implementadas.
+7. Construir as secções de jogos, artigos e experimentos, com conteúdo real.
+8. Preservar a responsividade e a acessibilidade.
+9. Preparar a publicação estática, com a decisão do destino de alojamento.
 
 A ordem definitiva respeita as dependências técnicas identificadas no
 projeto. O grafo effective está no ficheiro de cada tarefa, no campo

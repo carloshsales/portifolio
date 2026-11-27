@@ -750,3 +750,12 @@ Registro append-only de decisões, eventos e detalhes relevantes. Entradas nunca
 - Motivo: Corrigido o staging de ficheiros removidos no commit-task: git add -u em vez de git add -- path, com guarda isDeletionStaged. Motivo: git add -- public/images/foto-perfil.png falhava com exit 128 porque o ficheiro ja foi removido do disco, bloqueando o commit da TASK-010. Impacto: scripts/rawspec-v2.mjs alterado; 2 testes novos em scripts/rawspec-v2.test.mjs (179/179 passam); teste negativo comprovado. Evidencia: suite do helper 179/179; pnpm test 373 passed 1 skipped; pnpm test:e2e 78 passed 3 skipped.
 - Impacto: não informado
 - Evidência: não informada
+
+## 2026-11-26 — Decisão — TASK-011 concluida
+
+- Autor: Carlos Henrique
+- Origem: sessão
+- Decisão: TASK-011 COMPLETED e VERIFIED: aplicacao multi-pagina com TanStack Router por codigo, sete rotas, per-page scroll, Sidebar com activeProps, marca como ancora simples, tres icones novos, migracao de testes para router de memoria, remocao de useActiveSection, docs atualizados. Verificacao: pnpm test 381 passed | 1 skipped; pnpm test:e2e 80 passed | 4 skipped; lint/typecheck/build OK; bundle 372.16/217.50 kB. Revisores A e B aprovaram.
+- Motivo: TASK-011 COMPLETED e VERIFIED: aplicacao multi-pagina com TanStack Router por codigo, sete rotas, per-page scroll, Sidebar com activeProps, marca como ancora simples, tres icones novos, migracao de testes para router de memoria, remocao de useActiveSection, docs atualizados. Verificacao: pnpm test 381 passed | 1 skipped; pnpm test:e2e 80 passed | 4 skipped; lint/typecheck/build OK; bundle 372.16/217.50 kB. Revisores A e B aprovaram.
+- Impacto: não informado
+- Evidência: não informada

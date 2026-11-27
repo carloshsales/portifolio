@@ -4,6 +4,9 @@
 
 .main {
   min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
 }
 
 .skipLink {
@@ -38,7 +41,18 @@
 }
 
 @media (max-width: 1023px) {
+  .shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+  }
+
   .main {
+    flex: 1;
+    min-height: 0;
+    height: auto;
     /*
      * Espaço para a barra de navegação inferior não cobrir o conteúdo.
      * A altura da barra é partilhada com `Sidebar.module.css`, acrescida

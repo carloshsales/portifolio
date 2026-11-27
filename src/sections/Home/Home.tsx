@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { profile } from '../../data/profile'
 import { projects } from '../../data/projects'
 import { Section } from '../../components/Section'
@@ -29,14 +30,14 @@ export function Home() {
           {hasProjects || hasContacts ? (
             <div className={styles.actions}>
               {hasProjects ? (
-                <a href="#projetos" className={styles.primary}>
+                <Link to="/projetos" className={styles.primary}>
                   Ver projetos
-                </a>
+                </Link>
               ) : null}
               {hasContacts ? (
-                <a href="#contato" className={styles.secondary}>
+                <Link to="/contato" className={styles.secondary}>
                   Contato
-                </a>
+                </Link>
               ) : null}
             </div>
           ) : null}

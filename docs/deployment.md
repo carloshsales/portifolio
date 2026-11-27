@@ -15,8 +15,8 @@ O projeto é uma aplicação frontend estática, sem backend, sem base de dados 
 | Requer Node | 22 ou superior |
 | Requer pnpm | 12 (fixado em `package.json` pelo campo `packageManager`) |
 | Assets com hash | Sim: `index-<hash>.js`, `index-<hash>.css` |
-| Rotas | Só âncoras (`#inicio`, `#projetos`, `#habilidades`, `#contato`). Sem router. |
-| SPA fallback | **Desnecessário.** A aplicação tem uma única rota. |
+| Rotas | Sete rotas com URL próprio, sem `#`: `/`, `/projetos`, `/habilidades`, `/contato`, `/jogos`, `/artigos` e `/experimentos`. Router: TanStack Router, com as rotas definidas por código. |
+| SPA fallback | **Necessário.** As rotas são resolvidas no cliente, pelo que `/projetos` não corresponde a nenhum ficheiro em `dist/`. Sem reescrita para `index.html`, um carregamento directo ou um recarregamento dessa rota devolve 404. |
 
 Conteúdo gerado:
 
@@ -37,7 +37,7 @@ Qualquer destino tem de satisfazer estes cinco requisitos:
 
 1. **Servir `dist/`** como raiz do site, incluindo `index.html` na raiz.
 2. **HTTPS** com certificado válido e redireccionamento de HTTP.
-3. **Sem SPA fallback.** A aplicação tem uma única rota, portanto não é preciso reescrever URLs desconhecidas para `index.html`.
+3. **SPA fallback obrigatório.** Um pedido a uma rota que não corresponde a um ficheiro em `dist/`, como `/projetos`, tem de ser respondido com o conteúdo de `index.html`. Sem essa reescrita, um carregamento directo ou um recarregamento da página devolve 404, e o visitante vê um erro em vez do portfólio. A navegação por clique não depende do servidor, porque é feita no cliente.
 4. **Cache longo para `assets/`**, com `Cache-Control: public, max-age=31536000, immutable`. Os nomes dos ficheiros incluem hash, por isso o conteúdo nunca muda sob o mesmo nome.
 5. **Cache curto para `index.html`**, para que uma publicação nova sejadetectada rapidamente. Um valor de `no-cache` ou `max-age=0` é adequado.
 
@@ -85,7 +85,8 @@ Válida para qualquer um dos candidatos. Os passos 2 a 5 são comuns a todos.
 3. **Publicar o conteúdo de `dist/`** para o destino escolhido.
 4. **Confirmar em produção:**
    - a página carrega sem erros no console;
-   - a navegação por âncoras funciona;
+   - a navegação por rotas funciona, e um carregamento directo de
+     `/projetos` devolve a página da secção e não um erro 404;
    - a fotografia e as fontes carregam;
    - os links de contacto funcionam.
 5. **Verificar a cache:** `curl -I <url>` deve devolver `Cache-Control: immutable` para `assets/` e `no-cache` para `index.html`.
@@ -134,7 +135,8 @@ Antes de considerar a publicação concluída:
 - [ ] `pnpm build` termina sem erros
 - [ ] `dist/index.html` existe
 - [ ] A página abre em produção sem erros no console
-- [ ] A navegação por âncoras percorre as quatro secções
+- [ ] A navegação por rotas percorre as sete secções, e cada rota
+      responde com a página da secção correspondente
 - [ ] A fotografia carrega
 - [ ] Os links de contacto abrem
 - [ ] `Cache-Control` está definido correctamente para `assets/` e `index.html`

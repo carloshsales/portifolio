@@ -1,11 +1,34 @@
 import { render } from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from '../App'
+
+const SECTION_PATHS = [
+  '/',
+  '/projetos',
+  '/habilidades',
+  '/contato',
+  '/jogos',
+  '/artigos',
+  '/experimentos',
+] as const
+
+async function renderAt(path: string): Promise<ReturnType<typeof render>> {
+  const { RouterProvider, createMemoryHistory, createRouter } =
+    await import('@tanstack/react-router')
+  const { routeTree } = await import('../router')
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({ initialEntries: [path] }),
+  })
+
+  await router.load()
+
+  return render(<RouterProvider router={router} />)
+}
 
 describe('acessibilidade', () => {
   it('não apresenta violações automáticas de acessibilidade', async () => {
-    const { container } = render(<App />)
+    const { container } = await renderAt('/')
 
     const results = await axe(container)
 
@@ -13,7 +36,7 @@ describe('acessibilidade', () => {
   })
 
   it('não apresenta violações automáticas em cada secção', async () => {
-    const { container } = render(<App />)
+    const { container } = await renderAt('/')
     const sections = Array.from(container.querySelectorAll('section'))
 
     expect(sections.length).toBeGreaterThan(0)
@@ -26,7 +49,7 @@ describe('acessibilidade', () => {
   })
 
   it('não apresenta violações automáticas na navegação', async () => {
-    const { container } = render(<App />)
+    const { container } = await renderAt('/')
     const navigation = container.querySelector('nav')
 
     expect(navigation).not.toBeNull()
@@ -37,7 +60,7 @@ describe('acessibilidade', () => {
   })
 
   it('não apresenta violações automáticas na barra lateral', async () => {
-    const { container } = render(<App />)
+    const { container } = await renderAt('/')
     const sidebar = container.querySelector('aside')
 
     expect(sidebar).not.toBeNull()
@@ -48,7 +71,7 @@ describe('acessibilidade', () => {
   })
 
   it('não apresenta violações automáticas no link de salto', async () => {
-    const { container } = render(<App />)
+    const { container } = await renderAt('/')
     const skipLink = container.querySelector('a[href="#conteudo"]')
 
     expect(skipLink).not.toBeNull()
@@ -58,14 +81,24 @@ describe('acessibilidade', () => {
     expect(results.violations).toEqual([])
   })
 
-  it('não apresenta violações automáticas na navegação com a secção ativa', async () => {
-    const { container } = render(<App />)
+  it('não apresenta violações automáticas na navegação com a rota ativa', async () => {
+    const { container } = await renderAt('/')
     const navigation = container.querySelector('nav')
-    const active = navigation?.querySelector('a[aria-current="true"]')
+    const active = navigation?.querySelector('a[aria-current="page"]')
 
     expect(active).not.toBeNull()
 
     const results = await axe(navigation as HTMLElement)
+
+    expect(results.violations).toEqual([])
+  })
+})
+
+describe('acessibilidade em cada página', () => {
+  it.each(SECTION_PATHS)('não apresenta violações automáticas na página %s', async (path) => {
+    const { container } = await renderAt(path)
+
+    const results = await axe(container)
 
     expect(results.violations).toEqual([])
   })
@@ -92,8 +125,7 @@ describe('acessibilidade com projetos preenchidos', () => {
   })
 
   it('não apresenta violações automáticas com projetos preenchidos', async () => {
-    const { default: FilledApp } = await import('../App')
-    const { container } = render(<FilledApp />)
+    const { container } = await renderAt('/projetos')
 
     const results = await axe(container)
 
@@ -101,8 +133,7 @@ describe('acessibilidade com projetos preenchidos', () => {
   })
 
   it('não apresenta violações automáticas na secção de projetos preenchida', async () => {
-    const { default: FilledApp } = await import('../App')
-    const { container } = render(<FilledApp />)
+    const { container } = await renderAt('/projetos')
     const section = container.querySelector('section#projetos')
 
     expect(section).not.toBeNull()
@@ -129,8 +160,7 @@ describe('acessibilidade com habilidades preenchidas', () => {
   })
 
   it('não apresenta violações automáticas com habilidades preenchidas', async () => {
-    const { default: FilledApp } = await import('../App')
-    const { container } = render(<FilledApp />)
+    const { container } = await renderAt('/habilidades')
 
     const results = await axe(container)
 
@@ -138,8 +168,7 @@ describe('acessibilidade com habilidades preenchidas', () => {
   })
 
   it('não apresenta violações automáticas na secção de habilidades preenchida', async () => {
-    const { default: FilledApp } = await import('../App')
-    const { container } = render(<FilledApp />)
+    const { container } = await renderAt('/habilidades')
     const section = container.querySelector('section#habilidades')
 
     expect(section).not.toBeNull()
@@ -173,8 +202,7 @@ describe('acessibilidade com canais de contato preenchidos', () => {
   })
 
   it('não apresenta violações automáticas com canais de contato preenchidos', async () => {
-    const { default: FilledApp } = await import('../App')
-    const { container } = render(<FilledApp />)
+    const { container } = await renderAt('/contato')
 
     const results = await axe(container)
 
@@ -182,8 +210,7 @@ describe('acessibilidade com canais de contato preenchidos', () => {
   })
 
   it('não apresenta violações automáticas na secção de contato preenchida', async () => {
-    const { default: FilledApp } = await import('../App')
-    const { container } = render(<FilledApp />)
+    const { container } = await renderAt('/contato')
     const section = container.querySelector('section#contato')
 
     expect(section).not.toBeNull()
